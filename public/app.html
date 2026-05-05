@@ -14423,5 +14423,1445 @@ document.addEventListener('cdp:reading-ready', function() {
 </script>
 
 
+<!-- ============================================================== -->
+<!-- v19 RETENTION LAYER (5 May 2026)                                -->
+<!-- Morning compass, streak counter, intention save, email capture, -->
+<!-- continuity-of-memory hooks. Self-contained block.               -->
+<!-- ============================================================== -->
+
+<!-- v19 STYLES -->
+<style id="cdp-v19-styles">
+:root {
+  --v19-gold: #B8942A;
+  --v19-gold-soft: rgba(184, 148, 42, 0.12);
+  --v19-teal: #3E6B8A;
+  --v19-navy: #0D1E33;
+  --v19-parchment: #F4F1EA;
+  --v19-rule: rgba(184, 148, 42, 0.32);
+}
+
+/* COMPASS SURFACE */
+#scompass.screen { display: none; }
+#scompass.screen.on { display: block; }
+
+@keyframes v19-compass-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes v19-compass-tile-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes v19-glyph-pulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+
+.cdp-compass-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  animation: v19-compass-fade-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.cdp-compass-greet {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--v19-gold);
+  margin: 0 0 4px 0;
+}
+
+.cdp-compass-date {
+  font-family: 'Georgia', serif;
+  font-size: 18px;
+  color: var(--text2, #555);
+  margin: 0 0 28px 0;
+}
+
+.cdp-compass-quote {
+  border-left: 3px solid var(--v19-gold);
+  padding: 18px 0 18px 22px;
+  margin: 0 0 32px 0;
+  position: relative;
+  transition: border-color 200ms ease;
+}
+.cdp-compass-quote .voice-glyph {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--v19-teal);
+  margin-bottom: 10px;
+}
+.cdp-compass-quote .voice-glyph .v-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 18px;
+  font-size: 11px;
+  background: var(--v19-gold-soft);
+  color: var(--v19-navy);
+  animation: v19-glyph-pulse 3s ease-in-out infinite;
+}
+.cdp-compass-quote.voice-tradition { border-color: var(--v19-gold); }
+.cdp-compass-quote.voice-science   { border-color: var(--v19-teal); }
+.cdp-compass-quote.voice-everyday  { border-color: #6c8a72; }
+.cdp-compass-quote p {
+  font-family: 'Georgia', serif;
+  font-size: 22px;
+  line-height: 1.45;
+  margin: 0;
+  color: var(--v19-navy);
+  font-style: italic;
+  transition: opacity 200ms ease;
+}
+.cdp-compass-quote p.is-fading {
+  opacity: 0;
+}
+
+.cdp-compass-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin: 0 0 32px 0;
+}
+.cdp-compass-tile {
+  background: var(--v19-gold-soft);
+  border: 1px solid var(--v19-rule);
+  border-radius: 10px;
+  padding: 16px 12px;
+  text-align: center;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: v19-compass-tile-in 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.cdp-compass-tile:nth-child(1) { animation-delay: 80ms; }
+.cdp-compass-tile:nth-child(2) { animation-delay: 160ms; }
+.cdp-compass-tile:nth-child(3) { animation-delay: 240ms; }
+.cdp-compass-tile .tile-glyph {
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: 8px;
+  color: var(--v19-navy);
+}
+.cdp-compass-tile .tile-label {
+  font-family: 'Helvetica Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v19-teal);
+  margin-bottom: 4px;
+}
+.cdp-compass-tile .tile-value {
+  font-family: 'Georgia', serif;
+  font-size: 14px;
+  color: var(--v19-navy);
+  line-height: 1.3;
+}
+
+.cdp-compass-intention {
+  width: 100%;
+  margin: 0 0 24px 0;
+}
+.cdp-compass-intention label {
+  display: block;
+  font-family: 'Helvetica Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v19-teal);
+  margin-bottom: 8px;
+}
+.cdp-compass-intention input {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  color: var(--v19-navy);
+  background: #fff;
+  border: 1px solid var(--v19-rule);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.cdp-compass-intention input:focus {
+  outline: none;
+  border-color: var(--v19-gold);
+  box-shadow: 0 0 0 2px var(--v19-gold-soft);
+}
+.cdp-compass-intention .yesterday {
+  font-size: 12px;
+  color: var(--text3, #888);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.cdp-compass-cta {
+  display: block;
+  width: 100%;
+  padding: 16px 24px;
+  background: var(--v19-navy);
+  color: #fff;
+  font-family: 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.18s ease;
+}
+.cdp-compass-cta:hover { background: var(--v19-teal); }
+
+@media (max-width: 480px) {
+  .cdp-compass-grid { grid-template-columns: 1fr; }
+  .cdp-compass-tile { min-height: 72px; flex-direction: row; gap: 12px; padding: 12px 16px; text-align: left; justify-content: flex-start; }
+  .cdp-compass-tile .tile-glyph { margin-bottom: 0; }
+  .cdp-compass-tile .tile-content { display: flex; flex-direction: column; }
+  .cdp-compass-quote p { font-size: 19px; }
+}
+
+/* STREAK CHIP (lives in topbar) */
+.cdp-streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--v19-gold-soft);
+  border: 1px solid var(--v19-rule);
+  border-radius: 999px;
+  font-family: 'Helvetica Neue', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v19-navy);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 8px;
+}
+.cdp-streak-chip:hover { background: var(--v19-gold); color: #fff; }
+.cdp-streak-chip.streak-zero { opacity: 0.5; }
+.cdp-streak-flame { font-size: 13px; }
+.cdp-streak-num { font-size: 13px; }
+
+/* STREAK PAGE (calendar grid) */
+.cdp-streak-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+.cdp-streak-headline {
+  font-family: 'Georgia', serif;
+  font-size: 28px;
+  color: var(--v19-navy);
+  margin: 0 0 8px 0;
+}
+.cdp-streak-sub {
+  font-family: 'Georgia', serif;
+  color: var(--text2, #555);
+  margin: 0 0 24px 0;
+  font-style: italic;
+}
+.cdp-streak-stats {
+  display: flex;
+  gap: 24px;
+  margin: 0 0 32px 0;
+  padding: 20px 0;
+  border-top: 1px solid var(--v19-rule);
+  border-bottom: 1px solid var(--v19-rule);
+}
+.cdp-streak-stat .stat-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v19-teal);
+  margin-bottom: 4px;
+}
+.cdp-streak-stat .stat-value {
+  font-family: 'Georgia', serif;
+  font-size: 28px;
+  color: var(--v19-navy);
+}
+.cdp-streak-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  margin-bottom: 24px;
+}
+.cdp-streak-cell {
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+.cdp-streak-cell.active {
+  background: var(--v19-gold);
+}
+.cdp-streak-cell.today {
+  border: 2px solid var(--v19-navy);
+}
+.cdp-streak-status-msg {
+  padding: 16px;
+  background: var(--v19-gold-soft);
+  border-radius: 8px;
+  font-family: 'Georgia', serif;
+  color: var(--v19-navy);
+  font-style: italic;
+  text-align: center;
+}
+
+/* IN-APP EMAIL CAPTURE */
+.cdp-email-capture {
+  margin: 32px auto;
+  max-width: 480px;
+  padding: 24px;
+  background: var(--v19-parchment);
+  border: 1px solid var(--v19-rule);
+  border-radius: 12px;
+  text-align: center;
+}
+.cdp-email-capture-title {
+  font-family: 'Georgia', serif;
+  font-size: 18px;
+  color: var(--v19-navy);
+  margin: 0 0 8px 0;
+}
+.cdp-email-capture-body {
+  font-family: 'Georgia', serif;
+  font-size: 14px;
+  color: var(--text2, #555);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+.cdp-email-capture-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: 'Georgia', serif;
+  font-size: 15px;
+  border: 1px solid var(--v19-rule);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+.cdp-email-capture-cta {
+  background: var(--v19-navy);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cdp-email-capture-cta:hover { background: var(--v19-teal); }
+.cdp-email-capture-thanks {
+  color: var(--v19-teal);
+  font-style: italic;
+  font-family: 'Georgia', serif;
+}
+.cdp-email-capture-dismiss {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text3, #888);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* CONTINUITY BREADCRUMB (Day 12: real surface) */
+.cdp-continuity-breadcrumb {
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+  padding: 0;
+  margin: 0 0 16px 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(62, 107, 138, 0.06);
+  border-left: 2px solid var(--v19-teal);
+}
+.cdp-continuity-summary {
+  font-style: italic;
+  color: var(--v19-teal);
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  user-select: none;
+}
+.cdp-continuity-summary:hover { background: rgba(62, 107, 138, 0.1); }
+.cdp-continuity-summary .chev {
+  font-size: 11px;
+  transition: transform 200ms ease;
+}
+.cdp-continuity-breadcrumb[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.cdp-continuity-detail {
+  display: none;
+  padding: 14px;
+  border-top: 1px solid rgba(62, 107, 138, 0.2);
+  background: #fff;
+  font-style: normal;
+  color: var(--v19-navy);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cdp-continuity-breadcrumb[aria-expanded="true"] .cdp-continuity-detail { display: block; }
+.cdp-continuity-detail .cont-meta {
+  font-family: 'Helvetica Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--v19-teal);
+  margin-bottom: 8px;
+}
+.cdp-continuity-detail .cont-themes {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--v19-gold-soft);
+  color: var(--v19-navy);
+  margin-right: 6px;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+</style>
+
+<!-- v19 COMPASS SCREEN -->
+<div id="scompass" class="screen">
+  <div class="cdp-compass-wrap">
+    <div class="cdp-compass-greet" id="v19CompassGreet">Good morning</div>
+    <div class="cdp-compass-date" id="v19CompassDate"></div>
+
+    <div class="cdp-compass-quote voice-tradition" id="v19CompassQuote">
+      <span class="voice-glyph" id="v19VoiceGlyph">
+        <span class="v-icon" id="v19VoiceIcon">T</span>
+        <span id="v19VoiceLabel">Tradition</span>
+      </span>
+      <p id="v19QuoteText">Today asks for the steady, attentive work of someone who knows their direction.</p>
+    </div>
+
+    <div class="cdp-compass-grid">
+      <div class="cdp-compass-tile" id="v19TileKin">
+        <span class="tile-glyph" id="v19KinGlyph">◊</span>
+        <div class="tile-content">
+          <div class="tile-label">Kin</div>
+          <div class="tile-value" id="v19KinName">Loading</div>
+        </div>
+      </div>
+      <div class="cdp-compass-tile" id="v19TileMoon">
+        <span class="tile-glyph" id="v19MoonGlyph">☽</span>
+        <div class="tile-content">
+          <div class="tile-label">Moon</div>
+          <div class="tile-value" id="v19MoonPhase">Loading</div>
+        </div>
+      </div>
+      <div class="cdp-compass-tile" id="v19TileDay">
+        <span class="tile-glyph" id="v19PersonalDay">·</span>
+        <div class="tile-content">
+          <div class="tile-label">Personal Day</div>
+          <div class="tile-value" id="v19DayTheme">Loading</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cdp-compass-intention">
+      <label for="v19Intention">Today, what matters?</label>
+      <input id="v19Intention" type="text" maxlength="240" placeholder="A single line, if it helps you focus." />
+      <div class="yesterday" id="v19YesterdayHint" style="display:none"></div>
+    </div>
+
+    <button class="cdp-compass-cta" id="v19CompassCta" onclick="v19OpenFullReading()">Begin today</button>
+  </div>
+</div>
+
+<!-- v19 STREAK PAGE -->
+<div id="sstreak" class="screen">
+  <div class="cdp-streak-page">
+    <h2 class="cdp-streak-headline" id="v19StreakHeadline">Your daily practice</h2>
+    <p class="cdp-streak-sub" id="v19StreakSub">A gentle record of the days you visited.</p>
+    <div class="cdp-streak-stats">
+      <div class="cdp-streak-stat">
+        <div class="stat-label">Current</div>
+        <div class="stat-value" id="v19StatCurrent">0</div>
+      </div>
+      <div class="cdp-streak-stat">
+        <div class="stat-label">Longest</div>
+        <div class="stat-value" id="v19StatLongest">0</div>
+      </div>
+      <div class="cdp-streak-stat">
+        <div class="stat-label">Last 30 days</div>
+        <div class="stat-value" id="v19StatActive">0</div>
+      </div>
+    </div>
+    <div class="cdp-streak-grid" id="v19StreakGrid"></div>
+    <div class="cdp-streak-status-msg" id="v19StreakStatusMsg" style="display:none"></div>
+  </div>
+</div>
+
+<!-- v19 LOGIC -->
+<script id="cdp-v19-logic">
+(function() {
+  'use strict';
+
+  // v19 client module. Self-contained. Reads existing CDP globals
+  // when needed (cdpGetVoice, currentReading) but does not depend on
+  // them for compass-only paths. All API calls go to the v19
+  // endpoints attached to the same server as the existing app.
+
+  // ── Anonymous user identifier ──────────────────────────────────
+  // For unsigned-in users, we generate a stable per-browser anonymous
+  // ID so the streak and intention surfaces work without auth. This
+  // is the dual-track storage pattern: anonymous works locally and
+  // server-side; signed-in upgrades seamlessly to authenticated.
+  function v19GetUserId() {
+    try {
+      // Prefer the authenticated user ID if the existing auth flow
+      // has populated it
+      if (window.cdpUser && window.cdpUser.id) return window.cdpUser.id;
+      if (window.currentUser && window.currentUser.id) return window.currentUser.id;
+      // Fall back to the anonymous ID
+      let anon = localStorage.getItem('cdp_anon_id');
+      if (!anon) {
+        anon = 'anon_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        localStorage.setItem('cdp_anon_id', anon);
+      }
+      return anon;
+    } catch (e) {
+      return 'anon_session';
+    }
+  }
+
+  // ── Analytics ──────────────────────────────────────────────────
+  function v19Track(event, props) {
+    try {
+      const enriched = Object.assign({},
+        props || {},
+        { compass_variant: v19CurrentCompassVariant() }
+      );
+      if (window.plausible) {
+        window.plausible(event, { props: enriched });
+      }
+      // Also forward to the existing /api/analytics endpoint if used
+      if (window.fetch) {
+        fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, props: enriched, ts: Date.now() }),
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  // ── Day 5: Notification opt-in (browser push + email fallback) ──
+  // The opt-in surface appears on Day 3 of use, never sooner. It
+  // offers two paths:
+  //   1. Browser push (if supported and not already denied)
+  //   2. Email morning prompt (always available; reuses email-capture
+  //      surface from Day 1 of v19)
+  //
+  // The user can decline both with no nagging; we cap at 3 dismissals
+  // total across both paths.
+  //
+  // Push notifications require a service worker. v19 ships the
+  // registration but the actual push-send pipeline is v20 work
+  // (server-side push via VAPID keys, payload generation tied to the
+  // morning ritual cron). v19's push opt-in is therefore "permission
+  // requested and stored" rather than "messages will arrive", which is the same
+  // honesty as the email-capture surface.
+
+  function v19PushSupported() {
+    return typeof window !== 'undefined'
+      && 'serviceWorker' in navigator
+      && 'PushManager' in window
+      && 'Notification' in window;
+  }
+
+  function v19PushPermissionState() {
+    if (!('Notification' in window)) return 'unsupported';
+    return Notification.permission; // 'default' | 'granted' | 'denied'
+  }
+
+  async function v19RegisterServiceWorker() {
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      // Register the service worker. The actual sw.js file is shipped
+      // alongside the app. v19 sw is minimal: it just proves the
+      // registration path and stores the subscription for v20 to use.
+      const reg = await navigator.serviceWorker.register('/sw-v19.js', { scope: '/' });
+      return reg;
+    } catch (e) {
+      console.warn('[v19] service worker registration failed:', e && e.message);
+      return null;
+    }
+  }
+
+  async function v19RequestPushPermission() {
+    if (!v19PushSupported()) return { ok: false, reason: 'unsupported' };
+    const current = v19PushPermissionState();
+    if (current === 'granted') return { ok: true, alreadyGranted: true };
+    if (current === 'denied') return { ok: false, reason: 'denied' };
+    try {
+      const result = await Notification.requestPermission();
+      v19Track('push_permission_response', { result });
+      if (result !== 'granted') return { ok: false, reason: result };
+      // Register the service worker now that we have permission
+      const reg = await v19RegisterServiceWorker();
+      if (!reg) return { ok: false, reason: 'sw_failed' };
+      try { localStorage.setItem('cdp_push_granted', 'true'); } catch (e) {}
+      return { ok: true, alreadyGranted: false };
+    } catch (e) {
+      return { ok: false, reason: 'exception', error: e && e.message };
+    }
+  }
+
+  function v19MaybeShowNotificationOptIn() {
+    try {
+      // Already responded? Do not nag.
+      if (localStorage.getItem('cdp_push_granted') === 'true') return;
+      if (localStorage.getItem('cdp_email_captured') === 'true') return;
+      const dismissed = parseInt(localStorage.getItem('cdp_notif_dismissed_count') || '0', 10);
+      if (dismissed >= 3) return;
+      // Only show on Day 3 of use or later (per spec)
+      const streak = window.__v19StreakState;
+      if (!streak || streak.current < 3) return;
+      // Avoid colliding with the email-capture surface (only one at a time)
+      if (document.getElementById('v19EmailCapture')) return;
+      if (document.getElementById('v19NotifOptIn')) return;
+      v19RenderNotificationOptIn();
+    } catch (e) {}
+  }
+
+  function v19RenderNotificationOptIn() {
+    const active = document.querySelector('.screen.on');
+    if (!active) return;
+
+    const supported = v19PushSupported();
+    const permState = v19PushPermissionState();
+
+    const wrap = document.createElement('div');
+    wrap.id = 'v19NotifOptIn';
+    wrap.className = 'cdp-email-capture'; // reuse the same visual treatment
+
+    let bodyHtml = '';
+    if (supported && permState !== 'denied') {
+      // Both paths offered; push is the lighter ask
+      bodyHtml = `
+        <div class="cdp-email-capture-title">A gentle morning nudge</div>
+        <div class="cdp-email-capture-body">
+          You have been here three days in a row. Want CDP to remind you in the morning so the streak is easier to keep? Two ways: a quiet browser notification, or a daily email. Both are off by default and one tap to stop.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">
+          <button class="cdp-email-capture-cta" onclick="window.v19EnablePush()">Browser nudge</button>
+          <button class="cdp-email-capture-cta" style="background:var(--v19-teal)" onclick="window.v19SwitchToEmailFromNotif()">Email me instead</button>
+        </div>
+        <div class="cdp-email-capture-dismiss" onclick="window.v19DismissNotifOptIn()">Not now</div>
+      `;
+    } else {
+      // Push not supported or denied: offer email only
+      bodyHtml = `
+        <div class="cdp-email-capture-title">A gentle morning nudge</div>
+        <div class="cdp-email-capture-body">
+          You have been here three days in a row. Want a daily email at 7am so the streak is easier to keep?
+        </div>
+        <input type="email" class="cdp-email-capture-input" id="v19EmailInputNotif" placeholder="your@email.com" />
+        <button class="cdp-email-capture-cta" onclick="window.v19SaveEmailFromNotif()">Yes, email me</button>
+        <div class="cdp-email-capture-dismiss" onclick="window.v19DismissNotifOptIn()">Not now</div>
+      `;
+    }
+
+    wrap.innerHTML = bodyHtml;
+    active.appendChild(wrap);
+    v19Track('notif_optin_shown', { supported: String(supported), perm_state: permState });
+  }
+
+  async function v19EnablePush() {
+    const wrap = document.getElementById('v19NotifOptIn');
+    const result = await v19RequestPushPermission();
+    if (result.ok) {
+      if (wrap) wrap.innerHTML = '<div class="cdp-email-capture-thanks">Granted. The first nudge arrives tomorrow morning.</div>';
+      v19Track('push_enabled', {});
+    } else {
+      // Fall back to email
+      if (wrap) {
+        wrap.innerHTML = `
+          <div class="cdp-email-capture-title">Browser nudge unavailable</div>
+          <div class="cdp-email-capture-body">No problem. We can email you instead, with the same gentle 7am cadence.</div>
+          <input type="email" class="cdp-email-capture-input" id="v19EmailInputNotif" placeholder="your@email.com" />
+          <button class="cdp-email-capture-cta" onclick="window.v19SaveEmailFromNotif()">Yes, email me</button>
+          <div class="cdp-email-capture-dismiss" onclick="window.v19DismissNotifOptIn()">Not now</div>
+        `;
+      }
+      v19Track('push_unavailable_fallback_email', { reason: result.reason || 'unknown' });
+    }
+  }
+
+  function v19SwitchToEmailFromNotif() {
+    const wrap = document.getElementById('v19NotifOptIn');
+    if (!wrap) return;
+    wrap.innerHTML = `
+      <div class="cdp-email-capture-title">Daily email at 7am</div>
+      <div class="cdp-email-capture-body">We will not share your email and you can stop any time.</div>
+      <input type="email" class="cdp-email-capture-input" id="v19EmailInputNotif" placeholder="your@email.com" />
+      <button class="cdp-email-capture-cta" onclick="window.v19SaveEmailFromNotif()">Yes, email me</button>
+      <div class="cdp-email-capture-dismiss" onclick="window.v19DismissNotifOptIn()">Not now</div>
+    `;
+    v19Track('notif_optin_switched_to_email', {});
+  }
+
+  async function v19SaveEmailFromNotif() {
+    const inputEl = document.getElementById('v19EmailInputNotif');
+    const wrap = document.getElementById('v19NotifOptIn');
+    if (!inputEl || !wrap) return;
+    const email = (inputEl.value || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      inputEl.style.borderColor = '#c0392b';
+      return;
+    }
+    let timezone = 'UTC';
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) {}
+    const userId = v19GetUserId();
+    try {
+      const r = await fetch('/api/email/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CDP-Anon-Id': userId, 'X-CDP-Timezone': timezone },
+        body: JSON.stringify({ user_id: userId, email, timezone }),
+      });
+      if (r.ok) {
+        localStorage.setItem('cdp_email_captured', 'true');
+        wrap.innerHTML = '<div class="cdp-email-capture-thanks">Thank you. The first email arrives tomorrow morning.</div>';
+        v19Track('email_captured', { tz: timezone, source: 'notif_optin' });
+      }
+    } catch (e) {}
+  }
+
+  function v19DismissNotifOptIn() {
+    const wrap = document.getElementById('v19NotifOptIn');
+    if (wrap) wrap.remove();
+    try {
+      const count = parseInt(localStorage.getItem('cdp_notif_dismissed_count') || '0', 10) + 1;
+      localStorage.setItem('cdp_notif_dismissed_count', String(count));
+    } catch (e) {}
+    v19Track('notif_optin_dismissed', {});
+  }
+
+  // ── Day 6: A/B test framework ──────────────────────────────────
+  // Sticky per-user assignment to one of two compass variants. The
+  // assignment is bucketed by hashing the userId so the same user
+  // always sees the same variant across sessions. The variant is
+  // exposed as a 'compass_variant' property on every Plausible event
+  // so we can compare conversion-to-full-reading rates between arms.
+  //
+  // Variants:
+  //   A: current compass copy (CTA "Begin today" / "Reorient" / etc.)
+  //   B: more directive CTA copy ("Read today's reading" / "Open full
+  //      reading") and a slightly different intention prompt
+  //
+  // The assignment is per-experiment-name so we can run multiple
+  // experiments concurrently without collision.
+  function v19AssignVariant(experimentName, userId) {
+    const cacheKey = `cdp_ab_${experimentName}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached === 'A' || cached === 'B') return cached;
+    } catch (e) {}
+    // Hash userId + experiment name for sticky assignment
+    let h = 0;
+    const str = `${experimentName}|${userId}`;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    const variant = (Math.abs(h) % 2) === 0 ? 'A' : 'B';
+    try { localStorage.setItem(cacheKey, variant); } catch (e) {}
+    return variant;
+  }
+
+  function v19CurrentCompassVariant() {
+    return v19AssignVariant('compass_v19', v19GetUserId());
+  }
+
+  // Day 6: variant-specific CTA copy. Variant A keeps the time-of-day
+  // CTA from Day 1; variant B uses more directive copy.
+  function v19VariantCtaForHour(variant, hour, defaultCta) {
+    if (variant !== 'B') return defaultCta;
+    if (hour < 11) return 'Read today\'s reading';
+    if (hour < 14) return 'Open the midday reading';
+    if (hour < 18) return 'Open today\'s afternoon reading';
+    if (hour < 21) return 'Open today\'s evening reading';
+    return 'Open the night reading';
+  }
+
+  // Day 6: variant-specific intention placeholder.
+  function v19VariantIntentionPlaceholder(variant) {
+    if (variant === 'B') return 'One sentence on what today is for.';
+    return 'A single line, if it helps you focus.';
+  }
+
+  // ── Day 2: Voice quote pool. Shifts with time of day and voice ───
+  // Quotes are calibrated to be evocative without overclaiming. The
+  // tradition voice draws on archetypal language; the science voice
+  // anchors in cognitive neuroscience and chronobiology; the everyday
+  // voice avoids jargon from either tradition. Five buckets per voice:
+  // opening (under 11), midday-early (11-14), midday-late (14-18),
+  // closing-early (18-21), closing-late (21+).
+  const V19_VOICE_QUOTES = {
+    tradition: {
+      opening: [
+        'Today asks for the steady, attentive work of someone who knows their direction.',
+        'The morning belongs to whoever names it. Begin.',
+        'A clear opening; the day is yours to shape, not to receive.',
+      ],
+      midday_early: [
+        'Midday turns the question. What needs your full attention now?',
+        'The thread you began this morning is asking to be picked up again.',
+        'Notice what is asking to be released, and what is asking to be deepened.',
+      ],
+      midday_late: [
+        'The afternoon rewards directness. What deserves the next hour?',
+        'A reorientation, gently. The day has been long enough to know its shape.',
+        'Hold what matters; let the rest settle to the bottom.',
+      ],
+      closing_early: [
+        'Evening is for noticing what was true today, not what you intended.',
+        'The day reveals itself in retrospect. What stands?',
+        'A gentle review: the work of today, the rest required for tomorrow.',
+      ],
+      closing_late: [
+        'Late hours, soft attention. The day completes itself in sleep.',
+        'A reading before sleep is a thread tied off, not a new beginning.',
+        'Let go of today, even if today did not unfold as you wanted.',
+      ],
+    },
+    science: {
+      opening: [
+        'The brain is most receptive to new patterns in the first 90 minutes after waking. What pattern do you want to lay down today?',
+        'Cortisol naturally peaks shortly after waking; this is the window for direction-setting, not for reviewing.',
+        'Predictive processing biases the morning toward whatever you focus on first. Choose deliberately.',
+      ],
+      midday_early: [
+        'The default mode network rests when attention is engaged on a single task. Now is the right time for focused work.',
+        'Energy reserves cycle in roughly 90-minute ultradian rhythms. Honour the rest between blocks.',
+        'Working memory is finite; offloading lesser items frees the cognitive system for what matters.',
+      ],
+      midday_late: [
+        'The post-lunch dip is real and not personal. A short walk, water, light: these are not optional.',
+        'Decision fatigue accumulates through the afternoon. Make the important choices early.',
+        'The brain consolidates morning learning during the afternoon trough. Light tasks now serve later cognition.',
+      ],
+      closing_early: [
+        'Memory consolidation begins in the hours before sleep. What you reflect on now strengthens what you learned today.',
+        'Evening cortisol decline supports parasympathetic recovery. Match the body, not the inbox.',
+        'The interoceptive cortex grows quieter when light dims. Notice the body returning to itself.',
+      ],
+      closing_late: [
+        'Sleep is when the hippocampus replays the day at high speed. Let it work.',
+        'The glymphatic system clears metabolic waste during deep sleep. Tonight is part of tomorrow.',
+        'Late-night decisions are statistically poorer. Defer what you can.',
+      ],
+    },
+    everyday: {
+      opening: [
+        'A new day. What matters most before noon?',
+        'Start with the one thing that, if done, makes today good.',
+        'Take a breath. Then begin.',
+      ],
+      midday_early: [
+        'Halfway through the morning. Are you on the thing that matters?',
+        'A small reset, on purpose, while there is still time to use it.',
+        'What still wants doing today?',
+      ],
+      midday_late: [
+        'Afternoon. Move, drink water, then come back.',
+        'What can wait until tomorrow? Let it.',
+        'The day has been long enough. What deserves the next hour?',
+      ],
+      closing_early: [
+        'Evening. A few quiet minutes here will pay off tomorrow.',
+        'What did today actually ask of you? Was it answered?',
+        'Set down what is finished. Carry forward only what matters.',
+      ],
+      closing_late: [
+        'Late. Tomorrow is closer than you think.',
+        'A small reading before sleep, then rest.',
+        'Let the day go. Tomorrow gets a fresh page.',
+      ],
+    },
+  };
+
+  function v19BucketForHour(hour) {
+    if (hour < 11) return 'opening';
+    if (hour < 14) return 'midday_early';
+    if (hour < 18) return 'midday_late';
+    if (hour < 21) return 'closing_early';
+    return 'closing_late';
+  }
+
+  function v19PickQuote(voice, hour, seed) {
+    const v = (voice || 'tradition').toLowerCase();
+    const pool = (V19_VOICE_QUOTES[v] || V19_VOICE_QUOTES.tradition);
+    const bucket = v19BucketForHour(hour);
+    const candidates = pool[bucket] || pool.opening;
+    // Stable selection per user-day-bucket so a refresh does not shuffle
+    // the quote on the same compass visit.
+    const idx = (seed | 0) % candidates.length;
+    return candidates[Math.abs(idx)];
+  }
+
+  function v19DayBucketSeed(userId, hour) {
+    // Stable per (user, day, hour-bucket) so within one bucket the same
+    // quote shows on refresh; across buckets it changes naturally.
+    const day = new Date().toDateString();
+    const bucket = v19BucketForHour(hour);
+    let s = 0;
+    const str = `${userId}|${day}|${bucket}`;
+    for (let i = 0; i < str.length; i++) s = (s * 31 + str.charCodeAt(i)) | 0;
+    return s;
+  }
+
+  function v19RenderVoiceQuote(voice, hour, userId) {
+    const quoteEl = document.getElementById('v19QuoteText');
+    const containerEl = document.getElementById('v19CompassQuote');
+    const iconEl = document.getElementById('v19VoiceIcon');
+    const labelEl = document.getElementById('v19VoiceLabel');
+    if (!quoteEl) return;
+
+    const v = (voice || 'tradition').toLowerCase();
+    const seed = v19DayBucketSeed(userId, hour);
+    const newQuote = v19PickQuote(v, hour, seed);
+
+    // Voice class on the quote container drives border colour
+    if (containerEl) {
+      containerEl.classList.remove('voice-tradition', 'voice-science', 'voice-everyday');
+      containerEl.classList.add(`voice-${v}`);
+    }
+    if (iconEl) {
+      iconEl.textContent = v === 'science' ? 'S' : v === 'everyday' ? 'E' : 'T';
+    }
+    if (labelEl) {
+      labelEl.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+    }
+
+    // Smooth crossfade if quote actually changes
+    if (quoteEl.textContent === newQuote) return;
+    quoteEl.classList.add('is-fading');
+    setTimeout(() => {
+      quoteEl.textContent = newQuote;
+      quoteEl.classList.remove('is-fading');
+    }, 220);
+  }
+
+  // ── Compass ────────────────────────────────────────────────────
+  async function v19LoadCompass() {
+    const userId = v19GetUserId();
+    const hour = new Date().getHours();
+    const url = `/api/compass/today?user_id=${encodeURIComponent(userId)}&hour=${hour}`;
+
+    let context = { greeting: 'Good morning', cta: 'Begin today', voice_focus: 'opening', yesterday_intention: null };
+    try {
+      const r = await fetch(url, { headers: { 'X-CDP-Anon-Id': userId } });
+      if (r.ok) {
+        const json = await r.json();
+        if (json.ok) context = json;
+      }
+    } catch (e) { /* graceful fallback to default context */ }
+
+    // Render greeting + date
+    const greetEl = document.getElementById('v19CompassGreet');
+    const dateEl = document.getElementById('v19CompassDate');
+    const ctaEl = document.getElementById('v19CompassCta');
+    if (greetEl) greetEl.textContent = context.greeting;
+    if (dateEl) {
+      const today = new Date();
+      const dStr = today.toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      });
+      dateEl.textContent = dStr;
+    }
+    // Day 6 A/B: CTA copy varies by variant
+    const variant = v19CurrentCompassVariant();
+    const variantCta = v19VariantCtaForHour(variant, hour, context.cta);
+    if (ctaEl) ctaEl.textContent = variantCta;
+
+    // Day 6 A/B: intention placeholder also varies
+    const intentInputEl = document.getElementById('v19Intention');
+    if (intentInputEl) {
+      intentInputEl.placeholder = v19VariantIntentionPlaceholder(variant);
+    }
+
+    // Yesterday's intention pre-fill hint
+    const yhint = document.getElementById('v19YesterdayHint');
+    const intentEl = document.getElementById('v19Intention');
+    if (context.yesterday_intention && yhint && intentEl) {
+      yhint.textContent = `Yesterday: "${context.yesterday_intention}"`;
+      yhint.style.display = 'block';
+      // Do not auto-fill the input (user might want a different focus today)
+    } else if (yhint) {
+      yhint.style.display = 'none';
+    }
+
+    // Voice glyph + voice-of-day quote (Day 2 polish)
+    let voice = 'tradition';
+    try { voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition'; } catch (e) {}
+    v19RenderVoiceQuote(voice, hour, userId);
+
+    // Pull kin/moon/numerology from the existing reading state if loaded.
+    // If not loaded yet, leave the defaults; the existing reading flow will
+    // populate them when it runs. v19 deliberately does not duplicate the
+    // existing calculation pipeline.
+    try {
+      if (window.currentReading) {
+        const r = window.currentReading;
+        const kinName = (r.dreamspell && r.dreamspell.kin_name) || (r.kin && r.kin.name);
+        if (kinName) document.getElementById('v19KinName').textContent = kinName;
+        const moonPhase = (r.lunar && r.lunar.phase) || (r.moon && r.moon.phase);
+        if (moonPhase) document.getElementById('v19MoonPhase').textContent = moonPhase;
+        const personalDay = (r.numerology && r.numerology.personal_day);
+        if (personalDay !== undefined) {
+          document.getElementById('v19PersonalDay').textContent = personalDay;
+          const themes = ['Beginning', 'Connection', 'Expression', 'Foundation', 'Change', 'Care', 'Inquiry', 'Power', 'Completion'];
+          const t = themes[(parseInt(personalDay, 10) - 1) % 9] || 'Reflection';
+          document.getElementById('v19DayTheme').textContent = t;
+        }
+      }
+    } catch (e) {}
+
+    v19Track('compass_viewed', { hour: String(hour), voice: voice });
+
+    // Record the visit (this advances the streak engine)
+    v19RecordVisit();
+  }
+
+  // ── Intention save ─────────────────────────────────────────────
+  async function v19SaveIntention() {
+    const intentEl = document.getElementById('v19Intention');
+    if (!intentEl) return;
+    const intention = (intentEl.value || '').trim();
+    if (!intention) return;
+
+    const userId = v19GetUserId();
+    try {
+      await fetch('/api/compass/intention', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CDP-Anon-Id': userId },
+        body: JSON.stringify({ user_id: userId, intention }),
+      });
+      v19Track('intention_saved', { length: String(intention.length) });
+    } catch (e) {}
+  }
+
+  // ── Streak ─────────────────────────────────────────────────────
+  async function v19RecordVisit() {
+    const userId = v19GetUserId();
+    try {
+      const r = await fetch('/api/streak/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CDP-Anon-Id': userId },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (r.ok) {
+        const json = await r.json();
+        v19RenderStreakChip(json);
+        if (json.delta && json.delta !== 'noop') {
+          v19Track('streak_visit', { delta: json.delta, current: String(json.current) });
+        }
+        // Cache for synchronous access elsewhere
+        window.__v19StreakState = json;
+      }
+    } catch (e) {}
+  }
+
+  async function v19LoadStreakPage() {
+    const userId = v19GetUserId();
+    let state = { current: 0, longest: 0, status: 'new', history_30d: [] };
+    try {
+      const r = await fetch(`/api/streak?user_id=${encodeURIComponent(userId)}`, {
+        headers: { 'X-CDP-Anon-Id': userId },
+      });
+      if (r.ok) {
+        const json = await r.json();
+        if (json.ok) state = json;
+      }
+    } catch (e) {}
+
+    document.getElementById('v19StatCurrent').textContent = state.current;
+    document.getElementById('v19StatLongest').textContent = state.longest;
+    document.getElementById('v19StatActive').textContent =
+      (state.history_30d || []).filter(Boolean).length;
+
+    // Render the 30-day grid
+    const grid = document.getElementById('v19StreakGrid');
+    if (grid) {
+      grid.innerHTML = '';
+      const history = state.history_30d || [];
+      history.forEach((active, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'cdp-streak-cell' + (active ? ' active' : '') + (i === history.length - 1 ? ' today' : '');
+        grid.appendChild(cell);
+      });
+    }
+
+    // Status message
+    const msgEl = document.getElementById('v19StreakStatusMsg');
+    if (msgEl) {
+      let msg = '';
+      if (state.status === 'new') msg = 'Welcome. The first day is the only one that matters today.';
+      else if (state.status === 'active') msg = `Day ${state.current} of consistent practice. Quietly compounding.`;
+      else if (state.status === 'gentle_resume') msg = 'Welcome back. The thread holds.';
+      else if (state.status === 'fresh_start') msg = 'A new beginning. Today is day one again.';
+      if (msg) {
+        msgEl.textContent = msg;
+        msgEl.style.display = 'block';
+      } else {
+        msgEl.style.display = 'none';
+      }
+    }
+  }
+
+  function v19RenderStreakChip(state) {
+    let chip = document.getElementById('v19StreakChip');
+    if (!chip) {
+      // Inject into topbar-right area if present
+      const right = document.querySelector('.topbar-right');
+      if (!right) return;
+      chip = document.createElement('button');
+      chip.id = 'v19StreakChip';
+      chip.className = 'cdp-streak-chip';
+      chip.title = 'Your daily streak. Tap for the calendar.';
+      chip.onclick = () => {
+        if (window.showScreen) window.showScreen('sstreak', null);
+        v19LoadStreakPage();
+        v19Track('streak_chip_tapped', {});
+      };
+      // Insert before the auth area for visibility
+      const authArea = document.getElementById('authBtnArea');
+      if (authArea) right.insertBefore(chip, authArea);
+      else right.insertBefore(chip, right.firstChild);
+    }
+    const n = state.current || 0;
+    chip.classList.toggle('streak-zero', n === 0);
+    chip.innerHTML = `<span class="cdp-streak-flame">✦</span><span class="cdp-streak-num">${n}</span>`;
+  }
+
+  // ── Email capture ──────────────────────────────────────────────
+  // Triggered post-meaningful-reading. Soft, dismissable, value-coupled.
+  // No broadcast; just stores email + timezone for v20.
+  function v19MaybeShowEmailCapture() {
+    try {
+      if (localStorage.getItem('cdp_email_captured') === 'true') return;
+      if (localStorage.getItem('cdp_email_dismissed_count')) {
+        const count = parseInt(localStorage.getItem('cdp_email_dismissed_count'), 10);
+        if (count >= 3) return; // do not nag past 3 dismissals
+      }
+      const streak = window.__v19StreakState;
+      // Only show after at least 2 days (proven engagement signal)
+      if (!streak || streak.current < 2) return;
+      v19RenderEmailCapture();
+    } catch (e) {}
+  }
+
+  function v19RenderEmailCapture() {
+    // Find an anchor: the bottom of the active reading, or the bottom of the compass
+    const active = document.querySelector('.screen.on');
+    if (!active) return;
+    if (document.getElementById('v19EmailCapture')) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'v19EmailCapture';
+    wrap.className = 'cdp-email-capture';
+    wrap.innerHTML = `
+      <div class="cdp-email-capture-title">Your morning compass, delivered</div>
+      <div class="cdp-email-capture-body">
+        Want today's compass to arrive in your inbox each morning at 7am? We will not share your email and you can stop any time.
+      </div>
+      <input type="email" class="cdp-email-capture-input" id="v19EmailInput" placeholder="your@email.com" />
+      <button class="cdp-email-capture-cta" onclick="window.v19SaveEmail()">Yes, send it</button>
+      <div class="cdp-email-capture-dismiss" onclick="window.v19DismissEmailCapture()">Not now</div>
+    `;
+    active.appendChild(wrap);
+    v19Track('email_capture_shown', {});
+  }
+
+  async function v19SaveEmail() {
+    const inputEl = document.getElementById('v19EmailInput');
+    const wrap = document.getElementById('v19EmailCapture');
+    if (!inputEl || !wrap) return;
+    const email = (inputEl.value || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      inputEl.style.borderColor = '#c0392b';
+      return;
+    }
+    let timezone = 'UTC';
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) {}
+
+    const userId = v19GetUserId();
+    try {
+      const r = await fetch('/api/email/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CDP-Anon-Id': userId },
+        body: JSON.stringify({ user_id: userId, email, timezone }),
+      });
+      if (r.ok) {
+        localStorage.setItem('cdp_email_captured', 'true');
+        wrap.innerHTML = '<div class="cdp-email-capture-thanks">Thank you. The first email arrives tomorrow morning.</div>';
+        v19Track('email_captured', { tz: timezone });
+      }
+    } catch (e) {}
+  }
+
+  function v19DismissEmailCapture() {
+    const wrap = document.getElementById('v19EmailCapture');
+    if (wrap) wrap.remove();
+    try {
+      const count = parseInt(localStorage.getItem('cdp_email_dismissed_count') || '0', 10) + 1;
+      localStorage.setItem('cdp_email_dismissed_count', String(count));
+    } catch (e) {}
+    v19Track('email_capture_dismissed', {});
+  }
+
+  // ── Continuity-of-memory: post-reading hook ────────────────────
+  // After a reading completes, store a compact summary. v20 will use
+  // these summaries to make readings feel continuous; v19 just plumbs
+  // the data path so the foundation is real.
+  async function v19StoreReadingSummary() {
+    try {
+      if (!window.currentReading) return;
+      const r = window.currentReading;
+      // Build a tiny summary from what's already in the reading
+      const themes = [];
+      if (r.numerology && r.numerology.personal_day) themes.push('numerology');
+      if (r.dreamspell && r.dreamspell.kin_name) themes.push('dreamspell');
+      if (r.astrology) themes.push('astrology');
+      if (r.lunar) themes.push('lunar');
+
+      // Insight: one sentence from the reading or the today's-priorities section
+      let insight = '';
+      if (r.priorities && r.priorities.length) {
+        insight = String(r.priorities[0]).slice(0, 600);
+      } else if (r.summary) {
+        insight = String(r.summary).slice(0, 600);
+      } else if (r.intro) {
+        insight = String(r.intro).slice(0, 600);
+      } else {
+        insight = 'A reading was generated; the underlying themes were noted.';
+      }
+
+      const userId = v19GetUserId();
+      await fetch('/api/memory/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CDP-Anon-Id': userId },
+        body: JSON.stringify({
+          user_id: userId,
+          themes,
+          insight,
+          source_reading_id: r.id || null,
+        }),
+      });
+      v19Track('memory_summary_stored', { theme_count: String(themes.length) });
+    } catch (e) {}
+  }
+
+  // ── Continuity breadcrumb (Day 12: real surface) ───────────────
+  // For returning users, render an expandable breadcrumb at the top of
+  // the reading. Tapping reveals the actual past summary the system
+  // is using as continuity context. v20 will integrate this with the
+  // server's /api/memory/context endpoint to show what context fed
+  // the new reading; v19 shows the most recent past summary as a
+  // first-step proof of the data path.
+  async function v19InjectContinuityBreadcrumb() {
+    try {
+      const userId = v19GetUserId();
+      const r = await fetch(`/api/memory/recent?user_id=${encodeURIComponent(userId)}&limit=1`, {
+        headers: { 'X-CDP-Anon-Id': userId },
+      });
+      if (!r.ok) return;
+      const json = await r.json();
+      if (!json.ok || !json.summaries || json.summaries.length === 0) return;
+      const last = json.summaries[0];
+      // Only show if the last summary is at least 12 hours old
+      const ageMs = Date.now() - new Date(last.created_at).getTime();
+      if (ageMs < 12 * 3600 * 1000) return;
+
+      // Avoid duplicating the breadcrumb if already injected
+      if (document.getElementById('v19Breadcrumb')) return;
+
+      // Inject at the top of the reading screen
+      const readingContent = document.getElementById('readingContent');
+      if (!readingContent) return;
+
+      // Format the date as a friendly relative string
+      const ageDays = Math.round(ageMs / 86400000);
+      const dateLabel = ageDays === 0 ? 'earlier today'
+        : ageDays === 1 ? 'yesterday'
+        : ageDays < 7 ? `${ageDays} days ago`
+        : new Date(last.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+      // Headline copy: warm, not clinical
+      const headlines = [
+        'Continuing from where you left off.',
+        'Picking up the thread.',
+        'A moment of connection from before.',
+        'The thread holds.',
+      ];
+      // Stable selection per day so the headline does not shuffle on refresh
+      const dayKey = new Date().toDateString();
+      let h = 0;
+      for (let i = 0; i < dayKey.length; i++) h = (h * 31 + dayKey.charCodeAt(i)) | 0;
+      const headline = headlines[Math.abs(h) % headlines.length];
+
+      // Build themes pills
+      const themesHtml = (last.themes || []).slice(0, 4)
+        .map(t => `<span class="cont-themes">${escapeHtml(t)}</span>`)
+        .join('');
+
+      const breadcrumb = document.createElement('div');
+      breadcrumb.id = 'v19Breadcrumb';
+      breadcrumb.className = 'cdp-continuity-breadcrumb';
+      breadcrumb.setAttribute('aria-expanded', 'false');
+      breadcrumb.innerHTML = `
+        <div class="cdp-continuity-summary" role="button" tabindex="0">
+          <span>${escapeHtml(headline)}</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="cdp-continuity-detail">
+          <div class="cont-meta">From ${escapeHtml(dateLabel)}</div>
+          ${themesHtml ? `<div style="margin-bottom:10px">${themesHtml}</div>` : ''}
+          <div>${escapeHtml(last.insight || '')}</div>
+        </div>
+      `;
+      readingContent.insertBefore(breadcrumb, readingContent.firstChild);
+
+      // Toggle expansion on tap or keyboard
+      const summary = breadcrumb.querySelector('.cdp-continuity-summary');
+      function toggle() {
+        const expanded = breadcrumb.getAttribute('aria-expanded') === 'true';
+        breadcrumb.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        if (!expanded) {
+          v19Track('continuity_breadcrumb_expanded', { age_days: String(ageDays) });
+        }
+      }
+      summary.addEventListener('click', toggle);
+      summary.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
+      });
+
+      v19Track('continuity_breadcrumb_shown', { age_days: String(ageDays) });
+    } catch (e) {}
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ── Compass open hook ──────────────────────────────────────────
+  function v19OpenFullReading() {
+    v19SaveIntention();
+    v19Track('compass_cta_tapped', {});
+    if (window.showScreen) window.showScreen('sr', null);
+    if (window.startReading) window.startReading();
+    else if (window.showModeSelector && !window.currentReading) window.showModeSelector();
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  function v19Init() {
+    // Add the Compass nav pill
+    const navContainers = [document.querySelector('.topbar .nav'), document.getElementById('navDropdown')];
+    navContainers.forEach((nav, idx) => {
+      if (!nav) return;
+      if (nav.querySelector('[data-v19-nav]')) return;
+      const pill = document.createElement('button');
+      pill.className = 'npill';
+      pill.setAttribute('data-v19-nav', '1');
+      pill.textContent = 'Compass';
+      pill.onclick = () => {
+        if (window.showScreen) window.showScreen('scompass', pill);
+        v19LoadCompass();
+        if (idx === 1 && window.closeMobileNav) window.closeMobileNav();
+      };
+      // Insert as the first child for prominence (Compass is the entry surface)
+      nav.insertBefore(pill, nav.firstChild);
+    });
+
+    // Wire up the intention save on blur
+    setTimeout(() => {
+      const intentEl = document.getElementById('v19Intention');
+      if (intentEl) {
+        intentEl.addEventListener('blur', v19SaveIntention);
+      }
+    }, 200);
+
+    // Initial streak fetch + chip render
+    fetch(`/api/streak?user_id=${encodeURIComponent(v19GetUserId())}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json && json.ok) v19RenderStreakChip(json); })
+      .catch(() => {});
+
+    // Hook into reading completion for summary storage and breadcrumb injection
+    // The existing CDP code dispatches 'cdp:reading-complete' on the document
+    // when a reading lands; if it does not, we patch render-time hooks.
+    document.addEventListener('cdp:reading-complete', v19StoreReadingSummary);
+    document.addEventListener('cdp:reading-complete', v19MaybeShowEmailCapture);
+    document.addEventListener('cdp:reading-complete', v19MaybeShowNotificationOptIn);
+    document.addEventListener('cdp:reading-rendered', v19InjectContinuityBreadcrumb);
+
+    // Failsafe: also poll for currentReading changes
+    let lastReadingId = null;
+    setInterval(() => {
+      try {
+        if (window.currentReading && window.currentReading.id && window.currentReading.id !== lastReadingId) {
+          lastReadingId = window.currentReading.id;
+          v19StoreReadingSummary();
+          v19MaybeShowEmailCapture();
+          v19MaybeShowNotificationOptIn();
+          v19InjectContinuityBreadcrumb();
+        }
+      } catch (e) {}
+    }, 3000);
+
+    console.log('[v19] Retention layer initialised: compass, streak, intention, memory, email capture');
+  }
+
+  // Expose what we need globally
+  window.v19LoadCompass = v19LoadCompass;
+  window.v19LoadStreakPage = v19LoadStreakPage;
+  window.v19OpenFullReading = v19OpenFullReading;
+  window.v19SaveEmail = v19SaveEmail;
+  window.v19DismissEmailCapture = v19DismissEmailCapture;
+  window.v19RecordVisit = v19RecordVisit;
+  // Day 5 notification flow
+  window.v19EnablePush = v19EnablePush;
+  window.v19SwitchToEmailFromNotif = v19SwitchToEmailFromNotif;
+  window.v19SaveEmailFromNotif = v19SaveEmailFromNotif;
+  window.v19DismissNotifOptIn = v19DismissNotifOptIn;
+  // Day 6 A/B helpers (exposed for debugging / external test harness)
+  window.v19CurrentCompassVariant = v19CurrentCompassVariant;
+  window.v19PushSupported = v19PushSupported;
+  window.v19PushPermissionState = v19PushPermissionState;
+
+  // Initialise when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', v19Init);
+  } else {
+    v19Init();
+  }
+})();
+</script>
+
+<!-- ============================================================== -->
+<!-- /v19 RETENTION LAYER                                            -->
+<!-- ============================================================== -->
+
 </body>
 </html>
