@@ -1,0 +1,416 @@
+<!--
+  CDP Three-Voice Toggle Module
+  Adds Tradition / Science / Everyday voice switching, in-place, instant.
+  Plus: prominent "More" disclosure that reveals the Two Telescopes structure.
+
+  Drop into app.html immediately after the calendar module, before </body>.
+
+  Backend contract: every reading section that supports voice switching has data attributes:
+    <div class="cdp-voiced" data-tradition="..." data-science="..." data-everyday="...">
+      [initial visible text]
+    </div>
+  When the user toggles, the module replaces the section's text with the matching attribute.
+
+  For longer content, the backend can render three sibling blocks instead, each with a single class:
+    <div class="cdp-voice-block cdp-voice-tradition">...</div>
+    <div class="cdp-voice-block cdp-voice-science">...</div>
+    <div class="cdp-voice-block cdp-voice-everyday">...</div>
+  The toggle hides the non-active blocks via CSS.
+
+  Both patterns work side by side. The toggle is a single source of truth.
+
+  Self-contained. No off-site links. No localStorage. State is in window.cdpVoice (memory only).
+-->
+
+<style>
+  /* ===== Three-voice toggle bar ===== */
+  .cdp-voice-bar {
+    display: inline-flex;
+    background: #F4F1EA;
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+    font-family: Helvetica, Arial, sans-serif;
+    box-shadow: inset 0 0 0 1px rgba(44, 62, 90, 0.08);
+  }
+  .cdp-voice-bar button {
+    background: transparent;
+    border: none;
+    color: #3E6B8A;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    line-height: 1;
+  }
+  .cdp-voice-bar button:hover {
+    color: #2C3E5A;
+  }
+  .cdp-voice-bar button.cdp-active {
+    background: #2C3E5A;
+    color: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(44, 62, 90, 0.3);
+  }
+  .cdp-voice-bar button.cdp-active.cdp-voice-everyday-btn {
+    background: #B8942A;
+  }
+  .cdp-voice-bar button.cdp-active.cdp-voice-tradition-btn {
+    background: #2C3E5A;
+  }
+  .cdp-voice-bar button.cdp-active.cdp-voice-science-btn {
+    background: #3E6B8A;
+  }
+
+  /* ===== Voice-block visibility ===== */
+  /* Default: tradition visible */
+  body[data-cdp-voice="tradition"] .cdp-voice-block.cdp-voice-science,
+  body[data-cdp-voice="tradition"] .cdp-voice-block.cdp-voice-everyday {
+    display: none;
+  }
+  body[data-cdp-voice="science"] .cdp-voice-block.cdp-voice-tradition,
+  body[data-cdp-voice="science"] .cdp-voice-block.cdp-voice-everyday {
+    display: none;
+  }
+  body[data-cdp-voice="everyday"] .cdp-voice-block.cdp-voice-tradition,
+  body[data-cdp-voice="everyday"] .cdp-voice-block.cdp-voice-science {
+    display: none;
+  }
+
+  /* Subtle voice indicator for in-place swapped text */
+  .cdp-voiced {
+    transition: opacity 0.18s ease;
+  }
+  .cdp-voiced.cdp-voice-fading {
+    opacity: 0;
+  }
+
+  /* ===== "More" disclosure to Two Telescopes ===== */
+  .cdp-tt-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: transparent;
+    border: 1.5px solid #B8942A;
+    color: #B8942A;
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.18s;
+  }
+  .cdp-tt-trigger:hover {
+    background: #B8942A;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(184, 148, 42, 0.3);
+  }
+  .cdp-tt-trigger .cdp-tt-arrow {
+    display: inline-block;
+    transition: transform 0.2s;
+    font-size: 0.85em;
+  }
+  .cdp-tt-trigger.cdp-tt-open .cdp-tt-arrow {
+    transform: rotate(90deg);
+  }
+
+  .cdp-tt-disclosure {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.4s ease;
+    margin-top: 0;
+  }
+  .cdp-tt-disclosure.cdp-tt-open {
+    max-height: 2000px;
+    margin-top: 1.2rem;
+  }
+
+  .cdp-tt-panel {
+    background: linear-gradient(135deg, #F4F1EA 0%, #EDE6D3 100%);
+    border-radius: 12px;
+    padding: 1.6rem 1.8rem;
+    border: 1px solid rgba(184, 148, 42, 0.3);
+  }
+  .cdp-tt-panel h3 {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #2C3E5A;
+    margin: 0 0 0.4rem;
+    font-size: 1.3rem;
+  }
+  .cdp-tt-panel .cdp-tt-sub {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: #B8942A;
+    margin-bottom: 1.2rem;
+    font-size: 1rem;
+  }
+  .cdp-tt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .cdp-tt-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    border-left: 3px solid #2C3E5A;
+  }
+  .cdp-tt-card.cdp-tt-card-science { border-left-color: #3E6B8A; }
+  .cdp-tt-card.cdp-tt-card-everyday {
+    border-left-color: #B8942A;
+    grid-column: 1 / -1;
+  }
+  .cdp-tt-card h4 {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #2C3E5A;
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .cdp-tt-card.cdp-tt-card-everyday h4 { color: #B8942A; }
+  .cdp-tt-card p {
+    margin: 0;
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #1A1A1A;
+  }
+  .cdp-tt-cta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.4rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(44, 62, 90, 0.2);
+    flex-wrap: wrap;
+  }
+  .cdp-tt-cta-text {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: #3E6B8A;
+    font-size: 0.92rem;
+  }
+
+  @media (max-width: 600px) {
+    .cdp-tt-grid { grid-template-columns: 1fr; }
+    .cdp-tt-card.cdp-tt-card-everyday { grid-column: auto; }
+    .cdp-voice-bar button { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
+  }
+</style>
+
+<!--
+  Voice toggle bar (the "third button is here" component).
+  Mount one per reading section, or one global in the reading header.
+  Backend renders this with class="cdp-voice-bar" and the toggle wires it up.
+
+  Default placement: top-right of every reading on the daily page,
+  and inside the day-detail panel below the date.
+
+  HTML to copy where you want the toggle (the script picks it up automatically):
+-->
+<template id="cdp-voice-bar-template">
+  <div class="cdp-voice-bar" role="tablist" aria-label="Reading voice">
+    <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition" role="tab" aria-selected="true">Tradition</button>
+    <button type="button" class="cdp-voice-science-btn" data-voice="science" role="tab" aria-selected="false">Science</button>
+    <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday" role="tab" aria-selected="false">Everyday</button>
+  </div>
+</template>
+
+<!--
+  Two Telescopes disclosure (the prominent "More" from your screenshot, expanded).
+  Replaces a small "MORE" link with a clear tappable button that opens an in-place
+  panel explaining the three voices and offering the user a starting voice.
+
+  Drop this on:
+   - homepage hero (one instance, near the headline)
+   - first-time onboarding (one instance, before birth-data capture)
+   - help/about page
+
+  HTML to drop in:
+-->
+<template id="cdp-tt-disclosure-template">
+  <div class="cdp-tt-wrap" data-cdp-feature="two-telescopes-disclosure">
+    <button type="button" class="cdp-tt-trigger" aria-expanded="false">
+      <span class="cdp-tt-arrow">&#9656;</span>
+      <span>More: two telescopes, three voices</span>
+    </button>
+    <div class="cdp-tt-disclosure" aria-hidden="true">
+      <div class="cdp-tt-panel">
+        <h3>Two telescopes, pointed at the same sky.</h3>
+        <div class="cdp-tt-sub">Ancient traditions and modern neuroscience arrive at the same coordinates. CDP shows you both, in the voice you prefer.</div>
+        <div class="cdp-tt-grid">
+          <div class="cdp-tt-card cdp-tt-card-tradition">
+            <h4>Tradition</h4>
+            <p>The symbolic voice. Numerology, lunar wisdom, Mayan calendrics, Western archetypes. The language of meaning, drawn from millennia of human reflection. For when you want depth, image, and resonance.</p>
+          </div>
+          <div class="cdp-tt-card cdp-tt-card-science">
+            <h4>Science</h4>
+            <p>The neuroscience voice. Circadian cognition, attachment, predictive processing, the default mode network. The language of mechanism, drawn from current peer-reviewed research. For when you want what is happening in the brain and body.</p>
+          </div>
+          <div class="cdp-tt-card cdp-tt-card-everyday">
+            <h4>Everyday</h4>
+            <p>The plain-spoken voice. Same reading, no jargon either way. Just what today is good for, what to be careful about, and what to do next. For when you want the help without the language of either tradition or science.</p>
+          </div>
+        </div>
+        <div class="cdp-tt-cta">
+          <span class="cdp-tt-cta-text">Pick a starting voice. You can switch any time.</span>
+          <div class="cdp-voice-bar" role="tablist" aria-label="Choose a starting voice">
+            <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition">Tradition</button>
+            <button type="button" class="cdp-voice-science-btn" data-voice="science">Science</button>
+            <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday">Everyday</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== Single source of truth for current voice =====
+  // Lives on the body element so CSS can react via attribute selectors.
+  // Memory-only, no localStorage per CDP standards.
+
+  const VALID_VOICES = ['tradition', 'science', 'everyday'];
+
+  function getVoice() {
+    return document.body.getAttribute('data-cdp-voice') || 'tradition';
+  }
+
+  function setVoice(voice) {
+    if (!VALID_VOICES.includes(voice)) return;
+    if (getVoice() === voice) return;
+
+    document.body.setAttribute('data-cdp-voice', voice);
+    window.cdpVoice = voice;
+
+    // 1. Sync every voice-bar in the document
+    document.querySelectorAll('.cdp-voice-bar button[data-voice]').forEach(btn => {
+      const isActive = btn.getAttribute('data-voice') === voice;
+      btn.classList.toggle('cdp-active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    // 2. Swap text in every .cdp-voiced element with data-tradition / data-science / data-everyday
+    document.querySelectorAll('.cdp-voiced').forEach(el => {
+      const next = el.getAttribute('data-' + voice);
+      if (next == null) return;  // missing translation: leave as-is
+      // Brief fade for visual continuity
+      el.classList.add('cdp-voice-fading');
+      setTimeout(() => {
+        el.textContent = next;
+        el.classList.remove('cdp-voice-fading');
+      }, 180);
+    });
+
+    // 3. Voice-block visibility is handled entirely by CSS via the body attribute.
+    //    Nothing to do here.
+
+    // 4. Fire an event so other parts of the app can react (e.g. analytics, the day-detail panel)
+    document.dispatchEvent(new CustomEvent('cdp:voice-changed', { detail: { voice } }));
+
+    // 5. Analytics (if available)
+    if (window.trackEvent) {
+      try { window.trackEvent('voice_toggled', { voice }); } catch (e) { /* ignore */ }
+    }
+  }
+
+  // ===== Wire up every voice bar (delegation, so dynamically-inserted bars work too) =====
+
+  document.addEventListener('click', function(e) {
+    // Voice toggle clicks
+    const btn = e.target.closest('.cdp-voice-bar button[data-voice]');
+    if (btn) {
+      const v = btn.getAttribute('data-voice');
+      setVoice(v);
+      return;
+    }
+    // Two Telescopes disclosure trigger
+    const trigger = e.target.closest('.cdp-tt-trigger');
+    if (trigger) {
+      const wrap = trigger.closest('.cdp-tt-wrap');
+      if (!wrap) return;
+      const disclosure = wrap.querySelector('.cdp-tt-disclosure');
+      const isOpen = trigger.classList.toggle('cdp-tt-open');
+      disclosure.classList.toggle('cdp-tt-open', isOpen);
+      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      disclosure.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+      // Update button label to match the state
+      const labelSpan = trigger.querySelector('span:last-child');
+      if (labelSpan) {
+        labelSpan.textContent = isOpen ? 'Less: collapse two telescopes' : 'More: two telescopes, three voices';
+      }
+      if (window.trackEvent) {
+        try { window.trackEvent('two_telescopes_disclosure', { state: isOpen ? 'open' : 'close' }); } catch (e) { /* ignore */ }
+      }
+    }
+  });
+
+  // ===== Helpers exposed to the rest of the app =====
+
+  // Render a voice bar into a target element
+  window.cdpRenderVoiceBar = function(target) {
+    if (typeof target === 'string') target = document.querySelector(target);
+    if (!target) return;
+    const tpl = document.getElementById('cdp-voice-bar-template');
+    if (!tpl) return;
+    const clone = tpl.content.cloneNode(true);
+    target.appendChild(clone);
+    // Mark the active button to match current voice
+    const v = getVoice();
+    target.querySelectorAll('.cdp-voice-bar button[data-voice]').forEach(btn => {
+      const isActive = btn.getAttribute('data-voice') === v;
+      btn.classList.toggle('cdp-active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  };
+
+  // Render a Two Telescopes disclosure into a target element
+  window.cdpRenderTwoTelescopes = function(target) {
+    if (typeof target === 'string') target = document.querySelector(target);
+    if (!target) return;
+    const tpl = document.getElementById('cdp-tt-disclosure-template');
+    if (!tpl) return;
+    target.appendChild(tpl.content.cloneNode(true));
+  };
+
+  // Programmatic voice change
+  window.cdpSetVoice = setVoice;
+  window.cdpGetVoice = getVoice;
+
+  // ===== Initialise =====
+
+  function init() {
+    // Default voice if not already set
+    if (!document.body.hasAttribute('data-cdp-voice')) {
+      document.body.setAttribute('data-cdp-voice', 'tradition');
+    }
+    window.cdpVoice = getVoice();
+
+    // Sync any voice bars already in the DOM at load
+    const v = getVoice();
+    document.querySelectorAll('.cdp-voice-bar button[data-voice]').forEach(btn => {
+      const isActive = btn.getAttribute('data-voice') === v;
+      btn.classList.toggle('cdp-active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

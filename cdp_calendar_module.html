@@ -1,0 +1,682 @@
+<!--
+  CDP frontend module: Calendar Tab + Day Detail + Best Day + Feedback Widget
+  Drop into app.html immediately before </body>
+  Self-contained: no external CDN beyond what app.html already loads.
+  No localStorage / sessionStorage. State is in-memory only.
+  No off-site links from any reading or panel.
+-->
+
+<style>
+  /* CDP palette: INK #1A1A1A, ACCENT_DEEP #2C3E5A, ACCENT_MID #3E6B8A, GOLD #B8942A */
+
+  /* Calendar tab */
+  .cdp-calendar-wrap { padding: 1.5rem; max-width: 980px; margin: 0 auto; font-family: Georgia, serif; color: #1A1A1A; }
+  .cdp-cal-purpose { font-style: italic; color: #3E6B8A; font-size: 1.05rem; margin-bottom: 1.2rem; line-height: 1.6; }
+  .cdp-cal-controls { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .cdp-cal-controls button { background: #FFFFFF; border: 1px solid #2C3E5A; color: #2C3E5A; padding: 0.45rem 0.9rem; border-radius: 20px; cursor: pointer; font-family: Helvetica, Arial, sans-serif; font-size: 0.9rem; }
+  .cdp-cal-controls button:hover { background: #2C3E5A; color: #FFFFFF; }
+  .cdp-cal-month-label { font-family: Helvetica, Arial, sans-serif; font-size: 1.3rem; font-weight: bold; color: #2C3E5A; margin-left: auto; }
+
+  .cdp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: #E8E2D4; padding: 4px; border-radius: 8px; }
+  .cdp-cal-dow { background: #2C3E5A; color: #FFFFFF; padding: 0.4rem; text-align: center; font-family: Helvetica, Arial, sans-serif; font-size: 0.78rem; font-weight: bold; letter-spacing: 0.5px; }
+  .cdp-cal-day { background: #FFFFFF; min-height: 86px; padding: 0.35rem 0.4rem; border-radius: 4px; cursor: pointer; position: relative; transition: transform 0.1s, box-shadow 0.1s; }
+  .cdp-cal-day:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(44, 62, 90, 0.18); }
+  .cdp-cal-day.cdp-other-month { background: #F4F1EA; opacity: 0.5; cursor: default; }
+  .cdp-cal-day.cdp-other-month:hover { transform: none; box-shadow: none; }
+  .cdp-cal-day.cdp-today { outline: 2px solid #B8942A; outline-offset: -2px; }
+  .cdp-cal-daynum { font-family: Helvetica, Arial, sans-serif; font-size: 0.95rem; font-weight: bold; color: #2C3E5A; }
+  .cdp-cal-badges { display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+  .cdp-badge { font-size: 0.65rem; padding: 1px 5px; border-radius: 8px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; }
+  .cdp-badge-kin { background: #3E6B8A; color: #FFFFFF; }
+  .cdp-badge-num { background: #E8E2D4; color: #1A1A1A; }
+  .cdp-badge-master { background: #B8942A; color: #FFFFFF; }
+  .cdp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .cdp-dot-gap { background: #B8942A; }
+  .cdp-dot-moon-new { background: #1A1A1A; border: 1px solid #2C3E5A; }
+  .cdp-dot-moon-full { background: #FFFFFF; border: 1px solid #2C3E5A; }
+  .cdp-dot-moon-black { background: #2C3E5A; }
+  .cdp-dot-moon-shiva { background: #FFFFFF; box-shadow: 0 0 4px #B8942A; border: 1px solid #B8942A; }
+
+  .cdp-cal-legend { display: flex; gap: 1.2rem; margin-top: 0.8rem; font-size: 0.78rem; color: #3E6B8A; flex-wrap: wrap; font-family: Helvetica, Arial, sans-serif; }
+  .cdp-cal-legend-item { display: flex; align-items: center; gap: 0.35rem; }
+
+  /* Day detail panel */
+  .cdp-day-panel-overlay { position: fixed; inset: 0; background: rgba(26, 26, 26, 0.5); z-index: 9000; display: none; align-items: flex-start; justify-content: center; padding: 5vh 1rem 1rem; overflow-y: auto; }
+  .cdp-day-panel-overlay.cdp-open { display: flex; }
+  .cdp-day-panel { background: #FFFFFF; max-width: 720px; width: 100%; border-radius: 10px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 1.8rem 2rem 2rem; font-family: Georgia, serif; color: #1A1A1A; position: relative; }
+  .cdp-day-panel-close { position: absolute; top: 0.75rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; color: #3E6B8A; cursor: pointer; line-height: 1; }
+  .cdp-day-panel h2 { font-family: Helvetica, Arial, sans-serif; color: #2C3E5A; margin: 0 0 0.4rem; font-size: 1.5rem; }
+  .cdp-day-panel-sub { font-style: italic; color: #3E6B8A; margin-bottom: 1.4rem; font-size: 0.95rem; }
+
+  .cdp-num-row, .cdp-cycle-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 1.1rem; }
+  .cdp-num-square { background: #F4F1EA; border-radius: 8px; padding: 0.9rem 0.8rem; text-align: center; }
+  .cdp-num-label { font-family: Helvetica, Arial, sans-serif; font-size: 0.72rem; color: #3E6B8A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; font-weight: bold; }
+  .cdp-num-value { font-family: Helvetica, Arial, sans-serif; font-size: 2.2rem; color: #2C3E5A; font-weight: bold; line-height: 1; }
+  .cdp-num-value.cdp-master { color: #B8942A; }
+  .cdp-num-meaning { font-size: 0.82rem; color: #1A1A1A; margin-top: 0.4rem; line-height: 1.4; }
+
+  .cdp-pacing-strip { background: #FFFFFF; border: 1px solid #E8E2D4; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 1.1rem; }
+  .cdp-pacing-label { font-family: Helvetica, Arial, sans-serif; font-size: 0.72rem; color: #3E6B8A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; font-weight: bold; }
+  .cdp-pacing-citation { font-size: 0.72rem; color: #3E6B8A; font-style: italic; margin-bottom: 0.6rem; }
+  .cdp-pacing-windows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  .cdp-pacing-window { background: #F4F1EA; padding: 0.5rem 0.6rem; border-radius: 6px; }
+  .cdp-pacing-time { font-family: Helvetica, Arial, sans-serif; font-size: 0.78rem; font-weight: bold; color: #2C3E5A; }
+  .cdp-pacing-text { font-size: 0.85rem; margin-top: 0.2rem; line-height: 1.4; }
+
+  .cdp-day-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; margin-bottom: 1.1rem; }
+  .cdp-day-card { background: #F4F1EA; border-radius: 8px; padding: 0.9rem 1rem; }
+  .cdp-day-card h4 { font-family: Helvetica, Arial, sans-serif; margin: 0 0 0.35rem; color: #2C3E5A; font-size: 0.9rem; }
+  .cdp-day-card p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+
+  /* Best Day UI */
+  .cdp-bestday-wrap { background: #F4F1EA; border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.4rem; }
+  .cdp-bestday-wrap h3 { font-family: Helvetica, Arial, sans-serif; color: #2C3E5A; margin: 0 0 0.6rem; font-size: 1.1rem; }
+  .cdp-bestday-input { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .cdp-bestday-input input { flex: 1; min-width: 220px; padding: 0.5rem 0.8rem; border: 1px solid #2C3E5A; border-radius: 20px; font-family: Georgia, serif; font-size: 0.95rem; }
+  .cdp-bestday-input button { background: #2C3E5A; color: #FFFFFF; border: none; padding: 0.5rem 1.2rem; border-radius: 20px; cursor: pointer; font-family: Helvetica, Arial, sans-serif; font-size: 0.9rem; }
+  .cdp-bestday-input button:hover { background: #3E6B8A; }
+  .cdp-bestday-results { margin-top: 1rem; }
+  .cdp-bestday-result { background: #FFFFFF; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 0.6rem; border-left: 4px solid #B8942A; }
+  .cdp-bestday-date { font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: #2C3E5A; }
+  .cdp-bestday-score { float: right; font-family: Helvetica, Arial, sans-serif; color: #B8942A; font-weight: bold; }
+  .cdp-bestday-reasons { margin: 0.4rem 0 0; padding: 0; list-style: none; font-size: 0.88rem; }
+  .cdp-bestday-reasons li { padding: 0.15rem 0; }
+  .cdp-bestday-reasons li::before { content: "+ "; color: #B8942A; font-weight: bold; }
+  .cdp-bestday-cautions li::before { content: "- "; color: #8A4A3E; font-weight: bold; }
+  .cdp-bestday-loading { color: #3E6B8A; font-style: italic; padding: 0.5rem 0; }
+  .cdp-bestday-rationale { font-size: 0.82rem; color: #3E6B8A; font-style: italic; margin-top: 0.4rem; }
+
+  /* Feedback widget */
+  .cdp-fb-button { position: fixed; bottom: 1.2rem; right: 1.2rem; background: #B8942A; color: #FFFFFF; border: none; padding: 0.7rem 1.2rem; border-radius: 22px; cursor: pointer; font-family: Helvetica, Arial, sans-serif; font-size: 0.88rem; font-weight: bold; box-shadow: 0 4px 12px rgba(184, 148, 42, 0.4); z-index: 8500; }
+  .cdp-fb-button:hover { background: #2C3E5A; }
+  .cdp-fb-overlay { position: fixed; inset: 0; background: rgba(26,26,26,0.5); z-index: 9100; display: none; align-items: center; justify-content: center; padding: 1rem; }
+  .cdp-fb-overlay.cdp-open { display: flex; }
+  .cdp-fb-modal { background: #FFFFFF; max-width: 500px; width: 100%; border-radius: 10px; padding: 1.6rem 1.8rem; font-family: Georgia, serif; }
+  .cdp-fb-modal h3 { font-family: Helvetica, Arial, sans-serif; color: #2C3E5A; margin: 0 0 0.4rem; }
+  .cdp-fb-modal p { font-size: 0.9rem; color: #3E6B8A; margin: 0 0 1rem; line-height: 1.5; }
+  .cdp-fb-modal label { display: block; font-family: Helvetica, Arial, sans-serif; font-size: 0.78rem; color: #2C3E5A; margin: 0.6rem 0 0.2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cdp-fb-modal select, .cdp-fb-modal textarea, .cdp-fb-modal input[type="email"] { width: 100%; padding: 0.5rem 0.7rem; border: 1px solid #2C3E5A; border-radius: 6px; font-family: Georgia, serif; font-size: 0.9rem; box-sizing: border-box; }
+  .cdp-fb-modal textarea { min-height: 100px; resize: vertical; }
+  .cdp-fb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+  .cdp-fb-modal-actions button { padding: 0.5rem 1.1rem; border-radius: 20px; cursor: pointer; font-family: Helvetica, Arial, sans-serif; font-size: 0.88rem; border: none; }
+  .cdp-fb-cancel { background: #FFFFFF; border: 1px solid #2C3E5A !important; color: #2C3E5A; }
+  .cdp-fb-submit { background: #2C3E5A; color: #FFFFFF; }
+  .cdp-fb-submit:hover { background: #3E6B8A; }
+  .cdp-fb-banner { font-family: Helvetica, Arial, sans-serif; font-size: 0.82rem; color: #B8942A; background: #FFFFFF; border-bottom: 1px solid #B8942A; padding: 0.5rem 1rem; text-align: center; }
+
+  @media (max-width: 600px) {
+    .cdp-cal-day { min-height: 64px; padding: 0.25rem; }
+    .cdp-cal-daynum { font-size: 0.85rem; }
+    .cdp-num-row, .cdp-cycle-row, .cdp-pacing-windows, .cdp-day-cards { grid-template-columns: 1fr; }
+    .cdp-day-panel { padding: 1.2rem; }
+  }
+</style>
+
+<!-- Beta feedback banner. Hidden in production by checking window.CDP_ENV. -->
+<div id="cdp-feedback-banner" class="cdp-fb-banner" style="display:none;" data-cdp-feature="feedback-banner">
+  Beta build. Your feedback helps shape this. Click the gold button bottom right to send a note.
+</div>
+
+<!-- Calendar tab markup. Mount where existing tab system expects content. -->
+<div id="cdp-calendar-tab" class="cdp-calendar-wrap" style="display:none;" data-cdp-feature="calendar-month">
+  <div class="cdp-cal-purpose">
+    We help you make better decisions by aligning with the energy of each day. Tap on any day to explore your insight.
+  </div>
+
+  <!-- Best Day feature -->
+  <div class="cdp-bestday-wrap" data-cdp-feature="best-day">
+    <h3>Best day for what?</h3>
+    <div class="cdp-bestday-input">
+      <input type="text" id="cdp-bestday-intent" placeholder="e.g. funding pitch, first date, difficult conversation, creative launch, rest day" />
+      <button id="cdp-bestday-go" type="button">Find</button>
+    </div>
+    <div class="cdp-bestday-results" id="cdp-bestday-results"></div>
+  </div>
+
+  <!-- Calendar controls -->
+  <div class="cdp-cal-controls">
+    <button id="cdp-cal-prev" type="button">&lt; Previous</button>
+    <button id="cdp-cal-today" type="button">Today</button>
+    <button id="cdp-cal-next" type="button">Next &gt;</button>
+    <span class="cdp-cal-month-label" id="cdp-cal-month-label"></span>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="cdp-cal-grid" id="cdp-cal-grid"></div>
+
+  <!-- Legend -->
+  <div class="cdp-cal-legend">
+    <span class="cdp-cal-legend-item"><span class="cdp-dot cdp-dot-gap"></span> Galactic Activation Portal</span>
+    <span class="cdp-cal-legend-item"><span class="cdp-badge cdp-badge-master">M</span> Master number day</span>
+    <span class="cdp-cal-legend-item"><span class="cdp-dot cdp-dot-moon-new"></span> New moon</span>
+    <span class="cdp-cal-legend-item"><span class="cdp-dot cdp-dot-moon-full"></span> Full moon</span>
+    <span class="cdp-cal-legend-item"><span class="cdp-dot cdp-dot-moon-black"></span> Black moon</span>
+    <span class="cdp-cal-legend-item"><span class="cdp-dot cdp-dot-moon-shiva"></span> Shiva moon</span>
+  </div>
+</div>
+
+<!-- Day detail panel -->
+<div id="cdp-day-panel-overlay" class="cdp-day-panel-overlay">
+  <div class="cdp-day-panel" data-cdp-feature="day-detail">
+    <button class="cdp-day-panel-close" id="cdp-day-panel-close" type="button" aria-label="Close">&times;</button>
+    <h2 id="cdp-day-panel-title"></h2>
+    <div class="cdp-day-panel-sub" id="cdp-day-panel-sub"></div>
+
+    <!-- Three-layer numerology, Sonia structure -->
+    <div class="cdp-num-row" id="cdp-num-row" data-cdp-feature="sonia-numerology-three-layer"></div>
+
+    <!-- Today's Pacing (separate, circadian-grounded) -->
+    <div class="cdp-pacing-strip" id="cdp-pacing-strip" data-cdp-feature="todays-pacing-strip">
+      <div class="cdp-pacing-label">Today's pacing</div>
+      <div class="cdp-pacing-citation">Time-of-day energy windows. Grounded in Cajochen and Schmidt 2024 on circadian cognition; not numerology.</div>
+      <div class="cdp-pacing-windows" id="cdp-pacing-windows"></div>
+    </div>
+
+    <!-- Day cards: Kin, Moon, Transit, Convergence -->
+    <div class="cdp-day-cards" id="cdp-day-cards"></div>
+  </div>
+</div>
+
+<!-- Feedback widget -->
+<button class="cdp-fb-button" id="cdp-fb-button" type="button" data-cdp-feature="feedback-widget">Send feedback</button>
+<div id="cdp-fb-overlay" class="cdp-fb-overlay">
+  <div class="cdp-fb-modal">
+    <h3>Send beta feedback</h3>
+    <p>This is a small team building something we hope will be useful. Every note you send is read. Tell us anything: a bug, a confusing word, a feature you wish existed, a way today's reading landed for you.</p>
+    <label for="cdp-fb-category">Category</label>
+    <select id="cdp-fb-category">
+      <option value="bug">Bug or wrong calculation</option>
+      <option value="ux">Confusing UX or copy</option>
+      <option value="feature">Feature idea</option>
+      <option value="reading">Quality of today's reading</option>
+      <option value="other">Other</option>
+    </select>
+    <label for="cdp-fb-rating">How is the experience right now? 1 (poor) to 5 (excellent)</label>
+    <select id="cdp-fb-rating">
+      <option value="">Skip</option>
+      <option value="5">5: excellent</option>
+      <option value="4">4: good</option>
+      <option value="3">3: okay</option>
+      <option value="2">2: not great</option>
+      <option value="1">1: poor</option>
+    </select>
+    <label for="cdp-fb-text">Your note</label>
+    <textarea id="cdp-fb-text" placeholder="What did you notice?"></textarea>
+    <label for="cdp-fb-email">Email (optional, only if you want a reply)</label>
+    <input type="email" id="cdp-fb-email" placeholder="you@example.com" />
+    <div class="cdp-fb-modal-actions">
+      <button class="cdp-fb-cancel" id="cdp-fb-cancel" type="button">Cancel</button>
+      <button class="cdp-fb-submit" id="cdp-fb-submit" type="button">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== Configuration =====
+  const API_BASE = (window.CDP_API_BASE || 'https://cdp-server-production.up.railway.app');
+  const ENV = (window.CDP_ENV || 'prod');
+
+  // Show banner only in dev/beta
+  if (ENV === 'dev' || ENV === 'beta') {
+    const banner = document.getElementById('cdp-feedback-banner');
+    if (banner) banner.style.display = 'block';
+  }
+
+  // ===== Numerology meanings (Sonia + Drayer 2002) =====
+  const NUM_MEANINGS = {
+    1: 'Initiation. Start something new.',
+    2: 'Partnership and union. Tenderness, helping, assisting.',
+    3: 'Creativity, expression, social connection.',
+    4: 'Honest work, structure, integrity.',
+    5: 'Learning, intelligence, connection.',
+    6: 'Family, home, art, kindness.',
+    7: 'Portals open. Solitude, intuition, the inner realms.',
+    8: 'Business, projects, money, structuring.',
+    9: 'Portals fully open. Rest, completion, channeling.',
+    11: 'Master number. Vision, intuitive breakthrough.',
+    22: 'Master number. Building on a grand scale.',
+    33: 'Master number. Compassionate teaching.',
+    44: 'Master number. Disciplined mastery in worldly form.'
+  };
+
+  function explain(n) {
+    return NUM_MEANINGS[n] || ('Number ' + n + ': see numerology guide.');
+  }
+
+  // ===== State =====
+  let viewYear, viewMonth;  // 0-indexed month
+  let monthData = null;     // populated by /api/month-data
+  let userProfile = window.CDP_USER_PROFILE || null;
+
+  function todayUTC() {
+    const t = new Date();
+    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+  }
+
+  function isoOf(y, m, d) {
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  function reduceWithMaster(n) {
+    if ([11, 22, 33, 44].includes(n)) return n;
+    while (n > 9) {
+      n = String(n).split('').reduce((a, b) => a + Number(b), 0);
+      if ([11, 22, 33, 44].includes(n)) return n;
+    }
+    return n;
+  }
+
+  function digitSum(s) {
+    return String(s).split('').filter(c => /\d/.test(c)).reduce((a, b) => a + Number(b), 0);
+  }
+
+  function numerologyLayers(y, m, d, personalYear) {
+    const dayLayer = reduceWithMaster(digitSum(d));
+    const dayMonthLayer = reduceWithMaster(digitSum(d) + digitSum(m + 1));
+    const fullLayer = reduceWithMaster(digitSum(d) + digitSum(m + 1) + (personalYear ? digitSum(personalYear) : digitSum(y)));
+    return { day: dayLayer, dayMonth: dayMonthLayer, full: fullLayer };
+  }
+
+  // ===== Calendar render =====
+  function renderCalendar() {
+    const grid = document.getElementById('cdp-cal-grid');
+    const label = document.getElementById('cdp-cal-month-label');
+    if (!grid || !label) return;
+    grid.innerHTML = '';
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    label.textContent = monthNames[viewMonth] + ' ' + viewYear;
+
+    // Day-of-week headers (Mon start, UK)
+    const dows = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    dows.forEach(dn => {
+      const c = document.createElement('div');
+      c.className = 'cdp-cal-dow';
+      c.textContent = dn;
+      grid.appendChild(c);
+    });
+
+    const firstOfMonth = new Date(Date.UTC(viewYear, viewMonth, 1));
+    // Mon = 1, Sun = 0; convert so Mon = 0 ... Sun = 6
+    let leadingDays = (firstOfMonth.getUTCDay() + 6) % 7;
+    const daysInMonth = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+
+    const today = todayUTC();
+    const todayIso = today.toISOString().slice(0, 10);
+
+    // Leading from previous month
+    const prevMonthDays = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
+    for (let i = leadingDays - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const cell = document.createElement('div');
+      cell.className = 'cdp-cal-day cdp-other-month';
+      cell.innerHTML = '<div class="cdp-cal-daynum">' + d + '</div>';
+      grid.appendChild(cell);
+    }
+
+    // Current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateIso = isoOf(viewYear, viewMonth, d);
+      const cell = document.createElement('div');
+      cell.className = 'cdp-cal-day';
+      if (dateIso === todayIso) cell.classList.add('cdp-today');
+      cell.dataset.dateIso = dateIso;
+
+      const layers = numerologyLayers(viewYear, viewMonth, d, userProfile && userProfile.personalYear);
+      const isMaster = [11, 22, 33, 44].includes(layers.full);
+
+      const dayData = monthData && monthData[dateIso] ? monthData[dateIso] : {};
+
+      let badges = '';
+      // Numerology day badge
+      if (isMaster) {
+        badges += '<span class="cdp-badge cdp-badge-master" title="Master number day">' + layers.full + '</span>';
+      } else {
+        badges += '<span class="cdp-badge cdp-badge-num" title="Full integrated layer">' + layers.full + '</span>';
+      }
+      // Kin badge
+      if (dayData.kin) {
+        badges += '<span class="cdp-badge cdp-badge-kin" title="Kin">K' + dayData.kin + '</span>';
+      }
+      // Dots
+      if (dayData.isGAP) badges += '<span class="cdp-dot cdp-dot-gap" title="Galactic Activation Portal"></span>';
+      if (dayData.moonPhase === 'new') badges += '<span class="cdp-dot cdp-dot-moon-new" title="New moon"></span>';
+      else if (dayData.moonPhase === 'full') badges += '<span class="cdp-dot cdp-dot-moon-full" title="Full moon"></span>';
+      else if (dayData.isBlackMoon) badges += '<span class="cdp-dot cdp-dot-moon-black" title="Black moon: two days before new moon"></span>';
+      else if (dayData.isShivaMoon) badges += '<span class="cdp-dot cdp-dot-moon-shiva" title="Shiva moon: two days after new moon"></span>';
+
+      cell.innerHTML = '<div class="cdp-cal-daynum">' + d + '</div><div class="cdp-cal-badges">' + badges + '</div>';
+      cell.addEventListener('click', () => openDayPanel(dateIso));
+      grid.appendChild(cell);
+    }
+
+    // Trailing
+    const totalCells = leadingDays + daysInMonth;
+    const trailing = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cdp-cal-day cdp-other-month';
+      cell.innerHTML = '<div class="cdp-cal-daynum">' + i + '</div>';
+      grid.appendChild(cell);
+    }
+  }
+
+  async function loadMonthData() {
+    const start = isoOf(viewYear, viewMonth, 1);
+    const end = isoOf(viewYear, viewMonth, new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate());
+    try {
+      const res = await fetch(API_BASE + '/api/month-data?start=' + start + '&end=' + end, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        console.warn('month-data fetch failed', res.status);
+        monthData = {};
+        return;
+      }
+      const data = await res.json();
+      // Expected format: { "YYYY-MM-DD": { kin, tone, seal, isGAP, moonPhase, isBlackMoon, isShivaMoon, transits: [] }, ... }
+      monthData = data && data.days ? data.days : data || {};
+    } catch (err) {
+      console.warn('month-data error', err);
+      monthData = {};
+    }
+  }
+
+  async function refreshMonth() {
+    await loadMonthData();
+    renderCalendar();
+  }
+
+  // ===== Day detail panel =====
+  async function openDayPanel(dateIso) {
+    const overlay = document.getElementById('cdp-day-panel-overlay');
+    if (!overlay) return;
+    overlay.classList.add('cdp-open');
+
+    document.getElementById('cdp-day-panel-title').textContent = formatLong(dateIso);
+    document.getElementById('cdp-day-panel-sub').textContent = 'Loading day data...';
+    document.getElementById('cdp-num-row').innerHTML = '';
+    document.getElementById('cdp-pacing-windows').innerHTML = '';
+    document.getElementById('cdp-day-cards').innerHTML = '';
+
+    let data = monthData && monthData[dateIso] ? monthData[dateIso] : null;
+    if (!data) {
+      try {
+        const r = await fetch(API_BASE + '/api/day-data?date=' + dateIso);
+        if (r.ok) data = await r.json();
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+    data = data || {};
+
+    const [yy, mm, dd] = dateIso.split('-').map(Number);
+    const layers = numerologyLayers(yy, mm - 1, dd, userProfile && userProfile.personalYear);
+
+    // Sub line
+    const subBits = [];
+    if (data.kin) subBits.push('Kin ' + data.kin + ' (Tone ' + (data.tone || '?') + ', ' + (data.seal || '?') + ')');
+    if (data.moonPhaseLabel) subBits.push(data.moonPhaseLabel);
+    document.getElementById('cdp-day-panel-sub').textContent = subBits.join('  |  ') || 'Day data';
+
+    // Three-layer numerology squares (Sonia structure)
+    const numRow = document.getElementById('cdp-num-row');
+    numRow.appendChild(makeNumSquare('Day energy', layers.day));
+    numRow.appendChild(makeNumSquare('Day + month', layers.dayMonth));
+    numRow.appendChild(makeNumSquare('Full integrated', layers.full));
+
+    // Today's Pacing (circadian, separate)
+    const pacing = document.getElementById('cdp-pacing-windows');
+    pacing.appendChild(makePacingWindow('Morning', morningCopy(data, layers)));
+    pacing.appendChild(makePacingWindow('Afternoon', afternoonCopy(data, layers)));
+    pacing.appendChild(makePacingWindow('Evening', eveningCopy(data, layers)));
+
+    // Day cards
+    const cards = document.getElementById('cdp-day-cards');
+    cards.appendChild(makeCard('Dreamspell', dreamspellCopy(data)));
+    cards.appendChild(makeCard('Lunar', lunarCopy(data)));
+    cards.appendChild(makeCard('Western astrology', astroCopy(data)));
+    cards.appendChild(makeCard('Convergence', convergenceCopy(data, layers)));
+  }
+
+  function makeNumSquare(label, n) {
+    const isMaster = [11, 22, 33, 44].includes(n);
+    const div = document.createElement('div');
+    div.className = 'cdp-num-square';
+    div.innerHTML =
+      '<div class="cdp-num-label">' + label + '</div>' +
+      '<div class="cdp-num-value' + (isMaster ? ' cdp-master' : '') + '">' + n + '</div>' +
+      '<div class="cdp-num-meaning">' + explain(n) + '</div>';
+    return div;
+  }
+
+  function makePacingWindow(timeLabel, text) {
+    const div = document.createElement('div');
+    div.className = 'cdp-pacing-window';
+    div.innerHTML =
+      '<div class="cdp-pacing-time">' + timeLabel + '</div>' +
+      '<div class="cdp-pacing-text">' + text + '</div>';
+    return div;
+  }
+
+  function makeCard(title, text) {
+    const div = document.createElement('div');
+    div.className = 'cdp-day-card';
+    div.innerHTML = '<h4>' + title + '</h4><p>' + text + '</p>';
+    return div;
+  }
+
+  // Copy generators (placeholder text; backend can override via day-data endpoint)
+  function morningCopy(data, layers) {
+    return 'Cortisol awakening response peaks. Best window for clear-headed analytic work and difficult decisions.';
+  }
+  function afternoonCopy(data, layers) {
+    return 'Salience network active. Best window for collaboration, meetings, social and verbal work.';
+  }
+  function eveningCopy(data, layers) {
+    return 'Default mode network active. Best window for reflection, integration, planning the next day.';
+  }
+
+  function dreamspellCopy(data) {
+    if (!data.kin) return 'Dreamspell data not available for this date.';
+    let txt = 'Kin ' + data.kin + ', Tone ' + (data.tone || '?') + ', Seal ' + (data.seal || '?') + '.';
+    if (data.isGAP) txt += ' Galactic Activation Portal: heightened access in the Dreamspell tradition.';
+    return txt;
+  }
+
+  function lunarCopy(data) {
+    if (data.isBlackMoon) {
+      return 'Black moon window: two days before the new moon. Tradition advises stillness and observation. Wait for the Shiva moon before initiating.';
+    }
+    if (data.isShivaMoon) {
+      return 'Shiva moon: two days after the new moon. Tradition favours initiation here. The energy is light and supportive.';
+    }
+    if (data.moonPhaseLabel) return data.moonPhaseLabel + '.';
+    return 'Lunar data not available for this date.';
+  }
+
+  function astroCopy(data) {
+    if (Array.isArray(data.transits) && data.transits.length > 0) {
+      return data.transits.map(t => t.planet + ' ' + (t.aspect || '').replace('_', ' ') + (t.target ? ' to natal ' + t.target : '')).join('; ') + '.';
+    }
+    return 'No major personal-planet transits within tight orb today.';
+  }
+
+  function convergenceCopy(data, layers) {
+    const parts = [];
+    if ([8, 11, 22, 44].includes(layers.full)) parts.push('numerology favours business and structure');
+    if (data.isGAP) parts.push('GAP day');
+    if (data.isShivaMoon) parts.push('Shiva moon supports initiation');
+    if (data.isBlackMoon) parts.push('Black moon advises restraint');
+    if (parts.length === 0) return 'A neutral day. No strong cross-framework convergence.';
+    return 'Two or more frameworks agree: ' + parts.join('; ') + '.';
+  }
+
+  function formatLong(iso) {
+    const d = new Date(iso + 'T00:00:00Z');
+    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function closeDayPanel() {
+    document.getElementById('cdp-day-panel-overlay').classList.remove('cdp-open');
+  }
+
+  // ===== Best Day =====
+  async function runBestDay() {
+    const intent = document.getElementById('cdp-bestday-intent').value.trim();
+    const out = document.getElementById('cdp-bestday-results');
+    if (!intent) {
+      out.innerHTML = '<div class="cdp-bestday-loading">Tell me what you are planning, e.g. "funding pitch" or "first date".</div>';
+      return;
+    }
+    if (!userProfile) {
+      out.innerHTML = '<div class="cdp-bestday-loading">Sign in to use Best Day. Your numerology and natal chart are needed for this calculation.</div>';
+      return;
+    }
+    out.innerHTML = '<div class="cdp-bestday-loading">Scanning the month against ' + intent + '...</div>';
+
+    const monthStart = isoOf(viewYear, viewMonth, 1);
+    const monthEnd = isoOf(viewYear, viewMonth, new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate());
+
+    try {
+      const res = await fetch(API_BASE + '/api/best-day', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userProfile: userProfile,
+          intent: intent,
+          monthStart: monthStart,
+          monthEnd: monthEnd,
+          topN: 3
+        })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      renderBestDayResults(data);
+    } catch (err) {
+      out.innerHTML = '<div class="cdp-bestday-loading">Could not run Best Day: ' + (err.message || err) + '. Try again in a moment.</div>';
+    }
+  }
+
+  function renderBestDayResults(data) {
+    const out = document.getElementById('cdp-bestday-results');
+    let html = '';
+    if (data.intent && data.intent.rationale) {
+      html += '<div class="cdp-bestday-rationale">' + data.intent.rationale + '</div>';
+    }
+    (data.ranked || []).forEach(r => {
+      const reasonsHtml = (r.reasons && r.reasons.length)
+        ? '<ul class="cdp-bestday-reasons">' + r.reasons.map(x => '<li>' + x + '</li>').join('') + '</ul>'
+        : '';
+      const cautionsHtml = (r.cautions && r.cautions.length)
+        ? '<ul class="cdp-bestday-reasons cdp-bestday-cautions">' + r.cautions.map(x => '<li>' + x + '</li>').join('') + '</ul>'
+        : '';
+      html += '<div class="cdp-bestday-result">' +
+        '<span class="cdp-bestday-score">' + r.totalScore + ' / 100</span>' +
+        '<div class="cdp-bestday-date">' + formatLong(r.dateIso) + '</div>' +
+        reasonsHtml + cautionsHtml +
+      '</div>';
+    });
+    out.innerHTML = html || '<div class="cdp-bestday-loading">No suitable days returned.</div>';
+  }
+
+  // ===== Feedback widget =====
+  function openFeedback() {
+    document.getElementById('cdp-fb-overlay').classList.add('cdp-open');
+  }
+  function closeFeedback() {
+    document.getElementById('cdp-fb-overlay').classList.remove('cdp-open');
+  }
+  async function submitFeedback() {
+    const submitBtn = document.getElementById('cdp-fb-submit');
+    const payload = {
+      category: document.getElementById('cdp-fb-category').value,
+      rating: document.getElementById('cdp-fb-rating').value || null,
+      text: document.getElementById('cdp-fb-text').value.trim(),
+      email: document.getElementById('cdp-fb-email').value.trim() || null,
+      page: window.location.pathname + window.location.search,
+      env: ENV,
+      ts: new Date().toISOString()
+    };
+    if (!payload.text) {
+      alert('Please write a short note.');
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    try {
+      const res = await fetch(API_BASE + '/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      submitBtn.textContent = 'Sent. Thank you.';
+      setTimeout(() => {
+        closeFeedback();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send';
+        document.getElementById('cdp-fb-text').value = '';
+        document.getElementById('cdp-fb-email').value = '';
+      }, 1200);
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send';
+      alert('Could not send feedback: ' + (err.message || err) + '. Please try again.');
+    }
+  }
+
+  // ===== Wire up =====
+  function init() {
+    const today = todayUTC();
+    viewYear = today.getUTCFullYear();
+    viewMonth = today.getUTCMonth();
+
+    const prev = document.getElementById('cdp-cal-prev');
+    const next = document.getElementById('cdp-cal-next');
+    const todayBtn = document.getElementById('cdp-cal-today');
+    if (prev) prev.addEventListener('click', () => { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } refreshMonth(); });
+    if (next) next.addEventListener('click', () => { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } refreshMonth(); });
+    if (todayBtn) todayBtn.addEventListener('click', () => { const t = todayUTC(); viewYear = t.getUTCFullYear(); viewMonth = t.getUTCMonth(); refreshMonth(); });
+
+    const closeBtn = document.getElementById('cdp-day-panel-close');
+    const overlay = document.getElementById('cdp-day-panel-overlay');
+    if (closeBtn) closeBtn.addEventListener('click', closeDayPanel);
+    if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDayPanel(); });
+
+    const goBtn = document.getElementById('cdp-bestday-go');
+    if (goBtn) goBtn.addEventListener('click', runBestDay);
+    const intentInput = document.getElementById('cdp-bestday-intent');
+    if (intentInput) intentInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runBestDay(); });
+
+    const fbBtn = document.getElementById('cdp-fb-button');
+    const fbCancel = document.getElementById('cdp-fb-cancel');
+    const fbSubmit = document.getElementById('cdp-fb-submit');
+    const fbOverlay = document.getElementById('cdp-fb-overlay');
+    if (fbBtn) fbBtn.addEventListener('click', openFeedback);
+    if (fbCancel) fbCancel.addEventListener('click', closeFeedback);
+    if (fbSubmit) fbSubmit.addEventListener('click', submitFeedback);
+    if (fbOverlay) fbOverlay.addEventListener('click', (e) => { if (e.target === fbOverlay) closeFeedback(); });
+
+    // Expose tab activator for the existing nav system to call
+    window.cdpShowCalendarTab = function() {
+      document.getElementById('cdp-calendar-tab').style.display = 'block';
+      refreshMonth();
+    };
+    window.cdpHideCalendarTab = function() {
+      document.getElementById('cdp-calendar-tab').style.display = 'none';
+    };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
