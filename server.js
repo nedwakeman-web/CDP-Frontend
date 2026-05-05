@@ -1,4 +1,4 @@
- // CDP v9.1
+ // CDP v9.1 + v18 patch (5 May 2026, in-memory invitations fallback)
 'use strict';
 const express = require('express');
 const path = require('path');
@@ -2638,6 +2638,852 @@ function humanMoonPhase(moonData) {
   };
   return map[moonData.phase] || moonData.phase || 'Unknown';
 }
+
+// ══════════════════════════════════════════════════════════════════
+// ── v18 ENDPOINTS (added 5 May 2026) ──────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// In FALLBACK MODE: invitations stored in-memory only. Lost on instance
+// restart. This is acceptable for dev/beta testing while Supabase
+// service-role credentials are not yet configured. To upgrade to
+// persistent storage, add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+// to Railway env vars and swap this block for the persistent version.
+// ══════════════════════════════════════════════════════════════════
+
+const v18_invitations = new Map(); // token -> invitation record
+const v18_crypto = require('crypto');
+
+function v18_generateToken() {
+  return 'inv_' + v18_crypto.randomBytes(18).toString('base64url');
+}
+
+// POST /api/invitations
+app.post('/api/invitations', (req, res) => {
+  try {
+    const {
+      invitee_first_name,
+      inviter_user_id,
+      inviter_first_name,
+      relationship_context,
+      inviter_profile,
+    } = req.body || {};
+
+    if (!invitee_first_name || typeof invitee_first_name !== 'string') {
+      return res.status(400).json({ error: 'invitee_first_name required' });
+    }
+    if (invitee_first_name.length > 80) {
+      return res.status(400).json({ error: 'invitee_first_name too long' });
+    }
+
+    const token = v18_generateToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const record = {
+      token,
+      inviter_user_id: inviter_user_id || null,
+      inviter_first_name: (inviter_first_name || 'A friend').slice(0, 80),
+      inviter_profile: inviter_profile || null,
+      invitee_first_name: invitee_first_name.slice(0, 80),
+      relationship_context: relationship_context ? String(relationship_context).slice(0, 200) : null,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      expires_at: expiresAt,
+    };
+    v18_invitations.set(token, record);
+
+    const origin = req.get('origin') || req.get('referer') || '';
+    const baseUrl = origin
+      ? origin.replace(/\/$/, '')
+      : `https://${req.get('host')}`;
+    const shareUrl = `${baseUrl}/?invite=${encodeURIComponent(token)}`;
+
+    console.log(`[v18 invitation_generated] token=${token.slice(0,12)}... invitee=${record.invitee_first_name}`);
+    return res.json({ token, share_url: shareUrl, expires_at: expiresAt });
+  } catch (e) {
+    console.error('[POST /api/invitations exception]', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/invitations/:token
+app.get('/api/invitations/:token', (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token || token.length > 64) return res.status(400).json({ error: 'Invalid token' });
+
+    const record = v18_invitations.get(token);
+    if (!record) return res.status(404).json({ error: 'Not found' });
+
+    if (record.status === 'expired' || new Date(record.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Invitation expired' });
+    }
+
+    console.log(`[v18 invitation_visited] token=${token.slice(0,12)}...`);
+    return res.json({
+      token: record.token,
+      inviter_first_name: record.inviter_first_name,
+      relationship_context: record.relationship_context,
+      inviter_profile: record.inviter_profile,
+      invitee_first_name: record.invitee_first_name,
+      expires_at: record.expires_at,
+      status: record.status,
+    });
+  } catch (e) {
+    console.error('[GET /api/invitations/:token exception]', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/invitations/:token/redeem
+app.post('/api/invitations/:token/redeem', (req, res) => {
+  try {
+    const { token } = req.params;
+    const { invitee_profile } = req.body || {};
+
+    if (!invitee_profile || typeof invitee_profile !== 'object') {
+      return res.status(400).json({ error: 'invitee_profile required' });
+    }
+    if (!invitee_profile.firstName || !invitee_profile.dob || !invitee_profile.birthPlace) {
+      return res.status(400).json({ error: 'firstName, dob, birthPlace required' });
+    }
+
+    const record = v18_invitations.get(token);
+    if (!record) return res.status(404).json({ error: 'Not found' });
+    if (record.status === 'expired' || new Date(record.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'Invitation expired' });
+    }
+    if (record.status === 'redeemed') return res.status(409).json({ error: 'Already redeemed' });
+
+    record.invitee_partial_profile = invitee_profile;
+    record.status = 'redeemed';
+    record.redeemed_at = new Date().toISOString();
+    v18_invitations.set(token, record);
+
+    console.log(`[v18 invitation_birth_data_complete] token=${token.slice(0,12)}... time_known=${!!invitee_profile.birthTime}`);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[POST /api/invitations/redeem exception]', e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/crisis-event — server-side log only; never blocks the user
+app.post('/api/crisis-event', (req, res) => {
+  try {
+    const { user_id, category, tier, surface, mode, text_length } = req.body || {};
+    if (!category || !tier || !mode) return res.status(400).json({ error: 'category, tier, mode required' });
+    console.warn(`[v18 crisis_detected] cat=${category} tier=${tier} surface=${surface} mode=${mode} len=${text_length||0} user=${user_id||'anon'}`);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[POST /api/crisis-event exception]', e);
+    return res.status(200).json({ ok: false });
+  }
+});
+
+console.log('[v18] Endpoints attached: /api/invitations, /api/invitations/:token, /api/invitations/:token/redeem, /api/crisis-event (FALLBACK MODE: in-memory storage)');
+
+// ══════════════════════════════════════════════════════════════════
+// ── /v18 ENDPOINTS ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// ── v19 ENDPOINTS (added 5 May 2026) ──────────────────────────────
+// Retention layer: morning compass, streak counter, continuity of
+// memory foundation, in-app email capture.
+//
+// In FALLBACK MODE (current): all v19 storage uses in-memory Maps,
+// same pattern as v18 invitations. Acceptable for dev/beta and for
+// founder-and-collaborator stress testing. Move to Supabase by
+// running migration_v19.sql and swapping this block for the
+// persistent version.
+//
+// Endpoints added:
+//   GET  /api/compass/today            Today's compass context for a user
+//   POST /api/compass/intention        Save user's intention for today
+//   GET  /api/streak                   Read user's current streak state
+//   POST /api/streak/visit             Record a daily visit (idempotent per day)
+//   POST /api/memory/summary           Store post-reading summary (continuity layer)
+//   GET  /api/memory/recent            Retrieve recent summaries for a user
+//   POST /api/email/capture            Capture opted-in email + timezone
+//   GET  /api/v19/health               Health check for v19 surfaces
+// ══════════════════════════════════════════════════════════════════
+
+const v19_streaks = new Map();      // userId -> { current, longest, lastVisit, history[] }
+const v19_intentions = new Map();   // userId -> { date -> intentionText }
+const v19_summaries = new Map();    // userId -> array of summary records
+const v19_emails = new Map();       // userId -> { email, timezone, capturedAt }
+const v19_compassCache = new Map(); // userId+date -> compass context
+
+// Day 13: cost-audit metrics. Bounded ring buffer of recent context
+// builds so we can compute p50/p95 token counts and watch for cost
+// runaway. Replace with proper observability when Supabase migration
+// lands.
+const V19_METRICS_BUFFER_SIZE = 1000;
+const v19_metrics = {
+  contextBuilds: [],     // { ts, tokens, summaries_count, budget }
+  summaryStores: [],     // { ts, themes_count, insight_chars }
+  readingPrompts: [],    // { ts, base_tokens, context_tokens, total_tokens }
+  recordContextBuild(tokens, summariesCount, budget) {
+    this.contextBuilds.push({ ts: Date.now(), tokens, summaries_count: summariesCount, budget });
+    if (this.contextBuilds.length > V19_METRICS_BUFFER_SIZE) {
+      this.contextBuilds.splice(0, this.contextBuilds.length - V19_METRICS_BUFFER_SIZE);
+    }
+  },
+  recordSummaryStore(themesCount, insightChars) {
+    this.summaryStores.push({ ts: Date.now(), themes_count: themesCount, insight_chars: insightChars });
+    if (this.summaryStores.length > V19_METRICS_BUFFER_SIZE) {
+      this.summaryStores.splice(0, this.summaryStores.length - V19_METRICS_BUFFER_SIZE);
+    }
+  },
+  recordReadingPrompt(baseTokens, contextTokens) {
+    this.readingPrompts.push({
+      ts: Date.now(), base_tokens: baseTokens,
+      context_tokens: contextTokens, total_tokens: baseTokens + contextTokens,
+    });
+    if (this.readingPrompts.length > V19_METRICS_BUFFER_SIZE) {
+      this.readingPrompts.splice(0, this.readingPrompts.length - V19_METRICS_BUFFER_SIZE);
+    }
+  },
+  percentile(arr, key, p) {
+    if (arr.length === 0) return 0;
+    const sorted = arr.map(x => x[key]).sort((a, b) => a - b);
+    const idx = Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length));
+    return sorted[idx];
+  },
+  snapshot() {
+    const cb = this.contextBuilds;
+    const rp = this.readingPrompts;
+    return {
+      context_builds: {
+        count: cb.length,
+        median_tokens: this.percentile(cb, 'tokens', 50),
+        p95_tokens: this.percentile(cb, 'tokens', 95),
+        avg_summaries_per_build: cb.length === 0 ? 0
+          : Math.round(cb.reduce((s, x) => s + x.summaries_count, 0) / cb.length * 100) / 100,
+      },
+      summary_stores: { count: this.summaryStores.length },
+      reading_prompts: {
+        count: rp.length,
+        median_total: this.percentile(rp, 'total_tokens', 50),
+        p95_total: this.percentile(rp, 'total_tokens', 95),
+        median_context_share_pct: rp.length === 0 ? 0
+          : Math.round(rp.reduce((s, x) => s + (x.context_tokens / Math.max(1, x.total_tokens)) * 100, 0) / rp.length),
+      },
+    };
+  },
+};
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+function v19_userKey(req) {
+  // userId from body/query, or fall back to a stable cookie-equivalent
+  // header. Anonymous users get a session-stable hash, signed-in users
+  // get their actual userId. The dual-track storage decision lives at
+  // the client; the server treats both equivalently.
+  return (req.body && req.body.user_id)
+      || (req.query && req.query.user_id)
+      || (req.headers['x-cdp-anon-id'])
+      || null;
+}
+
+function v19_dayString(date, timezone) {
+  // Returns YYYY-MM-DD in the given IANA timezone, with UTC fallback.
+  // The streak engine uses this so a user travelling across timezones
+  // does not accidentally double-count or lose a day.
+  //
+  // Day 4 spec: a user in NYC reading at 11pm EST then in London at
+  // 9am GMT next day should register as a 2-day streak. This is
+  // achieved by always rendering the day string in the user's saved
+  // timezone (or browser-detected fallback) so the boundary logic is
+  // consistent across visits.
+  const d = date instanceof Date ? date : new Date(date);
+  if (!timezone) {
+    // UTC fallback
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  try {
+    // Intl.DateTimeFormat with an IANA timezone produces date parts
+    // in that zone. Native, no library needed.
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    });
+    // en-CA gives YYYY-MM-DD natively
+    return fmt.format(d);
+  } catch (e) {
+    // Bad timezone string; fall back to UTC
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+}
+
+function v19_userTimezone(req, fallback) {
+  // Resolve a user's timezone from request body, query, header, or
+  // captured-email record. Falls back to UTC if nothing available.
+  const fromBody = req.body && req.body.timezone;
+  const fromQuery = req.query && req.query.timezone;
+  const fromHeader = req.headers['x-cdp-timezone'];
+  const userId = v19_userKey(req);
+  const fromCapture = userId && v19_emails.get(userId) && v19_emails.get(userId).timezone;
+  return fromBody || fromQuery || fromHeader || fromCapture || fallback || null;
+}
+
+function v19_daysBetween(dayA, dayB) {
+  // dayA and dayB are YYYY-MM-DD strings. Returns absolute difference
+  // in calendar days. Used by the gentle-resume logic.
+  const a = new Date(dayA + 'T00:00:00Z');
+  const b = new Date(dayB + 'T00:00:00Z');
+  return Math.round(Math.abs((b - a) / 86400000));
+}
+
+function v19_compassContextForHour(hour) {
+  // Light personalisation by time of day. Per Vol 16 spec section 1.2.
+  if (hour < 11)  return { greeting: 'Good morning',  cta: 'Begin today',          voiceFocus: 'opening' };
+  if (hour < 14)  return { greeting: 'Hello',         cta: 'Reset for the afternoon', voiceFocus: 'midday' };
+  if (hour < 18)  return { greeting: 'Afternoon',     cta: 'Reorient',             voiceFocus: 'midday' };
+  if (hour < 21)  return { greeting: 'Evening',       cta: 'Reflect on today',     voiceFocus: 'closing' };
+  return            { greeting: 'Late evening', cta: 'A reading before sleep', voiceFocus: 'closing' };
+}
+
+// ── /api/compass/today ─────────────────────────────────────────────
+// Returns the compass context for today, including time-of-day
+// adaptation. The compass content (kin, moon, numerology, voice quote)
+// is generated by the existing reading pipeline elsewhere in this
+// server; the compass endpoint composes a lightweight response that
+// the client renders as the sub-30-second surface.
+app.get('/api/compass/today', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const tz = v19_userTimezone(req);
+    const hour = parseInt(req.query.hour, 10);
+    const safeHour = (Number.isFinite(hour) && hour >= 0 && hour < 24) ? hour : new Date().getUTCHours();
+    const today = v19_dayString(new Date(), tz);
+
+    // Yesterday's intention, if any, so the compass can pre-fill.
+    let yesterdayIntention = null;
+    if (userId) {
+      const userIntentions = v19_intentions.get(userId);
+      if (userIntentions) {
+        const yesterday = v19_dayString(new Date(Date.now() - 86400000), tz);
+        yesterdayIntention = userIntentions[yesterday] || null;
+      }
+    }
+
+    const context = v19_compassContextForHour(safeHour);
+
+    res.json({
+      ok: true,
+      date: today,
+      hour: safeHour,
+      greeting: context.greeting,
+      cta: context.cta,
+      voice_focus: context.voiceFocus,
+      yesterday_intention: yesterdayIntention,
+    });
+
+    if (userId) console.log(`[v19 compass_viewed] user=${userId.slice(0,8)} hour=${safeHour}`);
+  } catch (e) {
+    console.error('[GET /api/compass/today exception]', e);
+    res.status(500).json({ error: 'compass context failed' });
+  }
+});
+
+// ── /api/compass/intention ─────────────────────────────────────────
+// Save the user's intention for today. Optional input. If saved, it
+// pre-fills tomorrow's compass field as 'yesterday_intention' which
+// is a small but psychologically real continuity-of-memory signal.
+app.post('/api/compass/intention', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const tz = v19_userTimezone(req);
+    const { intention } = req.body || {};
+
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+    if (typeof intention !== 'string') return res.status(400).json({ error: 'intention must be a string' });
+    if (intention.length > 240) return res.status(400).json({ error: 'intention too long (max 240 chars)' });
+
+    const today = v19_dayString(new Date(), tz);
+    if (!v19_intentions.has(userId)) v19_intentions.set(userId, {});
+    v19_intentions.get(userId)[today] = intention.trim();
+
+    console.log(`[v19 intention_saved] user=${userId.slice(0,8)} chars=${intention.length}`);
+    res.json({ ok: true, date: today });
+  } catch (e) {
+    console.error('[POST /api/compass/intention exception]', e);
+    res.status(500).json({ error: 'intention save failed' });
+  }
+});
+
+// ── /api/streak ────────────────────────────────────────────────────
+// Read the user's current streak state. Always returns a coherent
+// record (zero-state for new users) so the client can render
+// unconditionally.
+app.get('/api/streak', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const tz = v19_userTimezone(req);
+    if (!userId) return res.json({
+      ok: true, current: 0, longest: 0, last_visit: null, status: 'new', history_30d: []
+    });
+
+    const record = v19_streaks.get(userId);
+    if (!record) return res.json({
+      ok: true, current: 0, longest: 0, last_visit: null, status: 'new', history_30d: []
+    });
+
+    // history_30d: the last 30 days as a boolean array, oldest first.
+    // Used by the streak page to render the calendar grid.
+    const today = v19_dayString(new Date(), tz);
+    const history30 = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = v19_dayString(new Date(Date.now() - i * 86400000), tz);
+      history30.push(record.history.includes(d));
+    }
+
+    res.json({
+      ok: true,
+      current: record.current,
+      longest: record.longest,
+      last_visit: record.lastVisit,
+      status: record.status || 'active',
+      history_30d: history30,
+    });
+  } catch (e) {
+    console.error('[GET /api/streak exception]', e);
+    res.status(500).json({ error: 'streak read failed' });
+  }
+});
+
+// ── /api/streak/visit ──────────────────────────────────────────────
+// Record a daily visit. Idempotent per day. Implements the gentle
+// resume logic from Vol 16 spec section 2.2:
+//   - Same day:        no-op (already recorded)
+//   - Day +1:          increment streak normally
+//   - Day +2:          gentle resume; streak preserved with a flag
+//   - Day +3 or more:  soft reset; streak starts at 1 today
+//
+// All resets are framed as beginnings, never losses. The status field
+// drives the client copy ('active' / 'gentle_resume' / 'fresh_start').
+app.post('/api/streak/visit', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const tz = v19_userTimezone(req);
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+
+    const today = v19_dayString(new Date(), tz);
+    let record = v19_streaks.get(userId);
+
+    if (!record) {
+      // First visit ever
+      record = {
+        current: 1, longest: 1, lastVisit: today,
+        history: [today], status: 'active',
+      };
+      v19_streaks.set(userId, record);
+      console.log(`[v19 streak_first_visit] user=${userId.slice(0,8)}`);
+      return res.json({ ok: true, current: 1, longest: 1, status: 'active', delta: 'started' });
+    }
+
+    if (record.lastVisit === today) {
+      // Already recorded today; idempotent
+      return res.json({ ok: true, current: record.current, longest: record.longest, status: record.status, delta: 'noop' });
+    }
+
+    const gap = v19_daysBetween(record.lastVisit, today);
+    let delta;
+
+    if (gap === 1) {
+      // Consecutive day: streak increments normally
+      record.current += 1;
+      record.status = 'active';
+      delta = 'increment';
+    } else if (gap === 2) {
+      // One day missed: gentle resume, streak preserved
+      record.current += 1;
+      record.status = 'gentle_resume';
+      delta = 'gentle_resume';
+    } else {
+      // Two or more days missed: streak starts fresh today
+      record.current = 1;
+      record.status = 'fresh_start';
+      delta = 'fresh_start';
+    }
+
+    if (record.current > record.longest) record.longest = record.current;
+    record.lastVisit = today;
+    record.history.push(today);
+
+    // Trim history to last 90 days to bound memory
+    const cutoff = v19_dayString(new Date(Date.now() - 90 * 86400000), tz);
+    record.history = record.history.filter(d => d >= cutoff);
+
+    v19_streaks.set(userId, record);
+
+    console.log(`[v19 streak_visit] user=${userId.slice(0,8)} current=${record.current} delta=${delta}`);
+    res.json({
+      ok: true,
+      current: record.current,
+      longest: record.longest,
+      status: record.status,
+      delta,
+    });
+  } catch (e) {
+    console.error('[POST /api/streak/visit exception]', e);
+    res.status(500).json({ error: 'streak visit failed' });
+  }
+});
+
+// ── /api/memory/summary ────────────────────────────────────────────
+// Store a compact summary of a reading. v19 ships the storage; v20
+// builds the surface that uses these summaries to make readings feel
+// continuous. Schema deliberately small: timestamp, themes, key
+// insight (one sentence), user_state. Total target: 180-220 words.
+app.post('/api/memory/summary', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const { themes, insight, user_state, source_reading_id } = req.body || {};
+
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+    if (typeof insight !== 'string' || insight.length > 1200) {
+      return res.status(400).json({ error: 'insight required (max 1200 chars)' });
+    }
+
+    const record = {
+      created_at: new Date().toISOString(),
+      themes: Array.isArray(themes) ? themes.slice(0, 8) : [],
+      insight: insight.trim(),
+      user_state: typeof user_state === 'string' ? user_state.slice(0, 240) : null,
+      source_reading_id: source_reading_id || null,
+    };
+
+    if (!v19_summaries.has(userId)) v19_summaries.set(userId, []);
+    const list = v19_summaries.get(userId);
+    list.push(record);
+
+    // Bound to 200 most recent summaries per user
+    if (list.length > 200) list.splice(0, list.length - 200);
+
+    v19_metrics.recordSummaryStore(record.themes.length, record.insight.length);
+
+    console.log(`[v19 summary_stored] user=${userId.slice(0,8)} themes=${record.themes.length}`);
+    res.json({ ok: true, count: list.length });
+  } catch (e) {
+    console.error('[POST /api/memory/summary exception]', e);
+    res.status(500).json({ error: 'summary store failed' });
+  }
+});
+
+// ── /api/v19/metrics ──────────────────────────────────────────────
+// Day 13 deliverable. Snapshot of cost-audit metrics. Sophisticated
+// reviewers (or Ned) can call this to verify the spec's targets:
+//   - Context-injection p95 tokens stays under budget (default 500)
+//   - Reading-prompt total p95 stays under model context limit
+//   - Context-share-of-total stays under 25%
+app.get('/api/v19/metrics', (req, res) => {
+  res.json({
+    ok: true,
+    snapshot: v19_metrics.snapshot(),
+    targets: {
+      context_p95_max_tokens: 500,
+      context_share_max_pct: 25,
+      reading_prompt_p95_max_total: 12000, // claude-3.5 context allows much more, but we cap for cost
+    },
+  });
+});
+
+// ── /api/v19/record-prompt ────────────────────────────────────────
+// Reading-pipeline integration hook. The existing reading pipeline
+// in server.js can POST here to record prompt sizes for the metrics
+// dashboard. v20 will move this to an internal call rather than a
+// round-trip endpoint.
+app.post('/api/v19/record-prompt', (req, res) => {
+  try {
+    const { base_tokens, context_tokens } = req.body || {};
+    if (!Number.isFinite(base_tokens) || !Number.isFinite(context_tokens)) {
+      return res.status(400).json({ error: 'base_tokens and context_tokens required' });
+    }
+    v19_metrics.recordReadingPrompt(base_tokens, context_tokens);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[POST /api/v19/record-prompt exception]', e);
+    res.status(500).json({ error: 'metric record failed' });
+  }
+});
+
+// ── /api/memory/recent ─────────────────────────────────────────────
+// Retrieve recent summaries for a user. Default last 7, max 30.
+// Optional theme filter. v20 will use this to inject 1-3 relevant
+// past summaries into the prompt for a new reading; v19 just exposes
+// the data path so the foundation is real.
+app.get('/api/memory/recent', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    if (!userId) return res.json({ ok: true, summaries: [] });
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 7, 30);
+    const themeFilter = req.query.theme;
+
+    const all = v19_summaries.get(userId) || [];
+    let filtered = all;
+    if (themeFilter) {
+      filtered = all.filter(s => s.themes.some(t => t.toLowerCase() === themeFilter.toLowerCase()));
+    }
+
+    // Most recent first
+    const recent = filtered.slice().reverse().slice(0, limit);
+
+    res.json({ ok: true, count: recent.length, summaries: recent });
+  } catch (e) {
+    console.error('[GET /api/memory/recent exception]', e);
+    res.status(500).json({ error: 'summary read failed' });
+  }
+});
+
+// ── /api/memory/context ────────────────────────────────────────────
+// Day 11 deliverable. Returns a prompt-ready continuity block built
+// from the user's recent summaries, capped at the requested token
+// budget. The reading-generation pipeline calls this before
+// constructing its prompt; the returned block is concatenated into
+// the system prompt so the next reading has real context.
+//
+// The token budget defaults to 500 and is bounded at 1500 to prevent
+// runaway prompt growth. The selection algorithm prefers:
+//   1. Most recent summaries first (recency bias)
+//   2. Thematic relevance to the current reading (if `themes` query
+//      param is provided, summaries with overlapping themes weight
+//      higher)
+//   3. Diversity (no two summaries from the same calendar day)
+//
+// Output shape:
+//   {
+//     ok: true,
+//     block: "... formatted continuity block ...",
+//     summaries_used: [{ created_at, themes }, ...],
+//     estimated_tokens: 380
+//   }
+app.get('/api/memory/context', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    if (!userId) return res.json({ ok: true, block: '', summaries_used: [], estimated_tokens: 0 });
+
+    const budget = Math.min(parseInt(req.query.budget, 10) || 500, 1500);
+    const themesQuery = (req.query.themes || '').toString();
+    const themesWanted = themesQuery
+      ? themesQuery.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    const all = v19_summaries.get(userId) || [];
+    if (all.length === 0) {
+      return res.json({ ok: true, block: '', summaries_used: [], estimated_tokens: 0 });
+    }
+
+    // Score each summary
+    const now = Date.now();
+    const scored = all.map(s => {
+      const ageDays = (now - new Date(s.created_at).getTime()) / 86400000;
+      const recencyScore = Math.max(0, 1 - ageDays / 30); // 0..1, full at today, decays over 30 days
+      const themeScore = themesWanted.length === 0 ? 0
+        : s.themes.some(t => themesWanted.includes(t.toLowerCase())) ? 1 : 0;
+      // Recency 70%, theme 30%
+      return { summary: s, score: recencyScore * 0.7 + themeScore * 0.3, dayKey: s.created_at.slice(0, 10) };
+    });
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    // Greedy selection with diversity (one per calendar day) and budget cap
+    const selected = [];
+    const usedDays = new Set();
+    let runningTokens = 0;
+    const TOKENS_PER_CHAR = 0.25; // rough estimate for English prose
+
+    for (const item of scored) {
+      if (usedDays.has(item.dayKey)) continue;
+      const block = v19_formatSummaryForPrompt(item.summary);
+      const itemTokens = Math.ceil(block.length * TOKENS_PER_CHAR);
+      if (runningTokens + itemTokens > budget) break;
+      selected.push(item);
+      runningTokens += itemTokens;
+      usedDays.add(item.dayKey);
+      if (selected.length >= 5) break; // hard cap on number of summaries
+    }
+
+    // Build the continuity block
+    let block = '';
+    if (selected.length > 0) {
+      block = '## Continuity from recent readings\n\n';
+      block += 'The following summaries are from this user\'s recent CDP readings, ';
+      block += 'most recent first. Use them to make today\'s reading feel continuous, ';
+      block += 'thematically aware, and personally familiar. Do not name the past readings ';
+      block += 'verbatim; weave their themes and threads naturally.\n\n';
+      // Recency-order for the prompt (most recent first)
+      const ordered = selected.slice().sort((a, b) =>
+        new Date(b.summary.created_at).getTime() - new Date(a.summary.created_at).getTime()
+      );
+      for (const item of ordered) {
+        block += v19_formatSummaryForPrompt(item.summary) + '\n';
+      }
+    }
+
+    res.json({
+      ok: true,
+      block,
+      summaries_used: selected.map(s => ({
+        created_at: s.summary.created_at,
+        themes: s.summary.themes,
+      })),
+      estimated_tokens: runningTokens,
+    });
+    v19_metrics.recordContextBuild(runningTokens, selected.length, budget);
+  } catch (e) {
+    console.error('[GET /api/memory/context exception]', e);
+    res.status(500).json({ error: 'context build failed' });
+  }
+});
+
+function v19_formatSummaryForPrompt(s) {
+  // Compact, prompt-friendly format. One block per summary.
+  // Format: ISO date, themes, insight, optional state.
+  const date = s.created_at.slice(0, 10);
+  let block = `[${date}]`;
+  if (s.themes && s.themes.length) block += ` themes: ${s.themes.slice(0, 4).join(', ')}.`;
+  if (s.insight) block += ` insight: ${s.insight}`;
+  if (s.user_state) block += ` user state at the time: ${s.user_state}.`;
+  return block;
+}
+
+// ── /api/email/capture ─────────────────────────────────────────────
+// Capture an email + timezone for a user who has opted in to deeper
+// engagement. NO BROADCAST is sent in v19; this is the storage and
+// instrumentation only. v20 builds the actual morning-trigger send.
+//
+// The opt-in surface is presented in-product, value-coupled (e.g.
+// after a meaningful reading completes), never on entry.
+app.post('/api/email/capture', (req, res) => {
+  try {
+    const userId = v19_userKey(req);
+    const { email, timezone } = req.body || {};
+
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'valid email required' });
+    }
+    if (typeof timezone !== 'string' || timezone.length > 60) {
+      return res.status(400).json({ error: 'timezone required (e.g. Europe/London)' });
+    }
+
+    v19_emails.set(userId, {
+      email: email.toLowerCase().trim(),
+      timezone: timezone.trim(),
+      capturedAt: new Date().toISOString(),
+    });
+
+    console.log(`[v19 email_captured] user=${userId.slice(0,8)} tz=${timezone}`);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[POST /api/email/capture exception]', e);
+    res.status(500).json({ error: 'email capture failed' });
+  }
+});
+
+// ── /sw-v19.js ─────────────────────────────────────────────────────
+// Day 5: serve the v19 service worker at the origin root so its scope
+// covers the whole app. Service workers can only have scope at or
+// below the path they are served from.
+app.get('/sw-v19.js', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    // Try several plausible locations so this works in dev, beta and live
+    const candidates = [
+      path.join(__dirname, 'sw-v19.js'),
+      path.join(__dirname, 'public', 'sw-v19.js'),
+      path.join(process.cwd(), 'sw-v19.js'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Service-Worker-Allowed', '/');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(fs.readFileSync(p));
+      }
+    }
+    res.status(404).send('// service worker not found');
+  } catch (e) {
+    console.error('[GET /sw-v19.js exception]', e);
+    res.status(500).send('// service worker error');
+  }
+});
+
+// ── /api/v19/health ────────────────────────────────────────────────
+// Quick check that v19 surfaces are wired and counts are sane.
+app.get('/api/v19/health', (req, res) => {
+  res.json({
+    ok: true,
+    version: 'v19-fallback',
+    storage: 'in-memory',
+    counts: {
+      streaks: v19_streaks.size,
+      intentions: v19_intentions.size,
+      summaries: v19_summaries.size,
+      emails: v19_emails.size,
+    },
+    metrics: v19_metrics.snapshot(),
+    capabilities: {
+      compass: true,
+      streak: true,
+      intention_save: true,
+      memory_summary: true,
+      memory_context_injection: true,
+      email_capture: true,
+      timezone_aware: true,
+      cost_audit: true,
+    },
+  });
+});
+
+// ── /api/v19/__test_backdate ───────────────────────────────────────
+// TEST-ONLY endpoint, gated on NODE_ENV=test. Allows the test harness
+// to verify the gentle-resume and fresh-start branches of the streak
+// engine without manipulating the in-memory Map directly. In any
+// non-test environment this endpoint returns 404.
+app.post('/api/v19/__test_backdate', (req, res) => {
+  if (process.env.NODE_ENV !== 'test') {
+    return res.status(404).json({ error: 'not found' });
+  }
+  const { kind, user_id, days_ago, current, longest, intention } = req.body || {};
+  if (!user_id) return res.status(400).json({ error: 'user_id required' });
+
+  if (kind === 'intention') {
+    if (!Number.isFinite(days_ago) || typeof intention !== 'string') {
+      return res.status(400).json({ error: 'days_ago and intention required for intention backdate' });
+    }
+    const day = v19_dayString(new Date(Date.now() - days_ago * 86400000), null);
+    if (!v19_intentions.has(user_id)) v19_intentions.set(user_id, {});
+    v19_intentions.get(user_id)[day] = intention;
+    return res.json({ ok: true, planted_date: day });
+  }
+
+  // Default: streak backdate
+  if (!Number.isFinite(days_ago)) {
+    return res.status(400).json({ error: 'days_ago required' });
+  }
+  v19_streaks.set(user_id, {
+    current: current || 1,
+    longest: longest || (current || 1),
+    lastVisit: v19_dayString(new Date(Date.now() - days_ago * 86400000), null),
+    history: [],
+    status: 'active',
+  });
+  res.json({ ok: true });
+});
+
+
+console.log('[v19] Endpoints attached: compass, streak, memory, email-capture, sw, metrics, A/B, notif (FALLBACK MODE: in-memory storage)');
 
 // ── Catch-all SPA route ──────────────────────────────────────────────────────
 app.get('*', (req, res) => {
