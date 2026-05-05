@@ -2375,6 +2375,54 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 <!-- ── CDP v8 ENTRY SCREEN ────────────────────────────────────────── -->
 <div id="cdpEntry" style="display:none">
   <div class="entry-box">
+    <!-- v18: Two Telescopes hero, prominent on entry screen for first-time visitors -->
+    <div class="cdp-tt-hero" id="cdpTwoTelescopesHero" style="margin:0 auto 28px;max-width:520px;padding:24px 22px;
+      background:linear-gradient(135deg, rgba(201,160,80,0.12), rgba(129,205,182,0.08), rgba(201,160,80,0.10));
+      border:1px solid rgba(201,160,80,0.3); border-radius:6px; text-align:left">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:12px;
+        font-size:24px;color:#c9a050;letter-spacing:.05em">
+        <span title="Tradition" style="opacity:.9">☽</span>
+        <span style="opacity:.45;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(232,228,218,0.55);font-family:'Cinzel',serif">two telescopes</span>
+        <span title="Science" style="opacity:.9">⬡</span>
+      </div>
+      <h1 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:28px;line-height:1.2;
+        text-align:center;color:#e8e4da;font-weight:400;letter-spacing:.005em">
+        Pointed at the same sky.
+      </h1>
+      <p style="margin:0 0 16px;font-family:Georgia,serif;font-size:14px;line-height:1.6;
+        text-align:center;color:rgba(232,228,218,0.78);font-style:italic">
+        Frameworks for two and a half thousand years.<br>
+        Neuroscience for fifty. You choose the language.
+      </p>
+      <!-- Dual-voice example (rendered server-side or fallback strings) -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 10px">
+        <div style="flex:1;min-width:180px;padding:12px 14px;
+          background:rgba(13,30,51,0.5);border:1px solid rgba(201,160,80,0.2);border-radius:4px">
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+            color:#c9a050;margin-bottom:6px">☽ Tradition</div>
+          <div style="font-family:Georgia,serif;font-size:13px;line-height:1.55;color:rgba(232,228,218,0.85);font-style:italic">
+            "Saturn asks for foundations. Begin one thing, finish it, before starting the next."
+          </div>
+        </div>
+        <div style="flex:1;min-width:180px;padding:12px 14px;
+          background:rgba(13,30,51,0.5);border:1px solid rgba(129,205,182,0.2);border-radius:4px">
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+            color:rgba(129,205,182,0.95);margin-bottom:6px">⬡ Science</div>
+          <div style="font-family:Georgia,serif;font-size:13px;line-height:1.55;color:rgba(232,228,218,0.85);font-style:italic">
+            "Decision fatigue compounds across an open task list. Closing one releases prefrontal capacity."
+          </div>
+        </div>
+      </div>
+      <!-- Bibliography brand line: makes references a visible part of the brand -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(201,160,80,0.15);
+        text-align:center;font-family:Georgia,serif;font-size:11px;line-height:1.55;
+        color:rgba(232,228,218,0.55);font-style:italic">
+        Drawn on Aldana, Tarnas, Greene, Brennan,<br>
+        Cajochen, Barrett, Kabat-Zinn, Walker, Hebb.
+      </div>
+    </div>
+    <!-- /v18 Two Telescopes hero -->
+
     <div id="entryTierBadge" class="entry-tier-badge">⚡ Full Reading &nbsp;·&nbsp; SEEKER</div>
     <div class="entry-change" onclick="toggleEntryTiers()">Change depth ↓</div>
     <div id="entryTierPicker" style="display:none">
