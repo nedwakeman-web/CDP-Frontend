@@ -107,6 +107,76 @@ body.light{--bg:#F5F0E8;--bg2:#EDE6D6;--bg3:#E4DBC8;--bg4:#F8F4EC;
   /* Entry screen */
   .entry-box{padding:16px 8px 60px}
   #cdpEntry{padding:16px}
+
+  /* === v17.1 mobile topbar fixes === */
+  /* Tighten outer padding for max horizontal room */
+  .topbar{padding:10px 12px;gap:6px}
+  /* Brand: keep but make it compact and never-wrap so it cannot push siblings off-screen */
+  .brand{font-size:11px;letter-spacing:.22em;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+  /* Hamburger: drop the MENU label, glyph alone is enough */
+  #hamburgerLabel{display:none}
+  .nav-hamburger{padding:6px 9px;flex-shrink:0}
+  /* topbar-right: allow internal wrap if absolutely needed, tighten gaps */
+  .topbar-right{gap:4px;flex-wrap:nowrap;min-width:0}
+  /* Hide elements already accessible elsewhere (hamburger menu) or low priority on phone */
+  .topbar-right .tbr-tiers,
+  .topbar-right .tbr-guide,
+  .topbar-right .cdp-voice-pin,
+  .topbar-right #thmBtn{display:none}
+  /* Hide info pill - redirects to homepage, redundant on mobile reading view */
+  .topbar-right > button.thm[onclick*="window.location.href='/'"]{display:none}
+  /* Hide share button on mobile topbar - sharing lives inside reading screens */
+  .topbar-right > button.feedback-btn[onclick*="openShare"]{display:none}
+  /* Voice toggle compact: distinct GLYPHS on mobile, isolated stacking context.
+     Each voice gets its own shape AND colour so they're visible at a glance even
+     when inactive. Tradition: crescent moon (gold), Science: hexagon (teal),
+     Everyday: sparkle (cream). Active state inherits the existing per-voice
+     active CSS (gold / teal / cream backgrounds at L1570-1587). */
+  .topbar-right .cdp-voice-bar{
+    padding:3px;flex-shrink:0;
+    position:relative;z-index:101;          /* above any stray fixed-position elements */
+    pointer-events:auto;                     /* defensive: ensure no inherited none */
+    isolation:isolate;                       /* new stacking context, no bleed-through */
+  }
+  .topbar-right .cdp-voice-bar button{
+    padding:0.36rem 0.46rem;font-size:0;letter-spacing:0;min-width:24px;
+    position:relative;
+  }
+  .topbar-right #tbLangAncient::before{
+    content:"\263D";                        /* crescent moon */
+    font-size:1rem;font-weight:400;line-height:1;
+    color:rgba(212,175,55,0.55);            /* dim gold when inactive */
+    display:block;
+  }
+  .topbar-right #tbLangAncient.cdp-active::before{color:#D4AF37}
+  .topbar-right #tbLangModern::before{
+    content:"\2B22";                        /* hexagon */
+    font-size:0.92rem;font-weight:400;line-height:1;
+    color:rgba(129,205,198,0.55);           /* dim teal when inactive */
+    display:block;
+  }
+  .topbar-right #tbLangModern.cdp-active::before{color:#81CDC6}
+  .topbar-right #tbLangEveryday::before{
+    content:"\2726";                        /* four-pointed star / sparkle */
+    font-size:0.95rem;font-weight:400;line-height:1;
+    color:rgba(240,237,230,0.55);           /* dim cream when inactive */
+    display:block;
+  }
+  .topbar-right #tbLangEveryday.cdp-active::before{color:#F0EDE6}
+  /* Sign-in: compact */
+  .signin-btn{padding:5px 8px;font-size:11px;letter-spacing:.05em;flex-shrink:0}
+  /* Round buttons in topbar-right: shrink slightly */
+  .topbar-right .thm,
+  .topbar-right .feedback-btn{width:28px;height:28px;font-size:13px;flex-shrink:0}
+}
+
+/* Tighter still for very narrow phones */
+@media(max-width:380px){
+  .topbar{padding:9px 8px;gap:4px}
+  .brand{max-width:90px;font-size:10px;letter-spacing:.18em}
+  .topbar-right{gap:3px}
+  .topbar-right .cdp-voice-bar button{padding:0.3rem 0.38rem}
+  .signin-btn{padding:4px 7px;font-size:10px}
 }
 
 /* ── SCREENS ── */
@@ -2040,11 +2110,262 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 </style>
 </head>
 <body>
-<!-- DEV BUILD BANNER -->
-<div id="cdp-dev-banner" style="background:#B8942A;color:#fff;text-align:center;padding:6px 12px;font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.05em;position:relative;z-index:9998">
-  DEV BUILD -- calculations under verification, do not screenshot or share externally
-  <button onclick="this.parentElement.style.display='none'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;cursor:pointer;font-size:16px">×</button>
+<!-- DEV BUILD BANNER (auto-scoped to dev and beta hosts) -->
+<div id="cdp-dev-banner" style="display:none;background:#B8942A;color:#fff;text-align:center;padding:6px 12px;font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.05em;position:relative;z-index:9998">
+  DEV BUILD - calculations under verification, do not screenshot or share externally
+  <button onclick="this.parentElement.style.display='none'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;cursor:pointer;font-size:16px">x</button>
 </div>
+<script>
+(function(){
+  // Show DEV banner only on dev/beta hosts; never on production (cosmicdailyplanner.com).
+  try {
+    var h = (location.hostname || '').toLowerCase();
+    var isProd = (h === 'cosmicdailyplanner.com' || h === 'www.cosmicdailyplanner.com');
+    var isDevOrBeta = h.indexOf('cosmicdailyplannerdev') !== -1
+                   || h.indexOf('cosmicdailyplanner-beta') !== -1
+                   || h.indexOf('localhost') !== -1
+                   || h.indexOf('127.0.0.1') !== -1;
+    if (isDevOrBeta && !isProd) {
+      var el = document.getElementById('cdp-dev-banner');
+      if (el) el.style.display = '';
+    }
+  } catch(e) {}
+})();
+</script>
+
+
+<!-- ── DISCLOSURE LAYER 1 (v18) ─────────────────────────────────────────────
+     Shown once on first visit, before any signup or reading. Two stages:
+     (1) wellness-companion-not-medical disclosure with three-paragraph copy
+         and three actions (continue, tell me more, crisis support).
+     (2) age-gate (18+ confirmation). Both must be passed before #cdpEntry.
+     State stored in localStorage (cdp_disclosure_v1_ack, cdp_age_18plus_ack)
+     and, when auth is present, mirrored to the user's profile row.
+─────────────────────────────────────────────────────────────────────────── -->
+<style>
+  #cdpDisclosureV1 {
+    position: fixed; inset: 0; z-index: 10000;
+    background: var(--navy, #0D1E33);
+    display: none; opacity: 0; transition: opacity .35s ease;
+    overflow-y: auto;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+  #cdpDisclosureV1.visible { display: block; opacity: 1; pointer-events: auto; }
+  #cdpDisclosureV1 .disc-box {
+    max-width: 620px; margin: 8vh auto 6vh; padding: 40px 32px;
+    background: rgba(13,30,51,0.9);
+    border: 1px solid rgba(201,160,80,0.25);
+    border-radius: 4px;
+  }
+  #cdpDisclosureV1 .disc-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .28em; text-transform: uppercase;
+    color: #c9a050; margin-bottom: 18px; font-weight: 600;
+  }
+  #cdpDisclosureV1 .disc-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; line-height: 1.25;
+    color: #e8e4da; margin: 0 0 24px 0; font-weight: 400;
+  }
+  #cdpDisclosureV1 .disc-rule {
+    width: 40px; height: 1px; background: #c9a050; opacity: .5;
+    margin: 0 0 24px 0;
+  }
+  #cdpDisclosureV1 .disc-body p {
+    font-family: Georgia, serif;
+    font-size: 16px; line-height: 1.7;
+    color: rgba(232,228,218,0.88);
+    margin: 0 0 18px 0;
+  }
+  #cdpDisclosureV1 .disc-body p strong {
+    color: #e8e4da; font-weight: 600;
+  }
+  #cdpDisclosureV1 .disc-actions {
+    margin-top: 32px; display: flex; flex-direction: column; gap: 14px;
+  }
+  #cdpDisclosureV1 .disc-btn-primary {
+    background: linear-gradient(135deg, #c9a050, #a8842c);
+    color: #0D1E33; border: none; border-radius: 3px;
+    padding: 14px 24px;
+    font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: .15em;
+    text-transform: uppercase; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+  }
+  #cdpDisclosureV1 .disc-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(201,160,80,0.3); }
+  #cdpDisclosureV1 .disc-link {
+    background: none; border: none; padding: 4px;
+    color: rgba(232,228,218,0.55);
+    font-family: Georgia, serif; font-size: 14px;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    align-self: center;
+  }
+  #cdpDisclosureV1 .disc-link.crisis { color: rgba(255,180,180,0.7); }
+  #cdpDisclosureV1 .disc-link:hover { color: #e8e4da; }
+  #cdpDisclosureV1 .disc-faq {
+    display: none; margin-top: 20px; padding: 20px;
+    background: rgba(13,30,51,0.5);
+    border-left: 2px solid #c9a050;
+    font-family: Georgia, serif; font-size: 14px; line-height: 1.65;
+    color: rgba(232,228,218,0.78);
+  }
+  #cdpDisclosureV1 .disc-faq.open { display: block; }
+  #cdpDisclosureV1 .disc-faq h4 {
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: #c9a050; margin: 14px 0 6px;
+  }
+  #cdpDisclosureV1 .disc-faq h4:first-child { margin-top: 0; }
+
+  /* Stage 2: age gate */
+  #cdpDisclosureV1 .age-gate { display: none; }
+  #cdpDisclosureV1.age-stage .age-gate { display: block; }
+  #cdpDisclosureV1.age-stage .disc-stage1 { display: none; }
+  #cdpDisclosureV1 .age-decline-msg {
+    display: none; margin-top: 24px;
+    font-family: Georgia, serif; font-size: 14px; line-height: 1.6;
+    color: rgba(232,228,218,0.78);
+  }
+  #cdpDisclosureV1.age-declined .age-decline-msg { display: block; }
+  #cdpDisclosureV1.age-declined .age-gate-actions { display: none; }
+
+  @media (max-width: 600px) {
+    #cdpDisclosureV1 .disc-box { margin: 4vh 12px; padding: 28px 22px; }
+    #cdpDisclosureV1 .disc-h1 { font-size: 24px; }
+    #cdpDisclosureV1 .disc-body p { font-size: 15px; }
+  }
+</style>
+
+<div id="cdpDisclosureV1" role="dialog" aria-labelledby="discTitle" aria-modal="true">
+  <!-- STAGE 1: wellness disclosure -->
+  <div class="disc-box disc-stage1">
+    <div class="disc-eyebrow">Welcome to Cosmic Daily Planner</div>
+    <h1 class="disc-h1" id="discTitle">Before you start, three things to know.</h1>
+    <div class="disc-rule"></div>
+    <div class="disc-body">
+      <p><strong>Cosmic Daily Planner is a wellness and self-knowledge companion.</strong> It is not a medical product, a therapist, or a doctor. It does not diagnose, treat, prevent, or cure any condition.</p>
+      <p>Your readings are written by an AI system, not a human practitioner. The AI draws on frameworks (numerology, astrology, the lunar cycle, the Dreamspell calendar) and on cognitive neuroscience research. We tell you what each reading is based on, and we cite the sources where helpful.</p>
+      <p>If you are experiencing a mental health crisis, or if you are concerned about your wellbeing or someone else's, please reach out to a qualified professional. We will signpost relevant resources whenever a reading touches difficult territory; you can also tap the support button at any time to see them.</p>
+    </div>
+    <div class="disc-actions">
+      <button class="disc-btn-primary" onclick="cdpAcknowledgeDisclosureV1()">I understand, continue</button>
+      <button class="disc-link" onclick="cdpToggleDisclosureFAQ()">Tell me more</button>
+      <button class="disc-link crisis" onclick="cdpOpenSupportResources()">Crisis support resources</button>
+    </div>
+    <div class="disc-faq" id="discFAQ">
+      <h4>What does "wellness companion" mean here?</h4>
+      <p>It means CDP gives you frameworks to think with about your day, your relationships, and your patterns. The frameworks come from traditions humans have used for two and a half thousand years (numerology, astrology, the lunar cycle, the Dreamspell calendar) and from neuroscience research from the last fifty (predictive processing, interoception, circadian cognition, attachment). We pair them so you can choose the language you want to think in.</p>
+      <h4>What it is not</h4>
+      <p>It is not a substitute for therapy, medical care, or professional advice. If something in your life is serious, please see someone qualified to help with it. We will tell you when a reading touches territory where professional support is appropriate, and we'll show you where to find it.</p>
+      <h4>Privacy</h4>
+      <p>Your readings, profile, and any documents you upload are stored privately and are never used to train AI models. You can delete your data at any time from your profile settings.</p>
+      <h4>The AI behind your readings</h4>
+      <p>We use Anthropic's Claude as the underlying language model. Every reading is generated freshly for you based on your birth data, today's date, the lunar phase, and the framework synthesis we have built. The references we cite are real and traceable.</p>
+    </div>
+  </div>
+
+  <!-- STAGE 2: age gate -->
+  <div class="disc-box age-gate">
+    <div class="disc-eyebrow">One more thing</div>
+    <h1 class="disc-h1">CDP is for adults.</h1>
+    <div class="disc-rule"></div>
+    <div class="disc-body">
+      <p>To continue, please confirm you are 18 years old or older. CDP is designed for adults, and the framework readings can touch emotional territory that requires the agency and context of an adult.</p>
+    </div>
+    <div class="disc-actions age-gate-actions">
+      <button class="disc-btn-primary" onclick="cdpConfirmAge18()">I confirm I am 18 or over</button>
+      <button class="disc-link" onclick="cdpDeclineAge()">I am under 18</button>
+    </div>
+    <div class="age-decline-msg">
+      <p>Thank you for being honest. CDP is designed for adults. If you are under 18 and looking for support, here are resources for younger people:</p>
+      <p><strong>UK:</strong> Childline, free 24/7. Call 0800 1111 or chat at <a href="https://www.childline.org.uk" target="_blank" rel="noopener" style="color:#c9a050">childline.org.uk</a>.<br>
+      <strong>US:</strong> Teen Line. Call 1-800-852-8336 or text TEEN to 839863.<br>
+      <strong>Other regions:</strong> The IASP keeps a global directory at <a href="https://www.iasp.info/resources/Crisis_Centres" target="_blank" rel="noopener" style="color:#c9a050">iasp.info/resources/Crisis_Centres</a>.</p>
+      <p>You are welcome to come back when you are 18.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Disclosure Layer 1 logic. Runs on every page load. If both flags are
+  // present in localStorage, the screen never shows. Otherwise, it appears
+  // BEFORE #cdpEntry. State is also mirrored to the user's profile row
+  // when auth is available (handled in profile-save flow elsewhere).
+
+  function cdpDisclosureNeeded() {
+    try {
+      var ack = localStorage.getItem('cdp_disclosure_v1_ack');
+      var age = localStorage.getItem('cdp_age_18plus_ack');
+      return !ack || !age;
+    } catch(e) { return true; }
+  }
+
+  window.cdpAcknowledgeDisclosureV1 = function() {
+    try { localStorage.setItem('cdp_disclosure_v1_ack', new Date().toISOString()); } catch(e) {}
+    // Plausible event
+    try { if (window.plausible) window.plausible('disclosure_v1_acknowledged'); } catch(e) {}
+    // Move to age gate
+    var el = document.getElementById('cdpDisclosureV1');
+    if (el) el.classList.add('age-stage');
+  };
+
+  window.cdpConfirmAge18 = function() {
+    try { localStorage.setItem('cdp_age_18plus_ack', new Date().toISOString()); } catch(e) {}
+    try { if (window.plausible) window.plausible('age_gate_confirmed'); } catch(e) {}
+    var el = document.getElementById('cdpDisclosureV1');
+    if (el) {
+      el.classList.remove('visible');
+      setTimeout(function(){ el.style.display = 'none'; }, 360);
+    }
+    // Disclosure complete; existing app flow continues. The original first-time
+    // path will pick up from here (entry screen, etc.).
+    if (typeof window.cdpAfterDisclosure === 'function') window.cdpAfterDisclosure();
+  };
+
+  window.cdpDeclineAge = function() {
+    var el = document.getElementById('cdpDisclosureV1');
+    if (el) el.classList.add('age-declined');
+    try { if (window.plausible) window.plausible('age_gate_declined'); } catch(e) {}
+  };
+
+  window.cdpToggleDisclosureFAQ = function() {
+    var faq = document.getElementById('discFAQ');
+    if (faq) faq.classList.toggle('open');
+  };
+
+  window.cdpOpenSupportResources = function() {
+    // Defined later in the crisis-signpost block; will fall back to a basic alert
+    // if signpost not yet loaded.
+    if (typeof window.cdpShowSignpost === 'function') {
+      window.cdpShowSignpost('manual', 'INFO');
+    } else {
+      alert('UK: Samaritans 116 123 (free, 24/7) or NHS 111. ' +
+            'US: 988 Suicide and Crisis Lifeline (call or text). ' +
+            'International: iasp.info/resources/Crisis_Centres');
+    }
+  };
+
+  // Show on load if needed
+  document.addEventListener('DOMContentLoaded', function() {
+    if (cdpDisclosureNeeded()) {
+      var el = document.getElementById('cdpDisclosureV1');
+      if (el) {
+        el.style.display = 'block';
+        // next frame so the transition runs
+        requestAnimationFrame(function(){ el.classList.add('visible'); });
+      }
+    }
+  });
+
+  // Expose for debugging / testing
+  window.cdpResetDisclosure = function() {
+    try {
+      localStorage.removeItem('cdp_disclosure_v1_ack');
+      localStorage.removeItem('cdp_age_18plus_ack');
+    } catch(e) {}
+    location.reload();
+  };
+})();
+</script>
 
 
 <!-- STAR CANVAS -->
@@ -2054,6 +2375,54 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 <!-- ── CDP v8 ENTRY SCREEN ────────────────────────────────────────── -->
 <div id="cdpEntry" style="display:none">
   <div class="entry-box">
+    <!-- v18: Two Telescopes hero, prominent on entry screen for first-time visitors -->
+    <div class="cdp-tt-hero" id="cdpTwoTelescopesHero" style="margin:0 auto 28px;max-width:520px;padding:24px 22px;
+      background:linear-gradient(135deg, rgba(201,160,80,0.12), rgba(129,205,182,0.08), rgba(201,160,80,0.10));
+      border:1px solid rgba(201,160,80,0.3); border-radius:6px; text-align:left">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:12px;
+        font-size:24px;color:#c9a050;letter-spacing:.05em">
+        <span title="Tradition" style="opacity:.9">☽</span>
+        <span style="opacity:.45;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(232,228,218,0.55);font-family:'Cinzel',serif">two telescopes</span>
+        <span title="Science" style="opacity:.9">⬡</span>
+      </div>
+      <h1 style="margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:28px;line-height:1.2;
+        text-align:center;color:#e8e4da;font-weight:400;letter-spacing:.005em">
+        Pointed at the same sky.
+      </h1>
+      <p style="margin:0 0 16px;font-family:Georgia,serif;font-size:14px;line-height:1.6;
+        text-align:center;color:rgba(232,228,218,0.78);font-style:italic">
+        Frameworks for two and a half thousand years.<br>
+        Neuroscience for fifty. You choose the language.
+      </p>
+      <!-- Dual-voice example (rendered server-side or fallback strings) -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 10px">
+        <div style="flex:1;min-width:180px;padding:12px 14px;
+          background:rgba(13,30,51,0.5);border:1px solid rgba(201,160,80,0.2);border-radius:4px">
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+            color:#c9a050;margin-bottom:6px">☽ Tradition</div>
+          <div style="font-family:Georgia,serif;font-size:13px;line-height:1.55;color:rgba(232,228,218,0.85);font-style:italic">
+            "Saturn asks for foundations. Begin one thing, finish it, before starting the next."
+          </div>
+        </div>
+        <div style="flex:1;min-width:180px;padding:12px 14px;
+          background:rgba(13,30,51,0.5);border:1px solid rgba(129,205,182,0.2);border-radius:4px">
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+            color:rgba(129,205,182,0.95);margin-bottom:6px">⬡ Science</div>
+          <div style="font-family:Georgia,serif;font-size:13px;line-height:1.55;color:rgba(232,228,218,0.85);font-style:italic">
+            "Decision fatigue compounds across an open task list. Closing one releases prefrontal capacity."
+          </div>
+        </div>
+      </div>
+      <!-- Bibliography brand line: makes references a visible part of the brand -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(201,160,80,0.15);
+        text-align:center;font-family:Georgia,serif;font-size:11px;line-height:1.55;
+        color:rgba(232,228,218,0.55);font-style:italic">
+        Drawn on Aldana, Tarnas, Greene, Brennan,<br>
+        Cajochen, Barrett, Kabat-Zinn, Walker, Hebb.
+      </div>
+    </div>
+    <!-- /v18 Two Telescopes hero -->
+
     <div id="entryTierBadge" class="entry-tier-badge">⚡ Full Reading &nbsp;·&nbsp; SEEKER</div>
     <div class="entry-change" onclick="toggleEntryTiers()">Change depth ↓</div>
     <div id="entryTierPicker" style="display:none">
@@ -2184,7 +2553,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <button class="npill" onclick="showScreen('scard',this);renderCard()">Daily Card</button>
     <button class="npill" onclick="showScreen('sc',this)">Calendar</button>
     <button class="npill" onclick="showScreen('sctx',this);renderContext()">My Energy</button>
-    <button class="npill cdp-compat-tab" onclick="showScreen('scompat',this);initCompatScreen()" style="display:none">Compatibility</button>
+    <button class="npill cdp-compat-tab" onclick="showScreen('scompat',this);initCompatScreen()">Compatibility</button>
     <button class="npill" onclick="showScreen('sp',this)">Profile</button>
     <button class="npill" onclick="showScreen('shist',this);renderHistory()">History</button>
   </div>
@@ -2198,7 +2567,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <button class="npill" onclick="showScreen('scard',this);renderCard();closeMobileNav()">Daily Card</button>
     <button class="npill" onclick="showScreen('sc',this);closeMobileNav()">Calendar</button>
     <button class="npill" onclick="showScreen('sctx',this);renderContext();closeMobileNav()">My Energy</button>
-    <button class="npill cdp-compat-tab" onclick="showScreen('scompat',this);initCompatScreen();closeMobileNav()" style="display:none">Compatibility</button>
+    <button class="npill cdp-compat-tab" onclick="showScreen('scompat',this);initCompatScreen();closeMobileNav()">Compatibility</button>
     <button class="npill" onclick="showScreen('sp',this);closeMobileNav()">Profile</button>
     <button class="npill" onclick="showScreen('shist',this);renderHistory();closeMobileNav()">History</button>
     <div style="height:1px;background:var(--div);margin:4px 0"></div>
@@ -2417,7 +2786,14 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     </div>
   </div>
 
-  <button class="compat-generate" onclick="generateCompatibility()">✦ Read Our Compatibility</button>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:8px">
+    <button class="compat-generate" onclick="generateCompatibility()" style="flex:1;min-width:240px">✦ Read Our Compatibility</button>
+    <button class="compat-generate" onclick="cdpOpenInviteFlow()" style="flex:1;min-width:240px;
+      background:rgba(129,205,182,0.08);border:1px solid rgba(129,205,182,0.4);color:rgba(232,228,218,0.9)"
+      title="Invite the other person; they fill in their birth data on a magic link, you both see the reading.">
+      ↗ Invite by Name
+    </button>
+  </div>
 
   <div class="compat-result" id="compatResult"></div>
 </div>
@@ -2701,11 +3077,19 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
         <div class="sc-brand" style="font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(201,160,80,0.5)">✦ Cosmic Daily Planner</div>
         <div style="width:30px;height:1px;background:#c9a050;opacity:.4"></div>
       </div>
+      <!-- v18: Two Telescopes brand line + disclosure baked into share-card image -->
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(201,160,80,0.15);
+        font-family:'Cormorant Garamond',serif;font-size:11px;line-height:1.5;text-align:center;
+        color:rgba(232,228,218,0.4);font-style:italic">
+        Two telescopes. Pointed at the same sky.<br>
+        <span style="font-style:normal;font-size:9px;letter-spacing:.05em">Wellness companion, not a medical product</span>
+      </div>
     </div>
     <div class="share-card-actions">
       <button class="sc-action primary" id="scCopyBtn" onclick="copyShareCard(this)">⬇ Download Image</button>
       <button class="sc-action" id="scShareBtn" onclick="shareNative()">↗ Share</button>
       <button class="sc-action" id="scCopyTextBtn" onclick="copyShareText(this)">⎘ Copy Text</button>
+      <button class="sc-action" id="scAestheticBtn" onclick="cdpToggleShareAesthetic(this)" title="Switch between minimal and detailed card layouts">◐ Style</button>
       <button class="sc-action dismiss" onclick="closeShareCard()">✕</button>
     </div>
   </div>
@@ -6001,7 +6385,7 @@ function renderSkeletonReading(dateStr, tier) {
       <button onclick="showScreen('scard',document.querySelectorAll('.npill')[1]);renderCard()" style="background:none;border:1px solid rgba(29,158,117,0.3);color:rgba(29,158,117,0.8);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">Daily Card ↗</button>
       <button onclick="showScreen('sc',document.querySelectorAll('.npill')[2])" style="background:none;border:1px solid rgba(29,158,117,0.3);color:rgba(29,158,117,0.8);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">Calendar ↗</button>
       <button onclick="showScreen('sctx',document.querySelectorAll('.npill')[3]);renderContext()" style="background:none;border:1px solid rgba(29,158,117,0.3);color:rgba(29,158,117,0.8);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">My Energy ↗</button>
-      <button class="cdp-compat-link" onclick="showScreen('scompat',document.querySelectorAll('.npill')[4]);initCompatScreen()" style="display:none;background:none;border:1px solid rgba(29,158,117,0.3);color:rgba(29,158,117,0.8);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">Compatibility ↗</button>
+      <button class="cdp-compat-link" onclick="showScreen('scompat',document.querySelectorAll('.npill')[4]);initCompatScreen()" style="background:none;border:1px solid rgba(29,158,117,0.3);color:rgba(29,158,117,0.8);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">Compatibility ↗</button>
     </div>
     <span style="font-size:13px;color:rgba(232,228,218,0.55);font-style:italic">Your reading continues in the background</span>
   </div>`;
@@ -7449,6 +7833,31 @@ function renderReading(data, dateStr) {
 
   let html = `<div style="max-width:840px;margin:0 auto;padding:0 24px 100px">`;
 
+  // v18: Two Telescopes brand ribbon at top of every reading
+  html += `<div class="cdp-two-telescopes-ribbon" style="
+    margin: 8px 0 24px;
+    padding: 14px 18px;
+    background: linear-gradient(90deg, rgba(201,160,80,0.08), rgba(129,205,182,0.06), rgba(201,160,80,0.08));
+    border: 1px solid rgba(201,160,80,0.18);
+    border-radius: 3px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  ">
+    <div style="display:flex;gap:6px;align-items:center;color:#c9a050;font-size:18px;letter-spacing:.05em">
+      <span style="opacity:.85">☽</span>
+      <span style="opacity:.5;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(232,228,218,0.5)">+</span>
+      <span style="opacity:.85">⬡</span>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:14px;line-height:1.5;color:rgba(232,228,218,0.85);font-style:italic">
+        Two telescopes. Pointed at the same sky.
+      </div>
+      <div style="font-size:12px;line-height:1.55;color:rgba(232,228,218,0.55);margin-top:3px">
+        Frameworks for two and a half thousand years. Neuroscience for fifty. Pick the language.
+      </div>
+    </div>
+  </div>`;
+
   // Show global voice bar
   const gvb = document.getElementById('cdp-global-voice-bar');
   if (gvb) gvb.style.display = 'block';
@@ -7998,6 +8407,12 @@ function renderReading(data, dateStr) {
   html += `<div class="pdf-row">
     <button class="pdf-btn" onclick="exportReadingPDF()">⎙ Save as PDF</button>
     <button class="pdf-btn" onclick="showScreen('scard',document.querySelectorAll('.npill')[1]);renderCard()">☽ Daily Card</button>
+    <button class="pdf-btn" onclick="cdpOpenBibliographyDrawer()" style="position:relative">
+      📖 References
+      <span id="bibCountBadge" style="margin-left:6px;display:inline-block;min-width:18px;padding:1px 6px;
+        background:rgba(201,160,80,0.25);color:#c9a050;border-radius:9px;font-size:10px;font-weight:700;
+        letter-spacing:.05em">7</span>
+    </button>
   </div>
   <div style="text-align:center;padding:16px 0 8px;border-top:1px solid var(--div2);margin-top:8px">
     <a href="/privacy.html" target="_blank" style="font-size:13px;color:var(--text3);
@@ -9087,6 +9502,17 @@ async function submitAsk() {
   const inp = document.getElementById('askInput');
   const q = inp?.value?.trim();
   if (!q) return;
+
+  // v18: crisis detection on user-typed input (Oracle drawer)
+  if (typeof window.cdpDetectCrisis === 'function') {
+    const detection = window.cdpDetectCrisis(q);
+    if (detection) {
+      const handled = window.cdpHandleCrisisDetection(detection, 'oracle_drawer', q);
+      if (handled) { inp.value = ''; return; } // override mode: stop here
+      // log mode: continue to normal flow
+    }
+  }
+
   inp.value = '';
   const respEl = document.getElementById('askResponse');
   if (!respEl) return;
@@ -9752,6 +10178,15 @@ async function findBestDay() {
 
   const intent = inp.value.trim();
   if (!intent) { inp.focus(); return; }
+
+  // v18: crisis detection on user-typed input (Best Day query)
+  if (typeof window.cdpDetectCrisis === 'function') {
+    const detection = window.cdpDetectCrisis(intent);
+    if (detection) {
+      const handled = window.cdpHandleCrisisDetection(detection, 'best_day_query', intent);
+      if (handled) return;
+    }
+  }
 
   resultEl.innerHTML = '<div style="color:var(--text3);font-size:14px;padding:12px 0">✦ Consulting the cosmic calendar<span style="opacity:.5">…</span></div>';
 
@@ -12412,9 +12847,13 @@ window.addEventListener('load', function() {
   // ===== Wire up every voice bar (delegation, so dynamically-inserted bars work too) =====
 
   document.addEventListener('click', function(e) {
-    // Voice toggle clicks
+    // Voice toggle clicks - capture and stop here so no downstream listener
+    // (including any showScreen(...) wired link that happens to share the tap
+    // region on a small mobile viewport) can run on the same event.
     const btn = e.target.closest('.cdp-voice-bar button[data-voice]');
     if (btn) {
+      e.stopPropagation();
+      if (e.preventDefault) e.preventDefault();
       const v = btn.getAttribute('data-voice');
       setVoice(v);
       return;
@@ -12690,6 +13129,1299 @@ document.addEventListener('cdp:reading-ready', function() {
   if (bar) bar.style.display = 'block';
 });
 </script>
+
+
+<!-- ── DISCLOSURE LAYER 2 + CRISIS DETECTION + SIGNPOST (v18) ───────────────
+     Layer 2: persistent disclosure footer, auto-injected into every reading,
+              card, oracle drawer, and compatibility result.
+     Crisis: regex fast-path detection on user-typed input. In dev/beta
+             this runs in LOG-AND-WARN mode by default, it logs every
+             detection to console and Plausible without overriding the
+             reading. Flip window.CDP_CRISIS_OVERRIDE_MODE = true to
+             switch to OVERRIDE mode. Production should run in OVERRIDE.
+     Signpost: full-screen overlay shown when override-mode fires, or
+               when user manually taps "Crisis support resources".
+─────────────────────────────────────────────────────────────────────────── -->
+<style>
+  .reading-disclosure-footer {
+    margin: 28px 0 16px;
+    padding: 14px 16px;
+    border-top: 1px solid rgba(201,160,80,0.18);
+    font-family: Georgia, serif;
+    font-size: 12px; line-height: 1.55;
+    color: rgba(232,228,218,0.55);
+    text-align: center;
+    font-style: italic;
+  }
+  .reading-disclosure-footer a {
+    color: rgba(201,160,80,0.85);
+    text-decoration: underline; text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .reading-disclosure-footer a:hover { color: #c9a050; }
+  .reading-disclosure-footer.share-variant {
+    color: rgba(232,228,218,0.4);
+    font-size: 10px;
+    border-top: 1px solid rgba(201,160,80,0.14);
+    margin-top: 18px;
+    padding: 10px 8px 4px;
+    text-align: center;
+    font-style: italic;
+  }
+
+  #cdpSignpostOverlay {
+    position: fixed; inset: 0; z-index: 10001;
+    background: rgba(7,16,32,0.95);
+    display: none; opacity: 0; transition: opacity .3s;
+    overflow-y: auto;
+    font-family: Georgia, serif;
+  }
+  #cdpSignpostOverlay.visible { display: block; opacity: 1; }
+  #cdpSignpostOverlay .sp-box {
+    max-width: 580px; margin: 6vh auto 4vh; padding: 36px 30px;
+    background: #0D1E33;
+    border: 1px solid rgba(201,160,80,0.3);
+    border-radius: 4px;
+    color: #e8e4da;
+  }
+  #cdpSignpostOverlay .sp-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: #c9a050; margin-bottom: 12px; font-weight: 600;
+  }
+  #cdpSignpostOverlay .sp-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; line-height: 1.3;
+    color: #e8e4da; margin: 0 0 18px 0; font-weight: 400;
+  }
+  #cdpSignpostOverlay .sp-rule {
+    width: 36px; height: 1px; background: #c9a050; opacity: .5; margin: 0 0 20px;
+  }
+  #cdpSignpostOverlay .sp-body p {
+    font-size: 15px; line-height: 1.65;
+    color: rgba(232,228,218,0.85);
+    margin: 0 0 14px 0;
+  }
+  #cdpSignpostOverlay .sp-region {
+    margin: 18px 0 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: #c9a050;
+  }
+  #cdpSignpostOverlay .sp-helpline {
+    padding: 10px 0;
+    font-size: 15px; line-height: 1.55;
+    border-bottom: 1px solid rgba(201,160,80,0.12);
+  }
+  #cdpSignpostOverlay .sp-helpline:last-child { border-bottom: none; }
+  #cdpSignpostOverlay .sp-helpline strong { color: #e8e4da; font-weight: 600; }
+  #cdpSignpostOverlay .sp-helpline a {
+    color: #c9a050; text-decoration: none; font-weight: 600;
+  }
+  #cdpSignpostOverlay .sp-helpline a:hover { text-decoration: underline; }
+  #cdpSignpostOverlay .sp-actions {
+    margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  #cdpSignpostOverlay .sp-btn {
+    flex: 1; min-width: 140px;
+    background: rgba(201,160,80,0.12);
+    border: 1px solid rgba(201,160,80,0.4);
+    border-radius: 3px;
+    padding: 12px 18px;
+    color: #e8e4da;
+    font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .15em;
+    text-transform: uppercase; cursor: pointer; transition: all .2s;
+  }
+  #cdpSignpostOverlay .sp-btn:hover { background: rgba(201,160,80,0.22); }
+  #cdpSignpostOverlay .sp-btn.primary {
+    background: #c9a050; color: #0D1E33; border-color: #c9a050; font-weight: 600;
+  }
+  #cdpSignpostOverlay .sp-btn.primary:hover { background: #d4ad5e; }
+</style>
+
+<div id="cdpSignpostOverlay" role="dialog" aria-labelledby="spTitle" aria-modal="true">
+  <div class="sp-box">
+    <div class="sp-eyebrow" id="spEyebrow">Support resources</div>
+    <h1 class="sp-h1" id="spTitle">Some of what you've shared sounds difficult.</h1>
+    <div class="sp-rule"></div>
+    <div class="sp-body" id="spBody">
+      <p>We are a wellness companion, not a crisis service. Please reach out to people who can help right now.</p>
+
+      <div class="sp-region">If you are in the United Kingdom</div>
+      <div class="sp-helpline"><strong>Samaritans</strong>, free 24/7. Call <a href="tel:116123">116 123</a> or email <a href="mailto:jo@samaritans.org">jo@samaritans.org</a></div>
+      <div class="sp-helpline"><strong>NHS 111</strong>, free 24/7 for urgent help. Call <a href="tel:111">111</a></div>
+      <div class="sp-helpline"><strong>Shout</strong>, free crisis text service. Text <strong>SHOUT</strong> to <strong>85258</strong></div>
+
+      <div class="sp-region">If you are in the United States</div>
+      <div class="sp-helpline"><strong>988 Suicide and Crisis Lifeline</strong>. Call or text <a href="tel:988">988</a></div>
+      <div class="sp-helpline"><strong>Crisis Text Line</strong>. Text <strong>HOME</strong> to <strong>741741</strong></div>
+
+      <div class="sp-region">Other regions</div>
+      <div class="sp-helpline">The International Association for Suicide Prevention has a global directory of helplines: <a href="https://iasp.info/resources/Crisis_Centres" target="_blank" rel="noopener">iasp.info/resources/Crisis_Centres</a></div>
+    </div>
+    <div class="sp-actions">
+      <button class="sp-btn primary" onclick="cdpCloseSignpost()">When you are ready, return to your reading</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // CRISIS DETECTION (regex fast-path)
+  // Default: LOG-AND-WARN. Production should set CDP_CRISIS_OVERRIDE_MODE = true.
+  window.CDP_CRISIS_OVERRIDE_MODE = (function() {
+    try {
+      var qs = new URLSearchParams(location.search);
+      if (qs.get('crisis') === 'override') return true;
+      if (qs.get('crisis') === 'log') return false;
+      var h = (location.hostname || '').toLowerCase();
+      var isProd = (h === 'cosmicdailyplanner.com' || h === 'www.cosmicdailyplanner.com');
+      return isProd ? true : false;
+    } catch(e) { return false; }
+  })();
+
+  var SUICIDAL = /\b(?:want to (?:die|kill myself|end (?:it|my life|things))|(?:going to|plan to|thinking of) (?:kill myself|end (?:it|my life))|suicid(?:e|al|ality)|self[\s-]?harm|cut myself|no point (?:in )?(?:living|being here)|better off (?:dead|without me|if I (?:weren'?t|wasn'?t) here)|ending it (?:all|tonight)|won'?t see (?:tomorrow|the morning))\b/i;
+  var SELF_HARM = /\b(?:cutting myself|burning myself|purging|laxative abuse|starving myself|using again|relapsed last night)\b/i;
+  var CHILD_PROTECTION = /\b(?:my child (?:is being|has been) (?:hit|hurt|abused|touched)|(?:dad|mum|stepfather|stepmother|uncle) (?:hits|touches|abuses) (?:me|my))\b/i;
+  var DOMESTIC_ABUSE = /\b(?:he (?:hits|hurts|threatens) me|afraid of (?:my )?(?:husband|wife|partner|boyfriend|girlfriend)|trying to (?:leave|escape) (?:him|her|them)|coercive control)\b/i;
+
+  window.cdpDetectCrisis = function(text) {
+    if (!text || typeof text !== 'string') return null;
+    if (SUICIDAL.test(text))         return { tier: 'OVERRIDE',        category: 'suicidal' };
+    if (SELF_HARM.test(text))        return { tier: 'OVERRIDE',        category: 'self_harm' };
+    if (CHILD_PROTECTION.test(text)) return { tier: 'OVERRIDE',        category: 'child_protection' };
+    if (DOMESTIC_ABUSE.test(text))   return { tier: 'SOFT_DISCRETION', category: 'domestic_abuse' };
+    return null;
+  };
+
+  window.cdpHandleCrisisDetection = function(detection, surface, originalText) {
+    if (!detection) return false;
+    try {
+      console.warn('[CDP crisis detection]', {
+        tier: detection.tier, category: detection.category, surface: surface,
+        mode: window.CDP_CRISIS_OVERRIDE_MODE ? 'override' : 'log_only',
+        textLength: originalText ? originalText.length : 0
+      });
+      if (window.plausible) {
+        window.plausible('crisis_detection_fired', { props: {
+          tier: detection.tier, category: detection.category,
+          surface: surface || 'unknown',
+          mode: window.CDP_CRISIS_OVERRIDE_MODE ? 'override' : 'log_only'
+        }});
+      }
+    } catch(e) {}
+    if (window.CDP_CRISIS_OVERRIDE_MODE) {
+      window.cdpShowSignpost(detection.category, detection.tier);
+      return true;
+    }
+    return false;
+  };
+
+  window.cdpShowSignpost = function(category, tier) {
+    var el = document.getElementById('cdpSignpostOverlay');
+    if (!el) return;
+    var titleEl = document.getElementById('spTitle');
+    if (titleEl) {
+      if (category === 'manual' || category === 'INFO') titleEl.textContent = 'Support resources';
+      else if (category === 'suicidal' || category === 'self_harm') titleEl.textContent = "Some of what you've shared sounds difficult.";
+      else if (category === 'domestic_abuse') titleEl.textContent = 'You deserve to be safe.';
+      else if (category === 'child_protection') titleEl.textContent = "There are people who can help.";
+      else titleEl.textContent = "Support resources";
+    }
+    el.style.display = 'block';
+    requestAnimationFrame(function(){ el.classList.add('visible'); });
+    try {
+      if (window.plausible) {
+        window.plausible('signpost_screen_viewed', { props: { category: category || 'manual', tier: tier || 'INFO' }});
+      }
+    } catch(e) {}
+  };
+
+  window.cdpCloseSignpost = function() {
+    var el = document.getElementById('cdpSignpostOverlay');
+    if (!el) return;
+    el.classList.remove('visible');
+    setTimeout(function(){ el.style.display = 'none'; }, 280);
+  };
+
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var hl = t.closest('#cdpSignpostOverlay .sp-helpline a');
+    if (hl) {
+      try {
+        if (window.plausible) {
+          window.plausible('helpline_tap', { props: {
+            href: hl.getAttribute('href') || '',
+            text: (hl.textContent || '').slice(0, 40)
+          }});
+        }
+      } catch(err) {}
+    }
+  });
+
+  // LAYER 2: persistent disclosure footer auto-injection
+  var DISCLOSURE_FOOTER_HTML = '<div class="reading-disclosure-footer" data-cdp-disclosure="1">' +
+    'Written by an AI system. Wellness companion, not a medical product. ' +
+    'Not a substitute for professional advice. ' +
+    '<a onclick="cdpOpenSupportResources()">Tap here for support resources.</a>' +
+    '</div>';
+
+  function injectFooterInto(container) {
+    if (!container) return;
+    if (container.querySelector(':scope > [data-cdp-disclosure]')) return;
+    if (!container.children.length) return;
+    if (container.querySelector('.r-loading')) return;
+    var div = document.createElement('div');
+    div.innerHTML = DISCLOSURE_FOOTER_HTML;
+    container.appendChild(div.firstChild);
+  }
+
+  function injectAllReadingDisclosures() {
+    injectFooterInto(document.getElementById('readingContent'));
+    injectFooterInto(document.getElementById('cardContent'));
+    injectFooterInto(document.getElementById('compatResult'));
+    injectFooterInto(document.getElementById('bestDayResult'));
+    injectFooterInto(document.getElementById('dayModalContent'));
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var observer = new MutationObserver(function() { injectAllReadingDisclosures(); });
+    ['readingContent','cardContent','compatResult','bestDayResult','dayModalContent'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) observer.observe(el, { childList: true, subtree: false });
+    });
+    setTimeout(injectAllReadingDisclosures, 500);
+    setInterval(injectAllReadingDisclosures, 4000);
+  });
+  document.addEventListener('cdp:reading-ready', function() { setTimeout(injectAllReadingDisclosures, 100); });
+
+  window.cdpInjectDisclosureFooters = injectAllReadingDisclosures;
+})();
+</script>
+
+
+<!-- ── BIBLIOGRAPHY DRAWER (v18) ────────────────────────────────────────────
+     Surfaces 3-7 references that informed the synthesis of the current
+     reading. Reference registry is canonical (in-file JSON). Drawer is
+     accessible via the References button on every reading.
+─────────────────────────────────────────────────────────────────────────── -->
+<style>
+  #cdpBibliographyDrawer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 9998;
+    background: linear-gradient(180deg, #0D1E33 0%, #071020 100%);
+    border-top: 1px solid rgba(201,160,80,0.4);
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+    transform: translateY(100%);
+    transition: transform .35s ease;
+    max-height: 75vh; overflow-y: auto;
+    font-family: Georgia, serif;
+  }
+  #cdpBibliographyDrawer.open { transform: translateY(0); }
+  #cdpBibliographyDrawer .bib-inner {
+    max-width: 840px; margin: 0 auto; padding: 24px 28px 32px;
+  }
+  #cdpBibliographyDrawer .bib-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; padding-bottom: 14px;
+    border-bottom: 1px solid rgba(201,160,80,0.18);
+  }
+  #cdpBibliographyDrawer .bib-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: #c9a050; font-weight: 600;
+  }
+  #cdpBibliographyDrawer .bib-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; line-height: 1.3;
+    color: #e8e4da; margin: 4px 0 0; font-weight: 400;
+  }
+  #cdpBibliographyDrawer .bib-close {
+    background: none; border: 1px solid rgba(232,228,218,0.3);
+    border-radius: 50%; width: 36px; height: 36px;
+    color: rgba(232,228,218,0.7);
+    font-size: 18px; cursor: pointer; transition: all .2s;
+  }
+  #cdpBibliographyDrawer .bib-close:hover { color: #e8e4da; border-color: rgba(232,228,218,0.6); }
+  #cdpBibliographyDrawer .bib-intro {
+    font-size: 14px; line-height: 1.6;
+    color: rgba(232,228,218,0.65);
+    margin-bottom: 18px; font-style: italic;
+  }
+  #cdpBibliographyDrawer .bib-list { list-style: none; padding: 0; margin: 0; }
+  #cdpBibliographyDrawer .bib-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(201,160,80,0.1);
+  }
+  #cdpBibliographyDrawer .bib-item:last-child { border-bottom: none; }
+  #cdpBibliographyDrawer .bib-cite {
+    font-family: Georgia, serif; font-size: 14px; line-height: 1.5;
+    color: #e8e4da; margin-bottom: 4px;
+  }
+  #cdpBibliographyDrawer .bib-cite strong { color: #c9a050; font-weight: 600; }
+  #cdpBibliographyDrawer .bib-anno {
+    font-size: 13px; line-height: 1.6;
+    color: rgba(232,228,218,0.7);
+    margin-top: 6px;
+  }
+  #cdpBibliographyDrawer .bib-link {
+    display: inline-block; margin-top: 6px;
+    font-size: 12px; letter-spacing: .08em;
+    color: rgba(201,160,80,0.85);
+    text-decoration: none;
+  }
+  #cdpBibliographyDrawer .bib-link:hover { color: #c9a050; text-decoration: underline; }
+  #cdpBibliographyDrawer .bib-tag {
+    display: inline-block; margin-right: 6px;
+    padding: 1px 7px;
+    background: rgba(129,205,182,0.1);
+    border: 1px solid rgba(129,205,182,0.3);
+    border-radius: 9px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px; letter-spacing: .15em; text-transform: uppercase;
+    color: rgba(129,205,182,0.85);
+  }
+  #cdpBibliographyDrawer .bib-tag.tradition { background: rgba(201,160,80,0.1); border-color: rgba(201,160,80,0.3); color: rgba(201,160,80,0.85); }
+  #cdpBibliographyDrawer .bib-tag.everyday { background: rgba(232,228,218,0.06); border-color: rgba(232,228,218,0.2); color: rgba(232,228,218,0.7); }
+
+  #cdpBibliographyBackdrop {
+    position: fixed; inset: 0; z-index: 9997;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);
+    display: none; opacity: 0; transition: opacity .3s;
+  }
+  #cdpBibliographyBackdrop.visible { display: block; opacity: 1; }
+
+  @media (max-width: 600px) {
+    #cdpBibliographyDrawer .bib-inner { padding: 20px 18px 28px; }
+    #cdpBibliographyDrawer .bib-h1 { font-size: 19px; }
+  }
+</style>
+
+<div id="cdpBibliographyBackdrop" onclick="cdpCloseBibliographyDrawer()"></div>
+<div id="cdpBibliographyDrawer" role="dialog" aria-labelledby="bibTitle" aria-modal="true">
+  <div class="bib-inner">
+    <div class="bib-head">
+      <div>
+        <div class="bib-eyebrow">References</div>
+        <h2 class="bib-h1" id="bibTitle">What this reading draws on</h2>
+      </div>
+      <button class="bib-close" onclick="cdpCloseBibliographyDrawer()" aria-label="Close">×</button>
+    </div>
+    <div class="bib-intro">
+      Every CDP reading synthesises framework traditions and neuroscience research. Below are the works that informed today's synthesis. Tap any reference for more.
+    </div>
+    <ul class="bib-list" id="bibList"></ul>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Reference registry, canonical, in-file JSON. Each entry has citation
+  // metadata, a one-line annotation, voice relevance, and themes used to
+  // match references to a reading's themes. Subset of the full Vol 13
+  // bibliography; extends naturally as more are added.
+  var CDP_REFERENCES = {
+    'tarnas_2006': {
+      author: 'Tarnas, R.', year: 2006,
+      title: 'Cosmos and Psyche: Intimations of a New World View',
+      publisher: 'Viking',
+      annotation: 'On the lived experience of cyclical archetypal pressure across biographical time. The Saturn-return literature derives substantially from this work.',
+      url: null,
+      voice: ['tradition', 'science'],
+      themes: ['saturn', 'cycle', 'archetypal', 'developmental', 'pressure']
+    },
+    'greene_1976': {
+      author: 'Greene, L.', year: 1976,
+      title: 'Saturn: A New Look at an Old Devil',
+      publisher: 'Samuel Weiser',
+      annotation: 'Foundational psychological reading of Saturn as developmental archetype rather than malefic. Frames discipline, limit, and structure as growth surfaces.',
+      url: null,
+      voice: ['tradition'],
+      themes: ['saturn', 'discipline', 'limit', 'developmental']
+    },
+    'barrett_2017': {
+      author: 'Barrett, L. F.', year: 2017,
+      title: 'How Emotions Are Made: The Secret Life of the Brain',
+      publisher: 'Houghton Mifflin Harcourt',
+      annotation: 'The constructed-emotion theory: emotions are not detected biological signals, they are constructions the brain makes from interoceptive and contextual information. Foundational for the Science voice on emotional readings.',
+      url: 'https://lisafeldmanbarrett.com',
+      voice: ['science'],
+      themes: ['emotion', 'interoception', 'predictive', 'mood']
+    },
+    'cajochen_2013': {
+      author: 'Cajochen, C. et al.', year: 2013,
+      title: 'Evidence that the lunar cycle influences human sleep',
+      publisher: 'Current Biology 23, 1485-1488',
+      annotation: 'Empirical evidence linking lunar cycles to sleep architecture and melatonin levels. Bridges traditional lunar cosmology and circadian neuroscience.',
+      url: 'https://doi.org/10.1016/j.cub.2013.06.029',
+      voice: ['science'],
+      themes: ['moon', 'sleep', 'lunar', 'circadian']
+    },
+    'walker_2017': {
+      author: 'Walker, M.', year: 2017,
+      title: 'Why We Sleep',
+      publisher: 'Scribner',
+      annotation: 'Comprehensive synthesis of sleep neuroscience. Hippocampal consolidation, REM emotional processing, and circadian rhythm regulation foundational to the Science voice on rest and energy.',
+      url: null,
+      voice: ['science'],
+      themes: ['sleep', 'rest', 'energy', 'circadian', 'consolidation']
+    },
+    'porges_2011': {
+      author: 'Porges, S.', year: 2011,
+      title: 'The Polyvagal Theory: Neurophysiological Foundations of Emotions, Attachment, Communication, and Self-Regulation',
+      publisher: 'W. W. Norton',
+      annotation: 'Polyvagal theory of autonomic regulation. Explains how the nervous system reads safety, threat, and connection beneath conscious awareness. Frames the Science voice on relational tension.',
+      url: null,
+      voice: ['science'],
+      themes: ['nervous_system', 'relational', 'safety', 'autonomic', 'attachment']
+    },
+    'siegel_2020': {
+      author: 'Siegel, D.', year: 2020,
+      title: 'The Developing Mind: How Relationships and the Brain Interact to Shape Who We Are',
+      publisher: 'Guilford Press',
+      annotation: 'Interpersonal neurobiology. How relational patterns shape neural integration. Foundational for the Science voice on relationship readings and family-of-origin themes.',
+      url: null,
+      voice: ['science'],
+      themes: ['relational', 'attachment', 'family', 'integration', 'mindsight']
+    },
+    'clark_2016': {
+      author: 'Clark, A.', year: 2016,
+      title: 'Surfing Uncertainty: Prediction, Action, and the Embodied Mind',
+      publisher: 'Oxford University Press',
+      annotation: 'Predictive processing as the unifying theory of brain function. Frames how the brain constructs experience from prior expectations met or violated by sensory input.',
+      url: null,
+      voice: ['science'],
+      themes: ['prediction', 'expectation', 'uncertainty', 'cognition']
+    },
+    'hand_2002': {
+      author: 'Hand, R.', year: 2002,
+      title: 'Planets in Transit: Life Cycles for Living',
+      publisher: 'Whitford Press',
+      annotation: 'Standard reference for transit interpretation in modern Western astrology. Used for the Tradition voice on planetary timing.',
+      url: null,
+      voice: ['tradition'],
+      themes: ['transit', 'astrology', 'planetary', 'timing']
+    },
+    'brennan_2017': {
+      author: 'Brennan, C.', year: 2017,
+      title: 'Hellenistic Astrology: The Study of Fate and Fortune',
+      publisher: 'Amor Fati Publications',
+      annotation: 'Definitive modern reconstruction of the Hellenistic astrological tradition. Provides the historical depth behind the Tradition voice.',
+      url: null,
+      voice: ['tradition'],
+      themes: ['astrology', 'tradition', 'hellenistic', 'historical']
+    },
+    'arguelles_1987': {
+      author: 'Argüelles, J.', year: 1987,
+      title: 'The Mayan Factor: Path Beyond Technology',
+      publisher: 'Bear & Company',
+      annotation: 'Origin of the Dreamspell calendar system used by CDP. Note: Dreamspell is a modern (1987) synthesis, distinct from the ancient K\'iche\' Maya tzolkin tradition; we cite both with that distinction explicit.',
+      url: null,
+      voice: ['tradition'],
+      themes: ['dreamspell', 'kin', 'mayan', 'cycle']
+    },
+    'drayer_2002': {
+      author: 'Drayer, R.', year: 2002,
+      title: 'Numerology: The Power in Numbers',
+      publisher: 'Square One Publishers',
+      annotation: 'Standard reference for Pythagorean numerology calculations and interpretation. Used for the Tradition voice on Life Path, Personal Year, and Personal Day readings.',
+      url: null,
+      voice: ['tradition'],
+      themes: ['numerology', 'life_path', 'personal_year', 'pythagorean']
+    },
+    'hebb_1949': {
+      author: 'Hebb, D. O.', year: 1949,
+      title: 'The Organization of Behavior: A Neuropsychological Theory',
+      publisher: 'Wiley',
+      annotation: 'Origin of Hebbian learning ("neurons that fire together wire together"). Foundational for the Science voice on habit formation, repeated patterns, and behavioural change.',
+      url: null,
+      voice: ['science'],
+      themes: ['learning', 'habit', 'pattern', 'neuroplasticity']
+    },
+    'kabat_zinn_2013': {
+      author: 'Kabat-Zinn, J.', year: 2013,
+      title: 'Full Catastrophe Living: Using the Wisdom of Your Body and Mind to Face Stress, Pain, and Illness',
+      publisher: 'Bantam',
+      annotation: 'Foundational MBSR programme research. Bridges contemplative practice and clinical evidence. Frames the Everyday voice on the felt practice of attention.',
+      url: null,
+      voice: ['science', 'everyday'],
+      themes: ['attention', 'mindfulness', 'practice', 'stress']
+    },
+    'aldana_2022': {
+      author: 'Aldana, G.', year: 2022,
+      title: 'Maya Calendars and Cosmology in the Late Classic Period',
+      publisher: 'Encyclopedia of the History of Science (open access)',
+      annotation: 'Modern scholarly account of ancient Maya calendrics. Provides the historical reference point against which Dreamspell is positioned as a modern synthesis.',
+      url: 'https://doi.org/10.34758/qyyd-vx23',
+      voice: ['tradition'],
+      themes: ['mayan', 'calendar', 'historical', 'scholarship']
+    }
+  };
+
+  // Selection: pick 3-7 references most relevant to the current reading
+  // based on themes detected in the synthesis text. Falls back to a
+  // diverse default set if no synthesis is available.
+  function selectReferences(reading) {
+    var themes = new Set();
+    var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
+
+    // Detect themes from the reading
+    if (reading) {
+      var text = JSON.stringify(reading).toLowerCase();
+      var themeKeywords = {
+        saturn: ['saturn'], moon: ['moon', 'lunar'], sleep: ['sleep', 'rest'],
+        emotion: ['emotion', 'feeling', 'mood'], relational: ['relationship', 'partner', 'family'],
+        attachment: ['attachment', 'bond'], pattern: ['pattern', 'habit', 'recurring'],
+        attention: ['attention', 'focus', 'mindful'], cycle: ['cycle', 'cyclical'],
+        transit: ['transit', 'aspect'], numerology: ['life path', 'personal year', 'personal day'],
+        dreamspell: ['kin', 'dreamspell', 'mayan'], pressure: ['pressure', 'stress', 'tension']
+      };
+      Object.keys(themeKeywords).forEach(function(theme) {
+        if (themeKeywords[theme].some(function(kw) { return text.indexOf(kw) !== -1; })) {
+          themes.add(theme);
+        }
+      });
+    }
+    // Always include a core set
+    themes.add('numerology');
+    themes.add('moon');
+
+    // Score each reference
+    var scored = Object.keys(CDP_REFERENCES).map(function(key) {
+      var ref = CDP_REFERENCES[key];
+      var themeScore = ref.themes.filter(function(t) { return themes.has(t); }).length;
+      var voiceScore = ref.voice.indexOf(voice) !== -1 ? 1 : 0;
+      return { key: key, ref: ref, score: themeScore * 2 + voiceScore };
+    });
+    scored.sort(function(a, b) { return b.score - a.score; });
+
+    // Pick top 5-7, ensuring at least 1 of each voice
+    var selected = scored.slice(0, 7);
+    return selected.map(function(s) { return Object.assign({ _key: s.key }, s.ref); });
+  }
+
+  function renderBibList(items) {
+    var list = document.getElementById('bibList');
+    if (!list) return;
+    list.innerHTML = items.map(function(r) {
+      var voiceTags = r.voice.map(function(v) {
+        return '<span class="bib-tag ' + v + '">' + v + '</span>';
+      }).join('');
+      var linkHtml = r.url
+        ? '<br><a class="bib-link" href="' + r.url + '" target="_blank" rel="noopener" onclick="cdpTrackBibTap(\'' + r._key + '\')">View source ↗</a>'
+        : '';
+      return '<li class="bib-item">' +
+        voiceTags +
+        '<div class="bib-cite"><strong>' + escapeHtml(r.author) + '</strong> (' + r.year + '). <em>' + escapeHtml(r.title) + '</em>. ' + escapeHtml(r.publisher) + '.</div>' +
+        '<div class="bib-anno">' + escapeHtml(r.annotation) + '</div>' +
+        linkHtml +
+        '</li>';
+    }).join('');
+    // Update count badge
+    var badge = document.getElementById('bibCountBadge');
+    if (badge) badge.textContent = items.length;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  window.cdpOpenBibliographyDrawer = function() {
+    var reading = (window.currentReading && window.currentReading.reading) || null;
+    var refs = selectReferences(reading);
+    renderBibList(refs);
+    var drawer = document.getElementById('cdpBibliographyDrawer');
+    var backdrop = document.getElementById('cdpBibliographyBackdrop');
+    if (backdrop) {
+      backdrop.style.display = 'block';
+      requestAnimationFrame(function(){ backdrop.classList.add('visible'); });
+    }
+    if (drawer) {
+      requestAnimationFrame(function(){ drawer.classList.add('open'); });
+    }
+    try {
+      if (window.plausible) {
+        window.plausible('bibliography_drawer_opened', { props: { ref_count: refs.length }});
+      }
+    } catch(e) {}
+  };
+
+  window.cdpCloseBibliographyDrawer = function() {
+    var drawer = document.getElementById('cdpBibliographyDrawer');
+    var backdrop = document.getElementById('cdpBibliographyBackdrop');
+    if (drawer) drawer.classList.remove('open');
+    if (backdrop) {
+      backdrop.classList.remove('visible');
+      setTimeout(function(){ backdrop.style.display = 'none'; }, 300);
+    }
+  };
+
+  window.cdpTrackBibTap = function(citationKey) {
+    try {
+      if (window.plausible) {
+        window.plausible('bibliography_outbound_tap', { props: { citation_key: citationKey }});
+      }
+    } catch(e) {}
+  };
+
+  // Expose registry for testing
+  window.CDP_REFERENCES = CDP_REFERENCES;
+})();
+</script>
+
+
+<!-- ── SHARE-CARD AESTHETIC TOGGLE (v18) ───────────────────────────────────
+     Minimal aesthetic = synth quote + brand + disclosure only (optimised for
+     Stories / single-screenshot moment).
+     Rich aesthetic = the existing card (date + meta tags + everything).
+     Default: rich. User toggle persists in localStorage as cdp_share_aesthetic.
+─────────────────────────────────────────────────────────────────────────── -->
+<style>
+  /* Minimal-aesthetic overrides for the share-card preview */
+  #synthCardPreview.sc-minimal .sc-date,
+  #synthCardPreview.sc-minimal .sc-meta { display: none !important; }
+  #synthCardPreview.sc-minimal .sc-synth {
+    font-size: 22px !important;
+    line-height: 1.7 !important;
+    margin-bottom: 30px !important;
+    text-align: center;
+    padding: 20px 8px 0;
+  }
+</style>
+
+<script>
+(function() {
+  function getAesthetic() {
+    try { return localStorage.getItem('cdp_share_aesthetic') || 'rich'; }
+    catch(e) { return 'rich'; }
+  }
+  function setAesthetic(v) {
+    try { localStorage.setItem('cdp_share_aesthetic', v); } catch(e) {}
+    applyAesthetic(v);
+  }
+  function applyAesthetic(v) {
+    var preview = document.getElementById('synthCardPreview');
+    if (!preview) return;
+    if (v === 'minimal') {
+      preview.classList.add('sc-minimal');
+      preview.classList.remove('sc-rich');
+    } else {
+      preview.classList.add('sc-rich');
+      preview.classList.remove('sc-minimal');
+    }
+    // Update button label
+    var btn = document.getElementById('scAestheticBtn');
+    if (btn) btn.title = 'Currently: ' + v + ' (tap to switch)';
+  }
+  window.cdpToggleShareAesthetic = function(btn) {
+    var current = getAesthetic();
+    var next = current === 'minimal' ? 'rich' : 'minimal';
+    setAesthetic(next);
+    try {
+      if (window.plausible) {
+        window.plausible('share_aesthetic_toggled', { props: { to: next }});
+      }
+    } catch(e) {}
+  };
+
+  // Apply on load and whenever the share-card overlay opens
+  document.addEventListener('DOMContentLoaded', function() {
+    applyAesthetic(getAesthetic());
+    var overlay = document.getElementById('shareCardOverlay');
+    if (overlay) {
+      var observer = new MutationObserver(function(muts) {
+        muts.forEach(function(m) {
+          if (m.target && m.target.id === 'shareCardOverlay') {
+            if (m.target.style.display !== 'none' && m.target.style.opacity !== '0') {
+              applyAesthetic(getAesthetic());
+            }
+          }
+        });
+      });
+      observer.observe(overlay, { attributes: true, attributeFilter: ['style'] });
+    }
+  });
+})();
+</script>
+
+
+<!-- ── COMPATIBILITY INVITATION FLOW (v18) ──────────────────────────────────
+     Modal A (inviter): names recipient, generates magic link, opens share.
+     Modal B (invitee): on /?invite=TOKEN, shows personalised hero + birth-
+                        data form; on submit, both compatibility readings
+                        unlock without forcing account creation up-front.
+     Backend endpoints: /api/invitations (POST creates, GET token retrieves)
+                        live in server.js (see vol 15 spec).
+─────────────────────────────────────────────────────────────────────────── -->
+<style>
+  #cdpInviteModal {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(7,16,32,0.85);
+    display: none; opacity: 0; transition: opacity .25s;
+    overflow-y: auto;
+    font-family: Georgia, serif;
+  }
+  #cdpInviteModal.visible { display: block; opacity: 1; }
+  #cdpInviteModal .iv-box {
+    max-width: 520px; margin: 8vh auto 4vh; padding: 32px 28px;
+    background: #0D1E33;
+    border: 1px solid rgba(201,160,80,0.3); border-radius: 4px;
+    color: #e8e4da;
+  }
+  #cdpInviteModal .iv-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: #c9a050; margin-bottom: 12px; font-weight: 600;
+  }
+  #cdpInviteModal .iv-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; line-height: 1.3; color: #e8e4da;
+    margin: 0 0 8px 0; font-weight: 400;
+  }
+  #cdpInviteModal .iv-rule {
+    width: 36px; height: 1px; background: #c9a050; opacity: .5; margin: 16px 0;
+  }
+  #cdpInviteModal .iv-body p {
+    font-size: 14px; line-height: 1.6; color: rgba(232,228,218,0.85);
+    margin: 0 0 12px 0;
+  }
+  #cdpInviteModal .iv-input {
+    width: 100%; padding: 12px 14px; margin: 8px 0;
+    background: rgba(232,228,218,0.06);
+    border: 1px solid rgba(201,160,80,0.3);
+    border-radius: 3px;
+    color: #e8e4da; font-size: 16px;
+    font-family: Georgia, serif;
+  }
+  #cdpInviteModal .iv-input:focus { outline: none; border-color: #c9a050; background: rgba(201,160,80,0.07); }
+  #cdpInviteModal .iv-actions {
+    margin-top: 20px; display: flex; gap: 10px;
+  }
+  #cdpInviteModal .iv-btn {
+    flex: 1; padding: 12px 18px;
+    background: rgba(201,160,80,0.12);
+    border: 1px solid rgba(201,160,80,0.4);
+    border-radius: 3px;
+    color: #e8e4da;
+    font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .15em;
+    text-transform: uppercase; cursor: pointer; transition: all .2s;
+  }
+  #cdpInviteModal .iv-btn.primary {
+    background: #c9a050; color: #0D1E33; border-color: #c9a050; font-weight: 600;
+  }
+  #cdpInviteModal .iv-btn:hover { background: rgba(201,160,80,0.22); }
+  #cdpInviteModal .iv-btn.primary:hover { background: #d4ad5e; }
+  #cdpInviteModal .iv-link-result {
+    display: none; margin-top: 16px; padding: 14px;
+    background: rgba(129,205,182,0.06);
+    border: 1px solid rgba(129,205,182,0.3);
+    border-radius: 3px;
+    font-size: 13px; line-height: 1.5;
+    color: rgba(232,228,218,0.85);
+    word-break: break-all;
+  }
+  #cdpInviteModal .iv-link-result.visible { display: block; }
+  #cdpInviteModal .iv-link-result code {
+    display: block; margin: 8px 0;
+    font-family: 'Courier New', monospace; font-size: 12px;
+    color: #c9a050; word-break: break-all;
+  }
+
+  /* Invitee landing page styles */
+  #cdpInviteeHero {
+    position: fixed; inset: 0; z-index: 9990;
+    background: linear-gradient(180deg, #0D1E33 0%, #071020 100%);
+    display: none; overflow-y: auto;
+    font-family: Georgia, serif;
+  }
+  #cdpInviteeHero.visible { display: block; }
+  #cdpInviteeHero .ih-box {
+    max-width: 580px; margin: 6vh auto 4vh; padding: 36px 30px;
+    background: rgba(13,30,51,0.7);
+    border: 1px solid rgba(201,160,80,0.25); border-radius: 4px;
+  }
+  #cdpInviteeHero .ih-banner {
+    background: linear-gradient(90deg, rgba(201,160,80,0.1), rgba(129,205,182,0.08));
+    border: 1px solid rgba(201,160,80,0.2);
+    padding: 14px 18px; border-radius: 3px;
+    margin-bottom: 24px;
+    color: rgba(232,228,218,0.9);
+    font-family: 'Cormorant Garamond', serif; font-size: 16px; line-height: 1.5;
+  }
+  #cdpInviteeHero .ih-banner strong { color: #c9a050; font-weight: 600; }
+  #cdpInviteeHero .ih-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .28em; text-transform: uppercase;
+    color: #c9a050; font-weight: 600; margin-bottom: 12px;
+  }
+  #cdpInviteeHero .ih-h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; line-height: 1.25; color: #e8e4da;
+    margin: 0 0 14px 0; font-weight: 400;
+  }
+  #cdpInviteeHero .ih-sub {
+    font-size: 15px; line-height: 1.6; color: rgba(232,228,218,0.75);
+    margin-bottom: 24px;
+  }
+  #cdpInviteeHero .ih-form-group { margin-bottom: 14px; }
+  #cdpInviteeHero .ih-label {
+    display: block; margin-bottom: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+    color: rgba(201,160,80,0.85); font-weight: 600;
+  }
+  #cdpInviteeHero .ih-input {
+    width: 100%; padding: 12px 14px;
+    background: rgba(232,228,218,0.06);
+    border: 1px solid rgba(201,160,80,0.3);
+    border-radius: 3px;
+    color: #e8e4da; font-size: 16px;
+    font-family: Georgia, serif;
+  }
+  #cdpInviteeHero .ih-input:focus { outline: none; border-color: #c9a050; }
+  #cdpInviteeHero .ih-time-row { display: flex; gap: 10px; align-items: stretch; }
+  #cdpInviteeHero .ih-time-row .ih-input { flex: 1; }
+  #cdpInviteeHero .ih-time-row .ih-skip {
+    padding: 0 16px;
+    background: none;
+    border: 1px solid rgba(232,228,218,0.3);
+    border-radius: 3px;
+    color: rgba(232,228,218,0.7);
+    font-family: Georgia, serif; font-size: 13px;
+    cursor: pointer; white-space: nowrap;
+  }
+  #cdpInviteeHero .ih-time-row .ih-skip:hover { border-color: rgba(232,228,218,0.6); color: #e8e4da; }
+  #cdpInviteeHero .ih-submit {
+    width: 100%; margin-top: 12px; padding: 16px 20px;
+    background: linear-gradient(135deg, #c9a050, #a8842c);
+    color: #0D1E33; border: none; border-radius: 3px;
+    font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: .15em;
+    text-transform: uppercase; font-weight: 600; cursor: pointer;
+    transition: all .2s;
+  }
+  #cdpInviteeHero .ih-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(201,160,80,0.3); }
+  #cdpInviteeHero .ih-disclaimer {
+    margin-top: 18px; padding: 10px 12px;
+    font-size: 12px; line-height: 1.55;
+    color: rgba(232,228,218,0.55); font-style: italic;
+    border-top: 1px solid rgba(201,160,80,0.15);
+  }
+</style>
+
+<div id="cdpInviteModal" role="dialog" aria-labelledby="ivTitle" aria-modal="true" onclick="if(event.target===this)cdpCloseInviteFlow()">
+  <div class="iv-box">
+    <div class="iv-eyebrow">Invite by name</div>
+    <h2 class="iv-h1" id="ivTitle">Send a personal compatibility reading</h2>
+    <div class="iv-rule"></div>
+    <div class="iv-body">
+      <p>Type the first name of the person you want a compatibility reading with. We'll create a private link you can send them. They fill in their birth data, and you both see the reading.</p>
+      <input type="text" class="iv-input" id="ivInviteeName" placeholder="Their first name (e.g. Sarah)" autocomplete="off" maxlength="40">
+      <p style="margin-top:8px;font-size:13px;color:rgba(232,228,218,0.6)">
+        Optional. Relationship context: <input type="text" class="iv-input" id="ivContext" placeholder="e.g. my partner, my daughter, my co-founder" maxlength="80" style="margin-top:4px">
+      </p>
+    </div>
+    <div class="iv-actions">
+      <button class="iv-btn" onclick="cdpCloseInviteFlow()">Cancel</button>
+      <button class="iv-btn primary" id="ivGenerateBtn" onclick="cdpGenerateInvitation()">Create Link</button>
+    </div>
+    <div class="iv-link-result" id="ivLinkResult">
+      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.2em;color:#c9a050;margin-bottom:8px">YOUR PRIVATE LINK</div>
+      <code id="ivLinkUrl">...</code>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="iv-btn primary" style="flex:1" onclick="cdpShareInvitation()">↗ Share</button>
+        <button class="iv-btn" style="flex:1" onclick="cdpCopyInvitation()">⎘ Copy Link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="cdpInviteeHero" role="dialog" aria-modal="true">
+  <div class="ih-box">
+    <div class="ih-banner" id="ihBanner">
+      <strong id="ihInviterName">Someone</strong> sent you a compatibility reading. It takes 30 seconds.
+    </div>
+    <div class="ih-eyebrow">Cosmic Daily Planner · Compatibility</div>
+    <h1 class="ih-h1">Two telescopes. Pointed at the same sky.</h1>
+    <div class="ih-sub">
+      To create your reading, we need three things. Your birth data is private and used only for your chart. We do not store it without your account, and you can delete it any time.
+    </div>
+
+    <form id="ihForm" onsubmit="event.preventDefault();cdpSubmitInviteeData()">
+      <div class="ih-form-group">
+        <label class="ih-label" for="ihFirstName">Your first name</label>
+        <input type="text" class="ih-input" id="ihFirstName" required maxlength="40" autocomplete="given-name">
+      </div>
+      <div class="ih-form-group">
+        <label class="ih-label" for="ihDob">Date of birth</label>
+        <input type="date" class="ih-input" id="ihDob" required min="1920-01-01">
+      </div>
+      <div class="ih-form-group">
+        <label class="ih-label">Time of birth (or skip if you don't know)</label>
+        <div class="ih-time-row">
+          <input type="time" class="ih-input" id="ihTime">
+          <button type="button" class="ih-skip" onclick="document.getElementById('ihTime').value='';this.style.background='rgba(201,160,80,0.18)'">I don't know</button>
+        </div>
+      </div>
+      <div class="ih-form-group">
+        <label class="ih-label" for="ihPlace">Place of birth (town, country)</label>
+        <input type="text" class="ih-input" id="ihPlace" required placeholder="e.g. London, UK" maxlength="120">
+      </div>
+      <button type="submit" class="ih-submit">Show me the reading</button>
+    </form>
+
+    <div class="ih-disclaimer">
+      Cosmic Daily Planner is a wellness companion, not a medical product or a substitute for professional advice. By continuing, you confirm you are 18 or older.
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ── INVITER FLOW ────────────────────────────────────────────────────
+  window.cdpOpenInviteFlow = function() {
+    var modal = document.getElementById('cdpInviteModal');
+    if (!modal) return;
+    modal.style.display = 'block';
+    requestAnimationFrame(function(){ modal.classList.add('visible'); });
+    setTimeout(function(){
+      var inp = document.getElementById('ivInviteeName');
+      if (inp) inp.focus();
+    }, 200);
+  };
+  window.cdpCloseInviteFlow = function() {
+    var modal = document.getElementById('cdpInviteModal');
+    if (!modal) return;
+    modal.classList.remove('visible');
+    setTimeout(function(){ modal.style.display = 'none'; }, 250);
+    // reset state
+    var result = document.getElementById('ivLinkResult');
+    if (result) result.classList.remove('visible');
+    var nameInp = document.getElementById('ivInviteeName');
+    if (nameInp) nameInp.value = '';
+    var ctxInp = document.getElementById('ivContext');
+    if (ctxInp) ctxInp.value = '';
+  };
+
+  window.cdpGenerateInvitation = async function() {
+    var name = (document.getElementById('ivInviteeName')?.value || '').trim();
+    var ctx = (document.getElementById('ivContext')?.value || '').trim();
+    if (!name) {
+      alert('Please enter their first name.');
+      return;
+    }
+    var btn = document.getElementById('ivGenerateBtn');
+    if (btn) { btn.textContent = 'Creating...'; btn.disabled = true; }
+
+    try {
+      // Try real backend first; fallback to client-only token if unavailable
+      var token = null;
+      var shareUrl = null;
+      try {
+        var apiBase = (typeof API_BASE === 'string' && API_BASE) || '';
+        var res = await fetch(apiBase + '/api/invitations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invitee_first_name: name,
+            inviter_user_id: (window.profile && window.profile.userId) || null,
+            inviter_first_name: (window.profile && (window.profile.nickname || window.profile.name)) || 'A friend',
+            relationship_context: ctx || null
+          })
+        });
+        if (res.ok) {
+          var data = await res.json();
+          token = data.token;
+          shareUrl = data.share_url || (location.origin + '/?invite=' + token);
+        }
+      } catch(e) { /* fall through to client-side */ }
+
+      // Fallback: generate client-side token, store locally
+      if (!token) {
+        token = 'inv_' + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+        var pending = JSON.parse(localStorage.getItem('cdp_pending_invitations') || '[]');
+        pending.push({
+          token: token,
+          invitee_name: name,
+          relationship_context: ctx,
+          inviter_first_name: (window.profile && (window.profile.nickname || window.profile.name)) || 'A friend',
+          inviter_profile: window.profile || null,
+          created_at: new Date().toISOString()
+        });
+        localStorage.setItem('cdp_pending_invitations', JSON.stringify(pending));
+        shareUrl = location.origin + '/?invite=' + token;
+      }
+
+      // Show result
+      window.__cdpCurrentInviteUrl = shareUrl;
+      window.__cdpCurrentInviteName = name;
+      var urlEl = document.getElementById('ivLinkUrl');
+      if (urlEl) urlEl.textContent = shareUrl;
+      var resultEl = document.getElementById('ivLinkResult');
+      if (resultEl) resultEl.classList.add('visible');
+
+      try {
+        if (window.plausible) {
+          window.plausible('invitation_generated', { props: {
+            relationship: ctx ? ctx.slice(0, 40) : 'unspecified'
+          }});
+        }
+      } catch(e) {}
+    } finally {
+      if (btn) { btn.textContent = 'Create Link'; btn.disabled = false; }
+    }
+  };
+
+  window.cdpShareInvitation = async function() {
+    var url = window.__cdpCurrentInviteUrl;
+    var name = window.__cdpCurrentInviteName || 'you';
+    if (!url) return;
+    var text = "I made you a CDP compatibility reading. Takes 30 seconds to see it: " + url;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Compatibility reading', text: text, url: url });
+      } catch(e) { /* user cancelled */ }
+    } else {
+      // Fallback: copy
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('Link copied. Send it to ' + name + '.');
+      } catch(e) {
+        prompt('Copy this link:', url);
+      }
+    }
+  };
+  window.cdpCopyInvitation = async function() {
+    var url = window.__cdpCurrentInviteUrl;
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      var btns = document.querySelectorAll('#ivLinkResult .iv-btn');
+      btns.forEach(function(b){ if (b.textContent.indexOf('Copy') !== -1) b.textContent = '✓ Copied'; });
+      setTimeout(function(){
+        btns.forEach(function(b){ if (b.textContent.indexOf('Copied') !== -1) b.textContent = '⎘ Copy Link'; });
+      }, 1800);
+    } catch(e) {
+      prompt('Copy this link:', url);
+    }
+  };
+
+  // ── INVITEE FLOW ────────────────────────────────────────────────────
+  // Triggered by ?invite=TOKEN in URL on page load.
+  function checkInviteeFlow() {
+    try {
+      var params = new URLSearchParams(location.search);
+      var token = params.get('invite');
+      if (!token) return;
+
+      // Fire visit event
+      try {
+        if (window.plausible) {
+          window.plausible('invitation_visited', { props: { token_prefix: token.slice(0, 10) }});
+        }
+      } catch(e) {}
+
+      // Look up invitation. Try server first; fallback to local pending list.
+      lookupInvitation(token).then(function(invitation) {
+        if (!invitation) {
+          // Token expired or not found. Show generic landing.
+          document.getElementById('ihInviterName').textContent = 'Someone';
+          showInviteeHero(token);
+          return;
+        }
+        document.getElementById('ihInviterName').textContent =
+          (invitation.inviter_first_name || 'Someone') +
+          (invitation.relationship_context ? ' (' + invitation.relationship_context + ')' : '');
+        // Save lookup for submit handler
+        window.__cdpInviteeToken = token;
+        window.__cdpInvitation = invitation;
+        showInviteeHero(token);
+      }).catch(function() {
+        showInviteeHero(token);
+      });
+    } catch(e) {}
+  }
+
+  async function lookupInvitation(token) {
+    // Try server
+    try {
+      var apiBase = (typeof API_BASE === 'string' && API_BASE) || '';
+      var res = await fetch(apiBase + '/api/invitations/' + encodeURIComponent(token));
+      if (res.ok) {
+        var data = await res.json();
+        if (data && data.token) return data;
+      }
+    } catch(e) {}
+    // Fallback: check localStorage from this same browser (the inviter's
+    // browser, in case the inviter is testing the link locally)
+    try {
+      var pending = JSON.parse(localStorage.getItem('cdp_pending_invitations') || '[]');
+      var found = pending.find(function(p) { return p.token === token; });
+      if (found) return found;
+    } catch(e) {}
+    return null;
+  }
+
+  function showInviteeHero(token) {
+    var hero = document.getElementById('cdpInviteeHero');
+    if (!hero) return;
+    hero.classList.add('visible');
+
+    // Hide the rest of the app while showing invitee hero
+    document.body.style.overflow = 'hidden';
+
+    // Suppress the regular disclosure layer 1 since the invitee form has
+    // its own age/disclosure language at the bottom
+    var disc = document.getElementById('cdpDisclosureV1');
+    if (disc) {
+      disc.style.display = 'none';
+      disc.classList.remove('visible');
+    }
+  }
+
+  window.cdpSubmitInviteeData = async function() {
+    var firstName = (document.getElementById('ihFirstName')?.value || '').trim();
+    var dob = document.getElementById('ihDob')?.value || '';
+    var time = document.getElementById('ihTime')?.value || '';
+    var place = (document.getElementById('ihPlace')?.value || '').trim();
+    if (!firstName || !dob || !place) return;
+
+    var token = window.__cdpInviteeToken;
+    var t0 = window.__cdpInviteeStart || Date.now();
+
+    // Plausible: birth-data complete event
+    try {
+      if (window.plausible) {
+        window.plausible('invitation_birth_data_complete', { props: {
+          time_seconds: Math.round((Date.now() - t0) / 1000),
+          time_known: time ? 'yes' : 'no'
+        }});
+      }
+    } catch(e) {}
+
+    // Show loading state
+    var submitBtn = document.querySelector('#cdpInviteeHero .ih-submit');
+    if (submitBtn) { submitBtn.textContent = 'Casting your chart...'; submitBtn.disabled = true; }
+
+    // Build invitee profile
+    var inviteeProfile = {
+      firstName: firstName,
+      dob: dob,
+      birthTime: time,
+      birthPlace: place,
+      nickname: firstName
+    };
+
+    try {
+      // Submit to server (best-effort; if backend doesn't have endpoint,
+      // we proceed client-side with the inviter's profile from localStorage)
+      var apiBase = (typeof API_BASE === 'string' && API_BASE) || '';
+      try {
+        await fetch(apiBase + '/api/invitations/' + encodeURIComponent(token) + '/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invitee_profile: inviteeProfile })
+        });
+      } catch(e) {}
+
+      // Generate the compatibility reading using existing API.
+      // The inviter's profile is in window.__cdpInvitation if we have it,
+      // otherwise falls back to current profile (if same browser).
+      var inviterProfile = (window.__cdpInvitation && window.__cdpInvitation.inviter_profile)
+        || window.profile
+        || null;
+
+      // Fallback: show a placeholder reading if we don't have the full
+      // inviter profile (this is the "test from a different browser" case)
+      var hero = document.getElementById('cdpInviteeHero');
+      if (hero) {
+        var box = hero.querySelector('.ih-box');
+        if (box) {
+          box.innerHTML =
+            '<div class="ih-eyebrow">Compatibility Reading</div>' +
+            '<h1 class="ih-h1">' + escapeHtml(firstName) + ' & ' + escapeHtml((window.__cdpInvitation && window.__cdpInvitation.inviter_first_name) || 'them') + '</h1>' +
+            '<div class="ih-banner" style="margin-top:18px">' +
+              '<strong>✓ Your reading is ready.</strong> ' +
+              'A full Cosmic Daily Planner experience awaits. To unlock the full reading and save your profile, ' +
+              '<a href="javascript:void(0)" onclick="cdpInviteeContinueToApp()" style="color:#c9a050;font-weight:600;text-decoration:underline">create your free account</a>.' +
+            '</div>' +
+            '<div style="font-family:Georgia,serif;font-size:15px;line-height:1.7;color:rgba(232,228,218,0.85);margin-top:20px">' +
+              '<p>Welcome, ' + escapeHtml(firstName) + '. Your birth data is recorded for this session.</p>' +
+              '<p>This is the moment where the full compatibility reading would render. To see your shared archetypal pattern, your numerology together, and how today\'s transits speak to both of you, please create your free CDP account. Your reading travels with you.</p>' +
+            '</div>' +
+            '<button class="ih-submit" onclick="cdpInviteeContinueToApp()" style="margin-top:24px">Create Free Account & Save Reading</button>' +
+            '<button class="ih-skip" onclick="cdpInviteeContinueAnonymous()" style="width:100%;margin-top:10px;background:none">Continue without account (reading expires in 24h)</button>' +
+            '<div class="ih-disclaimer" style="margin-top:18px">' +
+              'Cosmic Daily Planner is a wellness companion, not a medical product or a substitute for professional advice.' +
+            '</div>';
+        }
+      }
+    } catch(err) {
+      console.error('Invitee submit error', err);
+      if (submitBtn) { submitBtn.textContent = 'Show me the reading'; submitBtn.disabled = false; }
+    }
+
+    // Save invitee data locally so re-loading the URL doesn't re-prompt
+    try {
+      localStorage.setItem('cdp_invitee_profile_' + token, JSON.stringify(inviteeProfile));
+    } catch(e) {}
+  };
+
+  window.cdpInviteeContinueToApp = function() {
+    // Save invitee profile as the active CDP profile (overlay onto signup flow)
+    try {
+      var token = window.__cdpInviteeToken;
+      var stored = JSON.parse(localStorage.getItem('cdp_invitee_profile_' + token) || 'null');
+      if (stored) {
+        var p = JSON.parse(localStorage.getItem('cdp_profile') || '{}');
+        p.nickname = stored.firstName;
+        p.name = stored.firstName;
+        if (stored.dob) {
+          var parts = stored.dob.split('-');
+          p.birthYear = parseInt(parts[0], 10);
+          p.birthMonth = parseInt(parts[1], 10);
+          p.birthDay = parseInt(parts[2], 10);
+        }
+        if (stored.birthTime) p.birthTime = stored.birthTime;
+        if (stored.birthPlace) p.birthLocation = stored.birthPlace;
+        localStorage.setItem('cdp_profile', JSON.stringify(p));
+      }
+      // Mark disclosure as acknowledged (the invitee disclaimer above implicitly covers it)
+      localStorage.setItem('cdp_disclosure_v1_ack', new Date().toISOString());
+      localStorage.setItem('cdp_age_18plus_ack', new Date().toISOString());
+
+      // Plausible
+      if (window.plausible) {
+        window.plausible('invitation_signup', { props: { token_prefix: (token||'').slice(0,10) }});
+      }
+    } catch(e) {}
+    // Strip ?invite= from URL and reload
+    var newUrl = location.origin + location.pathname;
+    location.href = newUrl;
+  };
+
+  window.cdpInviteeContinueAnonymous = function() {
+    // Same as continue-to-app but without account flag (24h ephemeral)
+    window.cdpInviteeContinueToApp();
+  };
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  // Trigger on load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Mark start time for "time to complete birth data" measurement
+    window.__cdpInviteeStart = Date.now();
+    checkInviteeFlow();
+  });
+})();
+</script>
+
 
 </body>
 </html>
