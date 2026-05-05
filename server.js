@@ -148,7 +148,7 @@ function numReduce(n) {
       theme: 'Communication & Connection',
       energy: 'Expressive · Social · Generative',
       guidance: 'Great moment to be creative and artistic, to deal with relationships in general, meetings, connections with people, marketing, social media.',
-      shadow: 'Scattered energy — commit to one creative focus.',
+      shadow: 'Scattered energy, commit to one creative focus.',
       keywords: ['creativity', 'communication', 'joy', 'self-expression'],
       best_for: ['creative projects', 'social media', 'presentations', 'networking events'],
       special: false
@@ -158,7 +158,7 @@ function numReduce(n) {
       theme: 'Structure & Integrity',
       energy: 'Grounding · Disciplined · Honest',
       guidance: 'Time to work hard with honesty. Truth, correction, integrity, morality, fairness, uprightness.',
-      shadow: 'Rigidity — build structure without becoming inflexible.',
+      shadow: 'Rigidity, build structure without becoming inflexible.',
       keywords: ['discipline', 'stability', 'honesty', 'perseverance'],
       best_for: ['system building', 'planning', 'due diligence', 'truth-telling conversations'],
       special: false
@@ -168,7 +168,7 @@ function numReduce(n) {
       theme: 'Change & Learning',
       energy: 'Dynamic · Curious · Versatile',
       guidance: 'Intelligence, learning new things, relationships, connections with people, meetings, marketing, social media.',
-      shadow: 'Restlessness — embrace change without abandoning depth.',
+      shadow: 'Restlessness, embrace change without abandoning depth.',
       keywords: ['freedom', 'adaptability', 'curiosity', 'movement'],
       best_for: ['learning', 'travel', 'pivots', 'diverse meetings', 'new research'],
       special: false
@@ -178,7 +178,7 @@ function numReduce(n) {
       theme: 'Beauty, Family & Service',
       energy: 'Nurturing · Artistic · Responsible',
       guidance: 'Art, creativity, gentleness, tenderness, helping, assisting and being kind with others. Good day to be in family, couple or among friends.',
-      shadow: 'Over-giving — nourish others from fullness, not depletion.',
+      shadow: 'Over-giving, nourish others from fullness, not depletion.',
       keywords: ['compassion', 'beauty', 'responsibility', 'home'],
       best_for: ['family time', 'creative arts', 'community', 'healing conversations'],
       special: false
@@ -187,8 +187,8 @@ function numReduce(n) {
       title: '✦ Karmic Portal',
       theme: 'Mystery, Depth & Inner Knowing',
       energy: 'Introspective · Mystical · Intense',
-      guidance: 'The Portals of the Universal Forces Are Open. This is a karmic and magical number. This day tends to be intense — either challenging or amazing depending on how attuned you are with your true Self. An opportunity to connect with the highest realms, enjoy aloneness and creativity.',
-      shadow: 'Isolation and over-analysis — open to the mystical without retreating entirely.',
+      guidance: 'The Portals of the Universal Forces Are Open. This is a karmic and magical number. This day tends to be intense, either challenging or amazing depending on how attuned you are with your true Self. An opportunity to connect with the highest realms, enjoy aloneness and creativity.',
+      shadow: 'Isolation and over-analysis, open to the mystical without retreating entirely.',
       keywords: ['wisdom', 'solitude', 'investigation', 'spiritual depth'],
       best_for: ['deep research', 'meditation', 'solo creative work', 'inner guidance'],
       special: true,
@@ -199,7 +199,7 @@ function numReduce(n) {
       theme: 'Business, Karma & Mastery',
       energy: 'Ambitious · Executive · Karmic',
       guidance: 'Excellent day to deal with projects, business, focus, trades, career, work, structuring, money.',
-      shadow: 'Power misused returns as obstacle — act with integrity.',
+      shadow: 'Power misused returns as obstacle, act with integrity.',
       keywords: ['success', 'authority', 'abundance', 'karma'],
       best_for: ['business deals', 'financial planning', 'career moves', 'executive decisions'],
       special: false
@@ -209,18 +209,18 @@ function numReduce(n) {
       theme: 'Completion & Universal Love',
       energy: 'Transcendent · Compassionate · Cosmic',
       guidance: 'The Portals of the Universal Forces and Cosmic Energies Are Open. This is a very special day. Favorable for resting, channeling higher sources, being alone, enjoying a peaceful and flowing day. Special meetings might happen.',
-      shadow: 'Difficulty releasing the old — trust that completion creates space.',
+      shadow: 'Difficulty releasing the old, trust that completion creates space.',
       keywords: ['completion', 'compassion', 'release', 'universal wisdom'],
       best_for: ['completion of cycles', 'acts of service', 'spiritual practice', 'letting go'],
       special: true,
       special_label: 'Cosmic Portal Day'
     },
     11: {
-      title: '✦✦ Master Number 11 — The Illuminator',
+      title: '✦✦ Master Number 11. The Illuminator',
       theme: 'Spiritual Insight & Higher Vision',
       energy: 'Illuminating · Intuitive · Elevated',
       guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. Can be a magic and different experience; be aware of the energy of this day. Depending on how attuned you are with your true Self, this day can be challenging or amazing. An opportunity to connect with the highest realms, enjoy aloneness, have special meetings. This is definitely a special and unique day.',
-      shadow: 'Nervous system overload — ground the vision in practical small steps.',
+      shadow: 'Nervous system overload, ground the vision in practical small steps.',
       keywords: ['illumination', 'intuition', 'inspiration', 'higher ideals'],
       best_for: ['inspired creative leaps', 'visionary planning', 'spiritual practices', 'channeling insights'],
       special: true,
@@ -229,11 +229,11 @@ function numReduce(n) {
       base_energy: 2
     },
     22: {
-      title: '✦✦ Master Number 22 — The Master Builder',
+      title: '✦✦ Master Number 22. The Master Builder',
       theme: 'Visionary Structure & World Work',
       energy: 'Architectural · Disciplined · Transcendent',
-      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This day brings an energy related to projects, business and work — it carries a similar energy of the number 4. Depending on how attuned you are with your true Self, this day can be challenging or amazing. An opportunity to connect with the highest realms, to enjoy aloneness, to have special meetings. This is definitely a special and unique day.',
-      shadow: 'Paralysis by perfectionism — begin the build even if the blueprint is incomplete.',
+      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This day brings an energy related to projects, business and work, it carries a similar energy of the number 4. Depending on how attuned you are with your true Self, this day can be challenging or amazing. An opportunity to connect with the highest realms, to enjoy aloneness, to have special meetings. This is definitely a special and unique day.',
+      shadow: 'Paralysis by perfectionism, begin the build even if the blueprint is incomplete.',
       keywords: ['mastery', 'legacy', 'architecture', 'vision made real'],
       best_for: ['major project launches', 'strategic architecture', 'legacy decisions', 'building systems'],
       special: true,
@@ -242,11 +242,11 @@ function numReduce(n) {
       base_energy: 4
     },
     33: {
-      title: '✦✦ Master Number 33 — The Master Teacher',
+      title: '✦✦ Master Number 33. The Master Teacher',
       theme: 'Compassionate Service & Cosmic Teaching',
       energy: 'Selfless · Healing · Divinely Creative',
-      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This day tends to be intense — either karmic/challenging or amazing depending on how attuned you are. An opportunity to connect with the highest realms, enjoy aloneness and have special meetings. Favorable for channeling higher sources and listening to your intuition.',
-      shadow: 'Martyrdom — teach by illumination, not self-sacrifice.',
+      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This day tends to be intense, either karmic/challenging or amazing depending on how attuned you are. An opportunity to connect with the highest realms, enjoy aloneness and have special meetings. Favorable for channeling higher sources and listening to your intuition.',
+      shadow: 'Martyrdom, teach by illumination, not self-sacrifice.',
       keywords: ['compassion', 'healing', 'teaching', 'creative mastery'],
       best_for: ['teaching', 'healing arts', 'community leadership', 'inspired creative work'],
       special: true,
@@ -255,11 +255,11 @@ function numReduce(n) {
       base_energy: 6
     },
     44: {
-      title: '✦✦ Master Number 44 — The Master Manifestor',
+      title: '✦✦ Master Number 44. The Master Manifestor',
       theme: 'Material Mastery & Cosmic Business',
       energy: 'Grounding · Manifesting · Divinely Structured',
-      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This number carries the energy of number 8 — profoundly related to business, project, work and money. This day tends to be intense — either challenging or amazing. An opportunity to connect with the highest realms, be surprised by special unexpected meetings. Favorable for channeling higher sources and paying close attention to your intuition, especially when related to work, business and projects.',
-      shadow: 'Over-materialisation — remember the cosmic thread running through all of it.',
+      guidance: 'Master Number Day. The Portals of the Universal Forces Are Open. This number carries the energy of number 8 (profoundly related to business, project, work and money. This day tends to be intense) either challenging or amazing. An opportunity to connect with the highest realms, be surprised by special unexpected meetings. Favorable for channeling higher sources and paying close attention to your intuition, especially when related to work, business and projects.',
+      shadow: 'Over-materialisation, remember the cosmic thread running through all of it.',
       keywords: ['manifestation', 'mastery', 'cosmic business', 'legacy wealth'],
       best_for: ['major financial decisions', 'long-term strategic moves', 'building for legacy', 'inspired business'],
       special: true,
@@ -401,8 +401,8 @@ function moonEnrichment(dateStr) {
     toNew: parseFloat(toNew.toFixed(2)),
     isBlackMoon: isBlack,
     isShivaMoon: isShiva,
-    blackMoonGuidance: isBlack ? 'Black Moon window — liminal, tricky, reflective. Avoid major initiations; review, release, prepare. Discernment essential.' : null,
-    shivaMoonGuidance: isShiva ? 'Shiva Moon window — blissful renewal after the reset. Fertile for new intentions and inspired beginnings.' : null
+    blackMoonGuidance: isBlack ? 'Black Moon window, liminal, tricky, reflective. Avoid major initiations; review, release, prepare. Discernment essential.' : null,
+    shivaMoonGuidance: isShiva ? 'Shiva Moon window, blissful renewal after the reset. Fertile for new intentions and inspired beginnings.' : null
   };
 }
 
@@ -623,17 +623,17 @@ function reduce(n){
 }
 const NUM={
   1:{n:'New Beginnings',k:'Initiation · leadership · independence',
-    morning:'Morning calls for bold initiation — begin something, assert your direction with confidence.',
+    morning:'Morning calls for bold initiation, begin something, assert your direction with confidence.',
     afternoon:'Afternoon sustains the initiating impulse. Push independently through resistance.',
     evening:'Evening resonates with independence. Reflect on what you have started and what leadership asks of you.'},
   2:{n:'Partnership',k:'Cooperation · balance · receptivity',
     morning:'Morning asks for deep listening and receptivity. Collaborate, do not compete.',
     afternoon:'Afternoon favours partnership decisions and sensitive negotiations.',
-    evening:'Evening is for tending relationships — what balance needs restoring?'},
+    evening:'Evening is for tending relationships, what balance needs restoring?'},
   3:{n:'Creative Expression',k:'Joy · communication · creative flow',
-    morning:'Morning overflows with creative potential. Speak, write, create — the channel is open.',
+    morning:'Morning overflows with creative potential. Speak, write, create, the channel is open.',
     afternoon:'Afternoon sustains expressive momentum. Ideas multiply with sharing.',
-    evening:'Evening calls for joyful communication — connect, share what is alive in you.'},
+    evening:'Evening calls for joyful communication, connect, share what is alive in you.'},
   4:{n:'Foundation & Order',k:'Structure · discipline · patient building',
     morning:'Morning energy is grounded and methodical. Lay foundations, build systems.',
     afternoon:'Afternoon rewards steady focus. Practical effort accumulates.',
@@ -653,27 +653,27 @@ const NUM={
   8:{n:'Power & Abundance',k:'Authority · material mastery · accountability',
     morning:'Morning carries authority and material weight. Decisions today have consequence.',
     afternoon:'Afternoon amplifies executive capacity. Speak clearly, act decisively.',
-    evening:'Evening is for taking stock — what has been built, what has been earned?'},
+    evening:'Evening is for taking stock, what has been built, what has been earned?'},
   9:{n:'Completion & Compassion',k:'Wisdom · generosity · release · universal love',
     morning:'Morning is open and cosmic. Special encounters and completions arrive unbidden.',
     afternoon:'Afternoon calls for generosity and letting go.',
     evening:'Evening is for release. Close cycles, forgive, and prepare for what is next.'},
   11:{n:'Master Illuminator',k:'Spiritual vision · intuition · higher purpose',master:true,
-    morning:'Master Morning — the portals are open. Spiritual insight and high intuition are available before the noise of the day begins.',
-    afternoon:'Master Afternoon — unusual clarity and vision. What is offered is rare.',
-    evening:'Master Evening — integration of the day\'s revelations. Something important has arrived; be still enough to receive it.'},
+    morning:'Master Morning, the portals are open. Spiritual insight and high intuition are available before the noise of the day begins.',
+    afternoon:'Master Afternoon, unusual clarity and vision. What is offered is rare.',
+    evening:'Master Evening, integration of the day\'s revelations. Something important has arrived; be still enough to receive it.'},
   22:{n:'Master Builder',k:'Large-scale vision · practical idealism · manifestation',master:true,
-    morning:'Master Morning — practical idealism at its peak. Major projects respond to clear, committed focus.',
-    afternoon:'Master Afternoon — civilisational-scale energy is available. Build with intention.',
-    evening:'Master Evening — reflect on what you are truly building over the long arc.'},
+    morning:'Master Morning, practical idealism at its peak. Major projects respond to clear, committed focus.',
+    afternoon:'Master Afternoon, civilisational-scale energy is available. Build with intention.',
+    evening:'Master Evening, reflect on what you are truly building over the long arc.'},
   33:{n:'Master Teacher',k:'Healing · compassion · selfless guidance',master:true,
-    morning:'Master Morning — compassionate service and healing are amplified.',
-    afternoon:'Master Afternoon — teach, guide, and give freely.',
-    evening:'Master Evening — what has your generosity created today? Receive the reflection.'},
+    morning:'Master Morning, compassionate service and healing are amplified.',
+    afternoon:'Master Afternoon, teach, guide, and give freely.',
+    evening:'Master Evening, what has your generosity created today? Receive the reflection.'},
   44:{n:'Master Organiser',k:'Systemic mastery · material achievement · divine structure',master:true,
-    morning:'Master Morning — structural clarity and material achievement are supported.',
-    afternoon:'Master Afternoon — deep systems thinking opens. Pay close attention to business and money.',
-    evening:'Master Evening — review the architecture of your long-term vision.'},
+    morning:'Master Morning, structural clarity and material achievement are supported.',
+    afternoon:'Master Afternoon, deep systems thinking opens. Pay close attention to business and money.',
+    evening:'Master Evening, review the architecture of your long-term vision.'},
 };
 
 function getNumerology(dateStr,bDay,bMonth,bYear){
@@ -700,7 +700,7 @@ function getNumerology(dateStr,bDay,bMonth,bYear){
     evening: { num: eveningNum, name: NUM[eveningNum]?.n||'', desc: NUM[eveningNum]?.evening||NUM[eveningNum]?.k||'', isMaster: [11,22,33,44].includes(eveningNum) },
   };
   const isMasterDay=[11,22,33,44].includes(ud);
-  const isSpecialDay=[7,9].includes(ud); // 7=introspection, 9=completion — always noteworthy
+  const isSpecialDay=[7,9].includes(ud); // 7=introspection, 9=completion, always noteworthy
   return{ud,udM:NUM[ud],mEn,mEnM:NUM[mEn],yEn,yEnM:NUM[yEn],
     lp,lpM:lp?NUM[lp]:null,py,pyM:py?NUM[py]:null,
     pm,pmM:pm?NUM[pm]:null,pd,pdM:pd?NUM[pd]:null,
@@ -835,7 +835,7 @@ function callAPI(model, maxTok, sys, user) {
 // Called by generateReading() — replaces the old ad-hoc profileBlock.
 // ══════════════════════════════════════════════════════════════════
 function buildProfileContext(p, recentHistory = []) {
-  if (!p || Object.keys(p).length === 0) return 'No personal profile provided — give a universal reading grounded in the cosmic data.';
+  if (!p || Object.keys(p).length === 0) return 'No personal profile provided, give a universal reading grounded in the cosmic data.';
 
   const lines = [];
 
@@ -890,13 +890,13 @@ function buildProfileContext(p, recentHistory = []) {
   if (p.context) lines.push(`Personal context: ${p.context}`);
 
   // Today's intention
-  if (p.intention) lines.push(`Today's intention: ${p.intention} — weave this into the synthesis, priorities, and shadow work.`);
+  if (p.intention) lines.push(`Today's intention: ${p.intention}, weave this into the synthesis, priorities, and shadow work.`);
 
   // Hormonal phase (client-computed, privacy-safe — no raw dates sent, just phase name and Oracle guidance)
   if (p.cycleContext) {
     lines.push('');
     lines.push('HORMONAL PHASE (today): ' + p.cycleContext);
-    lines.push('Integrate this meaningfully — hormonal phases are a legitimate biological rhythm that shapes energy, decision-making capacity, emotional sensitivity, and relational needs today. Reference it specifically in time windows, priorities, and shadow work.');
+    lines.push('Integrate this meaningfully, hormonal phases are a legitimate biological rhythm that shapes energy, decision-making capacity, emotional sensitivity, and relational needs today. Reference it specifically in time windows, priorities, and shadow work.');
   }
 
   // Biorhythm today (if birth date available, calculate server-side)
@@ -915,14 +915,14 @@ function buildProfileContext(p, recentHistory = []) {
       lines.push('');
       lines.push(bioLine);
       lines.push('Reference biorhythm state in time windows and energy guidance. Critical days (zero crossings) are transition points requiring particular care.');
-    } catch(e) { /* biorhythm calculation failed — skip */ }
+    } catch(e) { /* biorhythm calculation failed, skip */ }
   }
 
   // ── BETA 2: READING HISTORY CONTINUITY ──
   // Inject last 3 reading summaries for genuine cross-session continuity
   if (recentHistory && recentHistory.length > 0) {
     lines.push('');
-    lines.push('RECENT SESSIONS — use for continuity and pattern recognition:');
+    lines.push('RECENT SESSIONS, use for continuity and pattern recognition:');
     recentHistory.slice(0, 3).forEach((h, i) => {
       const label = i === 0 ? 'Most recent reading' : `${i + 1} sessions ago`;
       const date = h.reading_date || h.date || '';
@@ -942,7 +942,7 @@ function buildProfileContext(p, recentHistory = []) {
 // ══════════════════════════════════════════════════════════════════
 async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHistory = [], _planets, _moon, _kin, _num, _aspects) {
   const _langNote = (profile && profile.readingLang === 'modern')
-    ? '\n\nLANGUAGE MODE — MODERN SCIENTIFIC: Translate every cosmic insight into neuroscience terms. Frame numerology as cognitive priming (salience network), lunar cycles as circadian biology, shadow work as interoceptive signal (Barrett 2017), transits as predictive framework shifts. Name the mechanism. The ancient framework is the scaffold; the language is neuroscience.'
+    ? '\n\nLANGUAGE MODE. MODERN SCIENTIFIC: Translate every cosmic insight into neuroscience terms. Frame numerology as cognitive priming (salience network), lunar cycles as circadian biology, shadow work as interoceptive signal (Barrett 2017), transits as predictive framework shifts. Name the mechanism. The ancient framework is the scaffold; the language is neuroscience.'
     : '';
   // Accept pre-calculated data from two-phase flow to avoid recalculating
   const planets = _planets || buildPlanets(dateStr);
@@ -958,43 +958,43 @@ async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHis
   const profileBlock = buildProfileContext(p, recentHistory);
 
   // Build birth kin string from calculated num
-  const birthKinStr = num.birthKin ? `Kin ${num.birthKin.kin} — ${num.birthKin.full}` : 'not calculated';
+  const birthKinStr = num.birthKin ? `Kin ${num.birthKin.kin}: ${num.birthKin.full}` : 'not calculated';
 
   const pTable = planets.map(pl => `${pl.name}: ${pl.degStr}`).join('\n');
   const aList = aspects.slice(0,6).map(a => `${'●'.repeat(a.str)}${'○'.repeat(5-a.str)} ${a.desc}`).join('\n');
 
   const moonAlert = moon.isBlack
-    ? `★ BLACK MOON (2 days before New Moon) — tricky, introspective threshold. ${firstName} should not initiate major actions today; observe and prepare instead.`
+    ? `★ BLACK MOON (2 days before New Moon), tricky, introspective threshold. ${firstName} should not initiate major actions today; observe and prepare instead.`
     : moon.isShiva
-      ? `★ SHIVA MOON (2 days after New Moon) — blissful, regenerative. Auspicious for new actions, new conversations, and fresh starts for ${firstName}.`
+      ? `★ SHIVA MOON (2 days after New Moon), blissful, regenerative. Auspicious for new actions, new conversations, and fresh starts for ${firstName}.`
       : '';
 
-  const satNep = `Saturn ${planets[6].degStr} conjunct Neptune ${planets[8].degStr} — historically significant (Tarnas 2006): last Aries conjunction ~1522 (Magellan circumnavigation, Luther's Reformation), then 1917 (WWI/Russian Revolution), 1952, 1989 (Berlin Wall fall). In Aries = genesis, not reform. Dissolution of old structures meeting new idealism.`;
+  const satNep = `Saturn ${planets[6].degStr} conjunct Neptune ${planets[8].degStr}, historically significant (Tarnas 2006): last Aries conjunction ~1522 (Magellan circumnavigation, Luther's Reformation), then 1917 (WWI/Russian Revolution), 1952, 1989 (Berlin Wall fall). In Aries = genesis, not reform. Dissolution of old structures meeting new idealism.`;
 
-  const uranus = `Uranus ${planets[7].degStr} — approaching Gemini ingress ~April 26 2026. Financial structures, communication architectures, and valuations disrupted and liberated.`;
+  const uranus = `Uranus ${planets[7].degStr}, approaching Gemini ingress ~April 26 2026. Financial structures, communication architectures, and valuations disrupted and liberated.`;
 
   const mars = planets[4].sign === 'Pisces'
-    ? `Mars ${planets[4].degStr} — in Pisces, drive is inward and visionary. Physical energy best metabolised through creative and strategic work rather than force.`
-    : `Mars ${planets[4].degStr} — in Aries, drive is ignited. Decisive action rewarded. Watch for overextension.`;
+    ? `Mars ${planets[4].degStr}, in Pisces, drive is inward and visionary. Physical energy best metabolised through creative and strategic work rather than force.`
+    : `Mars ${planets[4].degStr}, in Aries, drive is ignited. Decisive action rewarded. Watch for overextension.`;
 
   const weekAheadJSON = weekAhead.map((w,i) => i===0
-    ? `{"date":"${w.date}","day":"${w.dayStr}","kin":"${w.kin}","ud":${w.ud},"isGAP":${w.isGAP},"note":"<Today — 2-sentence summary>"}`
-    : `{"date":"${w.date}","day":"${w.dayStr}","kin":"${w.kin}","ud":${w.ud},"isGAP":${w.isGAP},"note":"<2-sentence personalised note for ${firstName} — Dreamspell tone + UD meaning + practical pointer>"}`
+    ? `{"date":"${w.date}","day":"${w.dayStr}","kin":"${w.kin}","ud":${w.ud},"isGAP":${w.isGAP},"note":"<Today, 2-sentence summary>"}`
+    : `{"date":"${w.date}","day":"${w.dayStr}","kin":"${w.kin}","ud":${w.ud},"isGAP":${w.isGAP},"note":"<2-sentence personalised note for ${firstName}, Dreamspell tone + UD meaning + practical pointer>"}`
   ).join(',\n    ');
 
   // ── TIER-SPECIFIC SCOPE ──
   const tierScope = {
-    free: `TIER: Free — Generate ONLY: synthesis (1 sentence), Universal Day number + name + one sentence meaning, moon phase + sign, today's Kin, one "For Today" action. JSON must have: synthesis, numerology:{headline, body(1 paragraph)}, moon_section:{headline, body(1 paragraph)}, dreamspell:{headline}, closing_line. Nothing else. Keep total output under 500 tokens.`,
-    seeker: `TIER: Seeker — Generate a focused reading. Required JSON fields ONLY: synthesis (3 sentences), numerology:{headline,body(2 sentences),three_energies:{morning,afternoon,evening each with num+name+guidance}}, moon_section:{headline,body(2 sentences)}, astrology:{main_transit_headline,main_transit_body(2 sentences)}, dreamspell:{headline,body(2 sentences)}, priorities:[3 items with title+rationale(2 sentences)+action], shadow_work(2 sentences), focus_on:[4 items], ease_off:[4 items], time_windows:{morning,afternoon,evening each 1 sentence}, closing_line, sources. NO week_ahead. NO daily_gift. Total output under 1800 tokens.`,
-    initiate: `TIER: Initiate — Generate full reading with all fields except: omit daily_gift.meditation and deep saturn_neptune historical analysis. Keep prose fields to 3 sentences each. Include week_ahead.`,
-    mystic: `TIER: Mystic — Generate complete reading with all fields. Include natal chart context. Keep prose fields to 3-4 sentences. Full week_ahead. Full daily_gift.`,
-    oracle: `TIER: Oracle — This is the bespoke Oracle experience. The benchmark is a 25-30 page printed document. Every prose field must be FULL and RICH with multiple paragraphs. Minimum depth requirements:
+    free: `TIER: Free. Generate ONLY: synthesis (1 sentence), Universal Day number + name + one sentence meaning, moon phase + sign, today's Kin, one "For Today" action. JSON must have: synthesis, numerology:{headline, body(1 paragraph)}, moon_section:{headline, body(1 paragraph)}, dreamspell:{headline}, closing_line. Nothing else. Keep total output under 500 tokens.`,
+    seeker: `TIER: Seeker. Generate a focused reading. Required JSON fields ONLY: synthesis (3 sentences), numerology:{headline,body(2 sentences),three_energies:{morning,afternoon,evening each with num+name+guidance}}, moon_section:{headline,body(2 sentences)}, astrology:{main_transit_headline,main_transit_body(2 sentences)}, dreamspell:{headline,body(2 sentences)}, priorities:[3 items with title+rationale(2 sentences)+action], shadow_work(2 sentences), focus_on:[4 items], ease_off:[4 items], time_windows:{morning,afternoon,evening each 1 sentence}, closing_line, sources. NO week_ahead. NO daily_gift. Total output under 1800 tokens.`,
+    initiate: `TIER: Initiate. Generate full reading with all fields except: omit daily_gift.meditation and deep saturn_neptune historical analysis. Keep prose fields to 3 sentences each. Include week_ahead.`,
+    mystic: `TIER: Mystic. Generate complete reading with all fields. Include natal chart context. Keep prose fields to 3-4 sentences. Full week_ahead. Full daily_gift.`,
+    oracle: `TIER: Oracle. This is the bespoke Oracle experience. The benchmark is a 25-30 page printed document. Every prose field must be FULL and RICH with multiple paragraphs. Minimum depth requirements:
 - synthesis: 3-4 sentences, all four frameworks named
-- numerology body: 4 full paragraphs — Universal Day, Life Path resonance, Personal Day shadow, Personal Month pressure
-- moon body: 3 full paragraphs — phase quality, sign placement, exact aspects involving Moon, lunation cycle context
-- main transit body: 4 full paragraphs — exact orb, peak timing, historical parallel (cite Tarnas 2006 or Hand 2002), personal application
-- saturn_neptune: 3 full paragraphs — civilisational context, sectoral impact, personal demand (cite Tarnas 2006)
-- dreamspell body: 3 full paragraphs — Tone quality, Seal gifts, GAP amplification if applicable, wavespell position (label as Argüelles 1987 modern system)
+- numerology body: 4 full paragraphs. Universal Day, Life Path resonance, Personal Day shadow, Personal Month pressure
+- moon body: 3 full paragraphs, phase quality, sign placement, exact aspects involving Moon, lunation cycle context
+- main transit body: 4 full paragraphs, exact orb, peak timing, historical parallel (cite Tarnas 2006 or Hand 2002), personal application
+- saturn_neptune: 3 full paragraphs, civilisational context, sectoral impact, personal demand (cite Tarnas 2006)
+- dreamspell body: 3 full paragraphs. Tone quality, Seal gifts, GAP amplification if applicable, wavespell position (label as Argüelles 1987 modern system)
 - Each aspect: 4-5 sentences with orb, timing, personal application
 - shadow_work: 4-5 italic sentences, psychologically precise, no generalities
 - Each priority: 4-sentence rationale + specific concrete action
@@ -1008,66 +1008,66 @@ Do NOT truncate any field. Every field in the JSON schema populated to maximum d
   const voiceInstruction = (tier === 'oracle' || tier === 'mystic') ? THREE_VOICE_INSTRUCTION : '';
   const scope = tierScope[tier] || tierScope.oracle;
 
-  const sys = `You are the Oracle at Cosmic Daily Planner (cosmicdailyplanner.com) — a rigorous, personalised daily cosmic planner synthesising Swiss Ephemeris astronomy, Pythagorean numerology, Western psychological astrology, and Dreamspell/Law of Time.${_langNote}
+  const sys = `You are the Oracle at Cosmic Daily Planner (cosmicdailyplanner.com), a rigorous, personalised daily cosmic planner synthesising Swiss Ephemeris astronomy, Pythagorean numerology, Western psychological astrology, and Dreamspell/Law of Time.${_langNote}
 
 YOUR VOICE: The best Jungian analyst meets the Swiss Ephemeris. Precise. Personal. Grounded. Emotionally intelligent.
 
 ${scope}
 
 CRITICAL RULES:
-— Use ONLY the Swiss Ephemeris positions provided. Never invent planetary data.
-— Address the reader by their first name (${firstName}) throughout. Use ONLY the personal context they have provided — do not invent details about their life.
-— If personal context is provided (companies, family, projects, relationships, roles, active threads), reference it specifically and by name. If not provided, speak universally but still specifically to the cosmic weather.
-— If RECENT SESSIONS are provided in the profile, use them for genuine continuity: reference what was present before, notice patterns, acknowledge what has shifted. The Oracle has memory.
-— Dreamspell is ALWAYS labelled: Argüelles (1987) The Mayan Factor — modern 20th-century system, distinct from ancient K'iche' Maya tradition maintained by Guatemalan daykeepers.
-— No deterministic predictions. Speak in possibilities and tendencies.
-— Every section must be grounded in the actual planetary data and personal context provided.
-— BIORHYTHMS: If BIORHYTHMS TODAY is present in the profile, integrate it meaningfully. A physical score below -60% means depleted vitality — flag it in time windows and priorities. A critical day (zero crossing) is a transition requiring care. Do not merely mention it — let it shape the energy guidance concretely.
-— HORMONAL PHASE: If HORMONAL PHASE is present, treat it as a legitimate biological rhythm equal in weight to moon phase. Reference it in time windows, priorities, and shadow work — speak to how this phase shapes energy, decision-making, and relational sensitivity today.
-— NATAL vs TRANSIT: Always distinguish clearly. Say "today's Moon is in X" or "the Moon transits X today" for current sky positions. Say "your natal Moon in X" for birth chart placements. Never conflate the two — this confusion destroys credibility with experienced users.
-— RESPOND ONLY WITH VALID JSON. No markdown fences. No preamble. No text outside the JSON object.
-— CRITICAL: The JSON MUST be syntactically complete and valid. Every opened brace and bracket must be closed. If approaching length limit, shorten EARLIER sections first — but always close the JSON properly.
-— SCHOLARLY SOURCES AND FRAMEWORKS:
+- Use ONLY the Swiss Ephemeris positions provided. Never invent planetary data.
+- Address the reader by their first name (${firstName}) throughout. Use ONLY the personal context they have provided, do not invent details about their life.
+- If personal context is provided (companies, family, projects, relationships, roles, active threads), reference it specifically and by name. If not provided, speak universally but still specifically to the cosmic weather.
+- If RECENT SESSIONS are provided in the profile, use them for genuine continuity: reference what was present before, notice patterns, acknowledge what has shifted. The Oracle has memory.
+- Dreamspell is ALWAYS labelled: Argüelles (1987) The Mayan Factor, modern 20th-century system, distinct from ancient K'iche' Maya tradition maintained by Guatemalan daykeepers.
+- No deterministic predictions. Speak in possibilities and tendencies.
+- Every section must be grounded in the actual planetary data and personal context provided.
+- BIORHYTHMS: If BIORHYTHMS TODAY is present in the profile, integrate it meaningfully. A physical score below -60% means depleted vitality (flag it in time windows and priorities. A critical day (zero crossing) is a transition requiring care. Do not merely mention it) let it shape the energy guidance concretely.
+- HORMONAL PHASE: If HORMONAL PHASE is present, treat it as a legitimate biological rhythm equal in weight to moon phase. Reference it in time windows, priorities, and shadow work, speak to how this phase shapes energy, decision-making, and relational sensitivity today.
+- NATAL vs TRANSIT: Always distinguish clearly. Say "today's Moon is in X" or "the Moon transits X today" for current sky positions. Say "your natal Moon in X" for birth chart placements. Never conflate the two, this confusion destroys credibility with experienced users.
+- RESPOND ONLY WITH VALID JSON. No markdown fences. No preamble. No text outside the JSON object.
+- CRITICAL: The JSON MUST be syntactically complete and valid. Every opened brace and bracket must be closed. If approaching length limit, shorten EARLIER sections first, but always close the JSON properly.
+- SCHOLARLY SOURCES AND FRAMEWORKS:
 
-ASTRONOMY (verified data — cite where relevant):
-Swiss Ephemeris (Koch & Treindl, Astrodienst AG) — all planetary positions
-JPL Horizons (NASA) — authoritative ephemeris data
-USNO Moon Phase API — verified lunar timing
+ASTRONOMY (verified data, cite where relevant):
+Swiss Ephemeris (Koch & Treindl, Astrodienst AG), all planetary positions
+JPL Horizons (NASA), authoritative ephemeris data
+USNO Moon Phase API, verified lunar timing
 
 MAYA CALENDRICS:
-Šprajc, Inomata & Aveni (2023) Science Advances doi:10.1126/sciadv.abq7675 — LiDAR evidence, calendar origin 1100-750 BCE
+Šprajc, Inomata & Aveni (2023) Science Advances doi:10.1126/sciadv.abq7675. LiDAR evidence, calendar origin 1100-750 BCE
 Aldana (2022) Encyclopedia of the History of Science doi:10.34758/qyyd-vx23
-Milbrath (2017) Ancient Mesoamerica — agricultural cycle and Maya astronomical observations
-Mendoza (2023) — mathematical construction of the 260-day calendar from archaeoastronomical alignments
-Parmington (2015) Bulletin of the History of Archaeology — archaeoastronomy review
-Dreamspell: Argüelles (1987) The Mayan Factor — 20th-century modern system, distinct from ancient K'iche' Maya tradition (Aldana 2022; Tedlock 1992)
+Milbrath (2017) Ancient Mesoamerica, agricultural cycle and Maya astronomical observations
+Mendoza (2023), mathematical construction of the 260-day calendar from archaeoastronomical alignments
+Parmington (2015) Bulletin of the History of Archaeology, archaeoastronomy review
+Dreamspell: Argüelles (1987) The Mayan Factor, 20th-century modern system, distinct from ancient K'iche' Maya tradition (Aldana 2022; Tedlock 1992)
 
 WESTERN ASTROLOGY:
-Tarnas (2006) Cosmos and Psyche — planetary cycle correspondence with historical events
-Greene (1976) Saturn: A New Look at an Old Devil — psychological astrology foundation
-Hand (2002) Planets in Transit — transit interpretation reference
-Brady (1999) Predictive Astrology — progressions and eclipse cycles
-Brennan (2017) Hellenistic Astrology — ancient technique
+Tarnas (2006) Cosmos and Psyche, planetary cycle correspondence with historical events
+Greene (1976) Saturn: A New Look at an Old Devil, psychological astrology foundation
+Hand (2002) Planets in Transit, transit interpretation reference
+Brady (1999) Predictive Astrology, progressions and eclipse cycles
+Brennan (2017) Hellenistic Astrology, ancient technique
 
 NUMEROLOGY:
 Drayer (2002) Numerology: The Power in Numbers
 Kahn (2001) Pythagoras and the Pythagoreans
-Amangeldiyev & Aldanazarova (2020) — Metaphysics of numbers in Pythagorean philosophy
+Amangeldiyev & Aldanazarova (2020), Metaphysics of numbers in Pythagorean philosophy
 Schimmel (1993) The Mystery of Numbers
 
-NEUROSCIENCE BRIDGE (Two Telescopes — science grounding):
-Cajochen et al. (2013) Current Biology — peer-reviewed evidence lunar cycle influences human sleep
-Wehr & Helfrich-Forster (2021) BioEssays — longitudinal evidence challenging consensus on lunar independence
-Salehinejad et al. (2021) Nature Communications — cognitive functions associated with chronotype
-Cajochen & Schmidt (2024) Annual Review of Psychology — circadian brain and cognition
-Raichle (2015) Annual Review of Neuroscience — default mode network
-Smallwood et al. (2021) Nature Reviews Neuroscience — DMN in cognition
-Farb et al. (2007) Social Cognitive and Affective Neuroscience — mindfulness and self-reference
-Tang, Holzel & Posner (2015) Nature Reviews Neuroscience — neuroscience of mindfulness
-Barrett & Hoemann (2018) Cognition and Emotion — constructed emotion theory
-Miller & Clark (2018) Synthese — predictive processing and emotion
-Bortolotti et al. (2025) Frontiers in Neuroscience — supercomplexity: aesthetics and cognition
-Foster & Roenneberg (2008) Current Biology — human responses to geophysical daily, annual, lunar cycles
+NEUROSCIENCE BRIDGE (Two Telescopes, science grounding):
+Cajochen et al. (2013) Current Biology, peer-reviewed evidence lunar cycle influences human sleep
+Wehr & Helfrich-Forster (2021) BioEssays, longitudinal evidence challenging consensus on lunar independence
+Salehinejad et al. (2021) Nature Communications, cognitive functions associated with chronotype
+Cajochen & Schmidt (2024) Annual Review of Psychology, circadian brain and cognition
+Raichle (2015) Annual Review of Neuroscience, default mode network
+Smallwood et al. (2021) Nature Reviews Neuroscience. DMN in cognition
+Farb et al. (2007) Social Cognitive and Affective Neuroscience, mindfulness and self-reference
+Tang, Holzel & Posner (2015) Nature Reviews Neuroscience, neuroscience of mindfulness
+Barrett & Hoemann (2018) Cognition and Emotion, constructed emotion theory
+Miller & Clark (2018) Synthese, predictive processing and emotion
+Bortolotti et al. (2025) Frontiers in Neuroscience, supercomplexity: aesthetics and cognition
+Foster & Roenneberg (2008) Current Biology, human responses to geophysical daily, annual, lunar cycles
 
 WHERE RELEVANT: cite specific sources in readings to substantiate claims. Every factual claim traceable to a named authority. Symbolic claims explicitly labelled as symbolic.
 ${voiceInstruction}`;
@@ -1084,19 +1084,19 @@ DATE: ${dateStr} (${new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB',
 VERIFIED PLANETARY POSITIONS (Swiss Ephemeris ae_2026.pdf, Astrodienst AG):
 ${pTable}
 
-MOON: ${moon.phase} ${moon.emoji} — ${moon.cycle} days into lunar cycle (${moon.pct}% illuminated)
+MOON: ${moon.phase} ${moon.emoji}: ${moon.cycle} days into lunar cycle (${moon.pct}% illuminated)
 ${moonAlert}
 Days to Next New Moon: ~${moon.toNew} | Days to Next Full Moon: ~${moon.toFull}
 
 NUMEROLOGY:
-Three Layers — Day: ${num.ud3?.day?.reduced||num.ud} (${num.ud3?.day?.meaning?.title||num.udM?.n}), Month: ${num.ud3?.month?.reduced||num.mEn} (${num.ud3?.month?.meaning?.title||num.mEnM?.n}), Full: ${num.ud3?.full?.reduced||num.ud} (${num.ud3?.full?.meaning?.title||num.udM?.n})${num.ud3?.full?.reduced&&[11,22,33,44].includes(num.ud3.full.reduced)?' ★ MASTER':''}
-Universal Day: ${num.ud} — ${num.udM?.n} | ${num.udM?.k}
-Month Energy (${new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB', {month:'long'})}): ${num.mEn} — ${num.mEnM?.n}
-Year Energy (${dateStr.slice(0,4)}): ${num.yEn} — ${num.yEnM?.n}
+Three Layers. Day: ${num.ud3?.day?.reduced||num.ud} (${num.ud3?.day?.meaning?.title||num.udM?.n}), Month: ${num.ud3?.month?.reduced||num.mEn} (${num.ud3?.month?.meaning?.title||num.mEnM?.n}), Full: ${num.ud3?.full?.reduced||num.ud} (${num.ud3?.full?.meaning?.title||num.udM?.n})${num.ud3?.full?.reduced&&[11,22,33,44].includes(num.ud3.full.reduced)?' ★ MASTER':''}
+Universal Day: ${num.ud}: ${num.udM?.n} | ${num.udM?.k}
+Month Energy (${new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB', {month:'long'})}): ${num.mEn}: ${num.mEnM?.n}
+Year Energy (${dateStr.slice(0,4)}): ${num.yEn}: ${num.yEnM?.n}
 Personal Year: ${num.py || 'n/a'} | Personal Month: ${num.pm || 'n/a'} | Personal Day: ${num.pd || 'n/a'}
 THREE ENERGIES OF DAY: Morning=${num.pd || num.ud} (${NUM[num.pd || num.ud]?.n}), Afternoon=${num.pm || num.mEn} (${NUM[num.pm || num.mEn]?.n}), Evening=${num.py || num.yEn} (${NUM[num.py || num.yEn]?.n})
 
-DREAMSPELL (Argüelles 1987 — modern system):
+DREAMSPELL (Argüelles 1987, modern system):
 ${kin.full}${kin.isGAP ? ' ★ GALACTIC ACTIVATION PORTAL' : ''}
 Tone ${kin.toneNum} (${kin.tone}) | Seal: ${kin.seal} | Color: ${kin.color}
 
@@ -1108,65 +1108,65 @@ ${satNep}
 ${uranus}
 ${mars}
 
-WEEK AHEAD DATA (pre-calculated — use these exact dates, Kins, and UDs):
+WEEK AHEAD DATA (pre-calculated, use these exact dates, Kins, and UDs):
 ${weekAhead.map(w => `${w.dayStr}: ${w.kin} | UD${w.ud}${w.isGAP ? ' GAP' : ''}`).join('\n')}
 
-Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no preamble — JSON object only):
+Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no preamble. JSON object only):
 {
-  "synthesis": "<2-3 sentence italic opening — synthesise ALL four frameworks into the single deepest truth for ${firstName} today. Weave the Dreamspell Kin, Universal Day, dominant transit, and moon phase into one resonant, specific, memorable statement. This is the headline they carry all day.>",
+  "synthesis": "<2-3 sentence italic opening, synthesise ALL four frameworks into the single deepest truth for ${firstName} today. Weave the Dreamspell Kin, Universal Day, dominant transit, and moon phase into one resonant, specific, memorable statement. This is the headline they carry all day.>",
   "numerology": {
-    "headline": "UD ${num.ud} — ${num.udM?.n}: <one punchy, ${firstName}-specific sentence connecting their number to their current chapter>",
-    "body": "<4 substantial paragraphs: (1) What Universal Day ${num.ud} (${num.udM?.n}) means specifically for ${firstName} today — named context, named chapter, named projects or relationships from their profile. (2) How UD ${num.ud} interacts with their Life Path ${num.lp || 'number'} — what tension or alignment emerges between daily energy and core soul pattern. (3) Personal Day ${num.pd || num.ud} meaning, its shadow side, and how ${firstName} can work with rather than against it. (4) How Personal Month ${num.pm || ''} colours everything this month — what it amplifies, what it challenges, what it asks ${firstName} to build or release.>",
+    "headline": "UD ${num.ud}: ${num.udM?.n}: <one punchy, ${firstName}-specific sentence connecting their number to their current chapter>",
+    "body": "<4 substantial paragraphs: (1) What Universal Day ${num.ud} (${num.udM?.n}) means specifically for ${firstName} today, named context, named chapter, named projects or relationships from their profile. (2) How UD ${num.ud} interacts with their Life Path ${num.lp || 'number'}, what tension or alignment emerges between daily energy and core soul pattern. (3) Personal Day ${num.pd || num.ud} meaning, its shadow side, and how ${firstName} can work with rather than against it. (4) How Personal Month ${num.pm || ''} colours everything this month, what it amplifies, what it challenges, what it asks ${firstName} to build or release.>",
     "three_energies": {
-      "morning": {"num": ${num.pd || num.ud}, "name": "${NUM[num.pd || num.ud]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s morning — specific action, specific awareness, what this energy most rewards in the first part of the day>"},
-      "afternoon": {"num": ${num.pm || num.mEn}, "name": "${NUM[num.pm || num.mEn]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s afternoon — how the energy shifts, what becomes available, specific advice for the middle of the day>"},
-      "evening": {"num": ${num.py || num.yEn}, "name": "${NUM[num.py || num.yEn]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s evening — how to close the day well, what to review, what to rest, the one habit that compounds>"}
+      "morning": {"num": ${num.pd || num.ud}, "name": "${NUM[num.pd || num.ud]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s morning, specific action, specific awareness, what this energy most rewards in the first part of the day>"},
+      "afternoon": {"num": ${num.pm || num.mEn}, "name": "${NUM[num.pm || num.mEn]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s afternoon, how the energy shifts, what becomes available, specific advice for the middle of the day>"},
+      "evening": {"num": ${num.py || num.yEn}, "name": "${NUM[num.py || num.yEn]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s evening, how to close the day well, what to review, what to rest, the one habit that compounds>"}
     }
   },
   "moon_section": {
-    "headline": "<${moon.phase} in ${planets[1].sign} — one evocative, ${firstName}-specific headline that names the essential tension or gift>",
-    "body": "<3 substantial paragraphs: (1) What ${moon.phase} in ${planets[1].sign} specifically illuminates or asks of ${firstName} — their relationships, inner life, body, or context. (2) Where ${moon.cycle} days into the lunar cycle places ${firstName} — what is culminating, releasing, or building. Reference the emotional arc of this specific phase position. (3) ${moonAlert ? 'Specific guidance for this BLACK MOON or SHIVA MOON threshold — what it means for decisions, timing, and energy today.' : 'Specific communication and relationship guidance for today — what to say, what to hold, what to offer.'}>"
+    "headline": "<${moon.phase} in ${planets[1].sign}, one evocative, ${firstName}-specific headline that names the essential tension or gift>",
+    "body": "<3 substantial paragraphs: (1) What ${moon.phase} in ${planets[1].sign} specifically illuminates or asks of ${firstName}, their relationships, inner life, body, or context. (2) Where ${moon.cycle} days into the lunar cycle places ${firstName}, what is culminating, releasing, or building. Reference the emotional arc of this specific phase position. (3) ${moonAlert ? 'Specific guidance for this BLACK MOON or SHIVA MOON threshold, what it means for decisions, timing, and energy today.' : 'Specific communication and relationship guidance for today, what to say, what to hold, what to offer.'}>"
   },
   "astrology": {
-    "main_transit_headline": "<Name the single most significant active transit with precise degree notation — e.g. 'Mercury 15.5° Aries square Jupiter 15.9° Cancer — Precision Over Expansion'>",
-    "main_transit_body": "<4 substantial paragraphs: (1) Precise astronomical description of this transit — planets, signs, exact orb, quality. (2) Historical and cultural context — what happened during the last time these planets made this aspect, what archetypal pattern is active. Cite Greene (1976) or Tarnas (2006) where relevant. (3) What this transit means for the world right now — structural, cultural, economic. (4) What this transit specifically asks of ${firstName} given their personal context and current chapter. Concrete, named, grounded.>",
-    "saturn_neptune": "<3 substantial paragraphs: (1) The Saturn-Neptune cycle — cite Tarnas (2006) Cosmos & Psyche explicitly, name the 1522 (Magellan circumnavigation), 1917 (WWI/Russian Revolution), 1952 (DNA discovery/early computing), 1989 (Berlin Wall/Cold War end) conjunctions with their historical significance. (2) What this current conjunction in Aries means specifically — dissolution of Saturn structures (old models, gatekeeping, rigid systems) meeting Neptunian vision (new paradigms, idealised possibilities) in the sign of pioneering initiations. How this affects the world's structures right now. (3) What this civilisational reset personally asks of ${firstName} — the impossible integration it invites, the dreamer AND architect simultaneously, how their current work or life chapter is positioned within this historical moment.>",
-    "uranus_note": "<2 sentences: Uranus at ${planets[7].degStr} approaching Gemini ingress ~April 26 2026 — what financial structures, communication architectures, and valuations this disrupts, and the specific implication for ${firstName}'s timing and planning.>"
+    "main_transit_headline": "<Name the single most significant active transit with precise degree notation, e.g. 'Mercury 15.5° Aries square Jupiter 15.9° Cancer. Precision Over Expansion'>",
+    "main_transit_body": "<4 substantial paragraphs: (1) Precise astronomical description of this transit (planets, signs, exact orb, quality. (2) Historical and cultural context) what happened during the last time these planets made this aspect, what archetypal pattern is active. Cite Greene (1976) or Tarnas (2006) where relevant. (3) What this transit means for the world right now, structural, cultural, economic. (4) What this transit specifically asks of ${firstName} given their personal context and current chapter. Concrete, named, grounded.>",
+    "saturn_neptune": "<3 substantial paragraphs: (1) The Saturn-Neptune cycle, cite Tarnas (2006) Cosmos & Psyche explicitly, name the 1522 (Magellan circumnavigation), 1917 (WWI/Russian Revolution), 1952 (DNA discovery/early computing), 1989 (Berlin Wall/Cold War end) conjunctions with their historical significance. (2) What this current conjunction in Aries means specifically, dissolution of Saturn structures (old models, gatekeeping, rigid systems) meeting Neptunian vision (new paradigms, idealised possibilities) in the sign of pioneering initiations. How this affects the world's structures right now. (3) What this civilisational reset personally asks of ${firstName}, the impossible integration it invites, the dreamer AND architect simultaneously, how their current work or life chapter is positioned within this historical moment.>",
+    "uranus_note": "<2 sentences: Uranus at ${planets[7].degStr} approaching Gemini ingress ~April 26 2026, what financial structures, communication architectures, and valuations this disrupts, and the specific implication for ${firstName}'s timing and planning.>"
   },
   "dreamspell": {
     "headline": "${kin.full}${kin.isGAP ? ' ★ GALACTIC ACTIVATION PORTAL' : ''}",
-    "body": "<3-4 paragraphs: (1) Tone ${kin.toneNum} (${kin.tone}) — its question, its challenge, its gift. What this tone specifically asks ${firstName} to embody or practice today. (2) The ${kin.seal} seal — its core power, its archetype, its gifts and shadow. Applied concretely to ${firstName}'s current situation and context. (3) The wavespell position and what specific invitation it carries — where ${firstName} is in the larger 13-day arc. (4) ${kin.isGAP ? 'GALACTIC ACTIVATION PORTAL: the veil between dimensions is thinner today. What specific arrivals, synchronicities, or unexpected clarity should ' + firstName + ' pay attention to? What has been seeking entrance?' : ''} Always note: Argüelles (1987) modern system, distinct from ancient K\'iche\' tzolkʼin.>",
-    "disclaimer": "Dreamspell: Argüelles (1987) The Mayan Factor — 20th-century modern system, distinct from the ancient K'iche' Maya tzolkʼin maintained continuously by Guatemalan daykeepers (Aldana 2022)."
+    "body": "<3-4 paragraphs: (1) Tone ${kin.toneNum} (${kin.tone}), its question, its challenge, its gift. What this tone specifically asks ${firstName} to embody or practice today. (2) The ${kin.seal} seal, its core power, its archetype, its gifts and shadow. Applied concretely to ${firstName}'s current situation and context. (3) The wavespell position and what specific invitation it carries, where ${firstName} is in the larger 13-day arc. (4) ${kin.isGAP ? 'GALACTIC ACTIVATION PORTAL: the veil between dimensions is thinner today. What specific arrivals, synchronicities, or unexpected clarity should ' + firstName + ' pay attention to? What has been seeking entrance?' : ''} Always note: Argüelles (1987) modern system, distinct from ancient K\'iche\' tzolkʼin.>",
+    "disclaimer": "Dreamspell: Argüelles (1987) The Mayan Factor, 20th-century modern system, distinct from the ancient K'iche' Maya tzolkʼin maintained continuously by Guatemalan daykeepers (Aldana 2022)."
   },
   "planetary_positions": [
-    ${planets.map(pl => `{"planet":"${pl.name}","pos":"${pl.degStr}","sign":"${pl.sign}","note":"<12-15 word personalised note for ${firstName} — specific to their context and today's energy>"}`).join(',\n    ')}
+    ${planets.map(pl => `{"planet":"${pl.name}","pos":"${pl.degStr}","sign":"${pl.sign}","note":"<12-15 word personalised note for ${firstName}, specific to their context and today's energy>"}`).join(',\n    ')}
   ],
   "aspects": [
-    ${aspects.slice(0,6).map(a => `{"dots":${a.str},"label":"${a.desc}","body":"<3 sentences: what this specific aspect means for ${firstName} today — the tension or gift it brings, how it manifests in their actual life, one concrete way to work with it>"}`).join(',\n    ')}
+    ${aspects.slice(0,6).map(a => `{"dots":${a.str},"label":"${a.desc}","body":"<3 sentences: what this specific aspect means for ${firstName} today, the tension or gift it brings, how it manifests in their actual life, one concrete way to work with it>"}`).join(',\n    ')}
   ],
-  "shadow_work": "<3-4 italic sentences — the hard question ${firstName} actually needs right now. Grounded in their personal context. Not philosophical abstractions but the specific avoidance, the specific deferral, the specific unexamined assumption. Ask the question they most need to hear. Do not soften it.>",
+  "shadow_work": "<3-4 italic sentences, the hard question ${firstName} actually needs right now. Grounded in their personal context. Not philosophical abstractions but the specific avoidance, the specific deferral, the specific unexamined assumption. Ask the question they most need to hear. Do not soften it.>",
   "priorities": [
-    {"rank":1,"title":"<Most important priority today — specific to ${firstName}'s context and projects>","rationale":"<3-4 sentences with full cosmic rationale — which specific transits, numbers, and lunar phase support this priority today and why>","action":"<One specific, concrete, completable action for today — precise, physical, completable in a single session>"},
-    {"rank":2,"title":"<Relationship or connection priority — specific person or type of connection>","rationale":"<3-4 sentences with cosmic rationale>","action":"<One specific action — what to say, who to reach, what to create>"},
+    {"rank":1,"title":"<Most important priority today, specific to ${firstName}'s context and projects>","rationale":"<3-4 sentences with full cosmic rationale, which specific transits, numbers, and lunar phase support this priority today and why>","action":"<One specific, concrete, completable action for today, precise, physical, completable in a single session>"},
+    {"rank":2,"title":"<Relationship or connection priority, specific person or type of connection>","rationale":"<3-4 sentences with cosmic rationale>","action":"<One specific action, what to say, who to reach, what to create>"},
     {"rank":3,"title":"<Body, health, or rest priority>","rationale":"<3-4 sentences>","action":"<One specific action with a time of day attached>"}
   ],
   "focus_on": ["<specific, named, actionable item 1>","<specific item 2>","<specific item 3>","<specific item 4>"],
   "ease_off": ["<specific, named, actionable item 1>","<specific item 2>","<specific item 3>","<specific item 4>"],
   "time_windows": {
-    "morning": "<3 sentences: the precise cosmic quality of ${firstName}'s morning — what the energy supports, what it asks, specific advice for the first 4 hours of the day>",
-    "afternoon": "<3 sentences: how the energy shifts in the afternoon for ${firstName} — what becomes available, what opens, what practical guidance applies>",
-    "evening": "<3 sentences: how ${firstName} closes the day with integrity — what to review, what to release, the one habit or practice that compounds over weeks>"
+    "morning": "<3 sentences: the precise cosmic quality of ${firstName}'s morning, what the energy supports, what it asks, specific advice for the first 4 hours of the day>",
+    "afternoon": "<3 sentences: how the energy shifts in the afternoon for ${firstName}, what becomes available, what opens, what practical guidance applies>",
+    "evening": "<3 sentences: how ${firstName} closes the day with integrity, what to review, what to release, the one habit or practice that compounds over weeks>"
   },
   "week_ahead": [
     ${weekAheadJSON}
   ],
   "daily_gift": {
-    "quote": "<Precisely chosen quote — Jung, Marcus Aurelius, Kierkegaard, Seneca, Rilke, Rumi, or similar — that speaks exactly to ${firstName}'s current chapter. Not generic wisdom. The right sentence for this specific person at this specific moment in their life.>",
+    "quote": "<Precisely chosen quote (Jung, Marcus Aurelius, Kierkegaard, Seneca, Rilke, Rumi, or similar) that speaks exactly to ${firstName}'s current chapter. Not generic wisdom. The right sentence for this specific person at this specific moment in their life.>",
     "attribution": "<Full attribution: Author, Work, Year>",
-    "reflection": "<2-3 sentences of personalised reflection on why this quote lands for ${firstName} right now — specific to their current chapter, their context, what they are building or releasing>",
-    "meditation": "<3 specific, concrete, unglamorous acts for ${firstName} today — the kind of daily care that compounds over months. Physical, relational, creative. Not aspirational — actual.>"
+    "reflection": "<2-3 sentences of personalised reflection on why this quote lands for ${firstName} right now, specific to their current chapter, their context, what they are building or releasing>",
+    "meditation": "<3 specific, concrete, unglamorous acts for ${firstName} today (the kind of daily care that compounds over months. Physical, relational, creative. Not aspirational) actual.>"
   },
-  "closing_line": "<One final sentence, italic — specific to ${firstName}, not inspirational fluff. The truth of where they actually are, spoken with warmth and precision. The sentence they will carry.>",
+  "closing_line": "<One final sentence, italic, specific to ${firstName}, not inspirational fluff. The truth of where they actually are, spoken with warmth and precision. The sentence they will carry.>",
   "sources": "Astronomy: Swiss Ephemeris (Koch & Treindl, Astrodienst AG, ae_2026.pdf); USNO Moon Phases. Maya calendrics: Šprajc et al. (2023) Science Advances doi:10.1126/sciadv.abq7675; Aldana (2022) doi:10.34758/qyyd-vx23. Dreamspell: Argüelles (1987) The Mayan Factor. Astrology: Greene (1976) Saturn; Tarnas (2006) Cosmos & Psyche; Hand (2002) Planets in Transit; Brady (1999) Predictive Astrology; Brennan (2017) Hellenistic Astrology. Numerology: Drayer (2002); Kahn (2001) Pythagoras."
 }`;
 
@@ -1271,47 +1271,47 @@ async function generatePhase1(dateStr, profile, tier, planets, moon, kin, num, a
 
   const pTable = planets.map(pl => `${pl.name}: ${pl.degStr}`).join('\n');
   const moonAlert = moon.isBlack
-    ? `★ BLACK MOON — threshold day. No major launches. Observe.`
-    : moon.isShiva ? `★ SHIVA MOON — auspicious. Fresh starts welcomed.` : '';
+    ? `★ BLACK MOON, threshold day. No major launches. Observe.`
+    : moon.isShiva ? `★ SHIVA MOON, auspicious. Fresh starts welcomed.` : '';
 
   const scope1 = {
     free: 'PHASE 1 FREE: synthesis (1 sentence), one priority, one action. Under 200 tokens.',
-    seeker: 'PHASE 1 SEEKER: synthesis (2 sentences), 3 priorities with rationale and actions, shadow_work, focus_on (4 items), ease_off (4 items), time_windows. Concise — 2 sentences per field. Under 1500 tokens.',
+    seeker: 'PHASE 1 SEEKER: synthesis (2 sentences), 3 priorities with rationale and actions, shadow_work, focus_on (4 items), ease_off (4 items), time_windows. Concise, 2 sentences per field. Under 1500 tokens.',
     initiate: 'PHASE 1 INITIATE: Same as Seeker but richer. synthesis (2-3 sentences), 3 priorities with full rationale, shadow_work, focus_on, ease_off, time_windows. Under 2000 tokens.',
     mystic: 'PHASE 1 MYSTIC: synthesis (3 sentences), 3 full priorities, shadow_work (3 sentences), focus_on, ease_off, time_windows. Under 2500 tokens.',
-    oracle: 'PHASE 1 ORACLE: synthesis (3 powerful sentences synthesising all 4 frameworks), 3 priorities with full 3-4 sentence rationale and specific actions, shadow_work (4 sentences — the hard question), focus_on (4 items), ease_off (4 items), time_windows (3 sentences each). Under 3000 tokens.'
+    oracle: 'PHASE 1 ORACLE: synthesis (3 powerful sentences synthesising all 4 frameworks), 3 priorities with full 3-4 sentence rationale and specific actions, shadow_work (4 sentences, the hard question), focus_on (4 items), ease_off (4 items), time_windows (3 sentences each). Under 3000 tokens.'
   }[tier] || 'PHASE 1: synthesis, priorities, shadow_work, focus_on, ease_off, time_windows.';
 
-  const sys1 = `You are the Oracle at Cosmic Daily Planner. PHASE 1 — generate only the actionable core sections. Fast, precise, personal.
+  const sys1 = `You are the Oracle at Cosmic Daily Planner. PHASE 1, generate only the actionable core sections. Fast, precise, personal.
 ${scope1}
-Rules: Address ${firstName} by name. Use only provided data. RESPOND WITH VALID JSON ONLY — no markdown, no preamble.`;
+Rules: Address ${firstName} by name. Use only provided data. RESPOND WITH VALID JSON ONLY, no markdown, no preamble.`;
 
   const user1 = `DATE: ${dateStr}
 PROFILE: ${profileBlock}
 PLANETS: ${pTable}
-MOON: ${moon.phase} — ${moon.cycle} days into cycle ${moonAlert}
-NUMEROLOGY — THREE LAYERS:
-• Day Energy (day digit ${num.ud3?.day?.n||num.ud}): ${num.ud3?.day?.meaning?.title||num.udM?.n} — ${num.ud3?.day?.meaning?.guidance||''}
+MOON: ${moon.phase}: ${moon.cycle} days into cycle ${moonAlert}
+NUMEROLOGY. THREE LAYERS:
+• Day Energy (day digit ${num.ud3?.day?.n||num.ud}): ${num.ud3?.day?.meaning?.title||num.udM?.n}: ${num.ud3?.day?.meaning?.guidance||''}
 • Month Energy (day+month → ${num.ud3?.month?.n||num.mEn}): ${num.ud3?.month?.meaning?.title||num.mEnM?.n}
-• Full Date Energy (all digits → ${num.ud3?.full?.n||num.ud}): ${num.ud3?.full?.meaning?.title||num.udM?.n} ${num.ud3?.full?.isMaster?'⚠ MASTER NUMBER — do not reduce further':''}
+• Full Date Energy (all digits → ${num.ud3?.full?.n||num.ud}): ${num.ud3?.full?.meaning?.title||num.udM?.n} ${num.ud3?.full?.isMaster?'⚠ MASTER NUMBER, do not reduce further':''}
 Personal: PD${num.pd||num.ud} (${num.pdM?.n||''}), LP${num.lp||'?'}, PY${num.py||'?'}
 KIN: ${kin.full}${kin.isGAP?' ★ GAP':''}
 
 Generate ONLY these sections as valid JSON:
 {
-  "synthesis": "<${tier==='oracle'?'3 powerful sentences synthesising Dreamspell Kin, Universal Day, dominant transit and moon into one resonant truth for '+firstName+' today':'2-3 sentences — the essential truth for '+firstName+' today'}>",
+  "synthesis": "<${tier==='oracle'?'3 powerful sentences synthesising Dreamspell Kin, Universal Day, dominant transit and moon into one resonant truth for '+firstName+' today':'2-3 sentences, the essential truth for '+firstName+' today'}>",
   "priorities": [
-    {"rank":1,"title":"<Most important priority — specific to ${firstName}>","rationale":"<${tier==='oracle'?'3-4':'2'} sentences with cosmic rationale — which transits/numbers/phase support this>","action":"<One specific, completable action for today>"},
+    {"rank":1,"title":"<Most important priority, specific to ${firstName}>","rationale":"<${tier==='oracle'?'3-4':'2'} sentences with cosmic rationale, which transits/numbers/phase support this>","action":"<One specific, completable action for today>"},
     {"rank":2,"title":"<Connection/relationship priority>","rationale":"<${tier==='oracle'?'3-4':'2'} sentences>","action":"<Specific action>"},
     {"rank":3,"title":"<Body/health/rest priority>","rationale":"<${tier==='oracle'?'3-4':'2'} sentences>","action":"<Specific action with time of day>"}
   ],
-  "shadow_work": "<${tier==='oracle'?'3-4':'2'} sentences — the question ${firstName} most needs right now. Grounded in their context. Not abstract. The specific avoidance or unexamined assumption.>",
+  "shadow_work": "<${tier==='oracle'?'3-4':'2'} sentences, the question ${firstName} most needs right now. Grounded in their context. Not abstract. The specific avoidance or unexamined assumption.>",
   "focus_on": ["<specific named item>","<specific item>","<specific item>","<specific item>"],
   "ease_off": ["<specific named item>","<specific item>","<specific item>","<specific item>"],
   "time_windows": {
-    "morning": "<${tier==='oracle'?'3':'2'} sentences — specific cosmic quality and advice for ${firstName}'s morning>",
-    "afternoon": "<${tier==='oracle'?'3':'2'} sentences — how energy shifts and what becomes available>",
-    "evening": "<${tier==='oracle'?'3':'2'} sentences — how ${firstName} closes the day well>"
+    "morning": "<${tier==='oracle'?'3':'2'} sentences, specific cosmic quality and advice for ${firstName}'s morning>",
+    "afternoon": "<${tier==='oracle'?'3':'2'} sentences, how energy shifts and what becomes available>",
+    "evening": "<${tier==='oracle'?'3':'2'} sentences, how ${firstName} closes the day well>"
   }
 }`;
 
@@ -1341,7 +1341,7 @@ function newJobId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 function cleanOldJobs() {
-  const cutoff = Date.now() - 14400000; // 4hr TTL — survives brief Railway redeploys
+  const cutoff = Date.now() - 14400000; // 4hr TTL, survives brief Railway redeploys
   for (const [id, job] of jobs) {
     if (job.startedAt < cutoff) jobs.delete(id);
   }
@@ -1388,14 +1388,14 @@ app.post('/api/reading/start', async (req, res) => {
           p.active_threads?(Array.isArray(p.active_threads)?p.active_threads.join(', '):p.active_threads):null,
           p.birthDay?('Born '+p.birthDay+'/'+p.birthMonth+'/'+p.birthYear):null
         ].filter(Boolean).join('. ');
-        const moonNote = moon.isBlack?'BLACK MOON — do not initiate.':moon.isShiva?'SHIVA MOON — plant with intention.':'';
+        const moonNote = moon.isBlack?'BLACK MOON, do not initiate.':moon.isShiva?'SHIVA MOON, plant with intention.':'';
         const weekAhead = getWeekAhead(ds);
         const weekCtx = weekAhead.slice(1).map(w => w.dayStr+': UD'+w.ud+(w.isGAP?' GAP★':'')+' '+w.kin).join(', ');
         const langMode = (profile && profile.readingLang === 'modern') ? 'modern' : 'ancient';
         const langInstr = langMode === 'modern'
           ? ' READING LANGUAGE: Modern scientific. Frame every insight in neuroscience terms: salience network, circadian rhythms, interoception, neuroplasticity, predictive coding. Name the mechanism. Cite the science briefly (e.g. Barrett 2017, Bremer 2022). Still use the cosmic data as the scaffold but translate it into brain science language.'
           : ' READING LANGUAGE: Ancient traditional. Use the language of cosmic intelligence, archetypes, energetic fields and symbolic meaning. No neuroscience terminology.';
-        const qdSys = 'You are the Oracle at Cosmic Daily Planner. Respond ONLY with valid JSON, no markdown, no preamble.' + langInstr + ' Schema: {"synthesis":"string","priorities":[{"title":"string","action":"string"},{"title":"string","action":"string"},{"title":"string","action":"string"}],"shadow":"string","focus_on":["string","string","string","string"],"ease_off":["string","string","string","string"],"time_windows":{"morning":"string","afternoon":"string","evening":"string"},"week_notes":["string","string","string","string","string","string"],"next_tier_teaser":"string"}. week_notes: exactly 6 notes (2 sentences each): what the day energy means + one specific implication for the person. next_tier_teaser: 1-2 compelling sentences about what a Monthly Arc reading would additionally reveal for this person this month — end with a curiosity hook. Max 1200 tokens. Be specific.';
+        const qdSys = 'You are the Oracle at Cosmic Daily Planner. Respond ONLY with valid JSON, no markdown, no preamble.' + langInstr + ' Schema: {"synthesis":"string","priorities":[{"title":"string","action":"string"},{"title":"string","action":"string"},{"title":"string","action":"string"}],"shadow":"string","focus_on":["string","string","string","string"],"ease_off":["string","string","string","string"],"time_windows":{"morning":"string","afternoon":"string","evening":"string"},"week_notes":["string","string","string","string","string","string"],"next_tier_teaser":"string"}. week_notes: exactly 6 notes (2 sentences each): what the day energy means + one specific implication for the person. next_tier_teaser: 1-2 compelling sentences about what a Monthly Arc reading would additionally reveal for this person this month, end with a curiosity hook. Max 1200 tokens. Be specific.';
         const weekDateList = weekAhead.slice(1).map((w,i)=>(i+1)+'. '+w.dayStr+' (UD'+w.ud+(w.isGAP?' GAP':'')+' '+w.kin+')').join('; ');
         const qdUser = 'Person: '+fn+'. Date: '+ds+'. Moon: '+moon.phase+(moonNote?' ('+moonNote+')':'')+'. UD: '+num.ud+(num.udM&&num.udM.n?' ('+num.udM.n+')':'')+', PD: '+(num.pd||num.ud)+'. LP: '+(num.lp||'?')+', PY: '+(num.py||'?')+'. Kin: '+kin.full+(kin.isGAP?' GALACTIC ACTIVATION PORTAL':'')+'. '+ctx+'. Next 6 days (in order for week_notes): '+weekDateList+'. Saturn-Neptune Aries 2026 (Tarnas 2006). Write personal daily reading for '+fn+'. week_notes must have exactly 6 strings in same order as the dates above.';
         let qdRaw;
@@ -1524,19 +1524,19 @@ app.post('/api/ask', async (req, res) => {
     const focusCtx = p.focus ? `Current focus: ${p.focus}.` : '';
 
     // Use frontend-provided systemPrompt if available, else default
-    const sys = systemPrompt || `You are the Oracle at Cosmic Daily Planner — the same voice that wrote today's full reading. A reader is asking a follow-up or deeper question.
+    const sys = systemPrompt || `You are the Oracle at Cosmic Daily Planner, the same voice that wrote today's full reading. A reader is asking a follow-up or deeper question.
 
 YOUR VOICE: The best Jungian analyst meets the Swiss Ephemeris. Precise. Personal. Grounded. Emotionally intelligent.
 
 RULES:
-— Address ${firstName} by name throughout.
-— Speak directly from the cosmic data provided. Never invent planetary positions.
-— 4-6 sentences of depth. No bullet points. No lists.
-— End with one precise question for ${firstName} to sit with — the one that, if answered honestly, would move something.
-— Reference their specific personal context, projects, and relationships where relevant and by name.
-— Dreamspell always labelled as Argüelles (1987) modern system, distinct from ancient K'iche' tradition.
-— Draw on: Tarnas (2006), Greene (1976), Hand (2002), Brady (1999), Drayer (2002) where relevant.
-— If the full reading has not yet completed, respond from the raw cosmic data provided. Never say you don't have enough information.`;
+- Address ${firstName} by name throughout.
+- Speak directly from the cosmic data provided. Never invent planetary positions.
+- 4-6 sentences of depth. No bullet points. No lists.
+- End with one precise question for ${firstName} to sit with, the one that, if answered honestly, would move something.
+- Reference their specific personal context, projects, and relationships where relevant and by name.
+- Dreamspell always labelled as Argüelles (1987) modern system, distinct from ancient K'iche' tradition.
+- Draw on: Tarnas (2006), Greene (1976), Hand (2002), Brady (1999), Drayer (2002) where relevant.
+- If the full reading has not yet completed, respond from the raw cosmic data provided. Never say you don't have enough information.`;
 
     const fullContext = [
       context ? `Today's reading context: ${context}` : '',
@@ -1624,22 +1624,22 @@ app.post('/api/daydetail', (req, res) => {
       // Highlight summary for display
       summary: {
         moonPhase: `${moon.emoji} ${moon.phase} (day ${moon.cycle} of cycle)`,
-        moonAlert: moon.isBlack ? '⚠️ Black Moon — two days before New Moon. A threshold: inward, cautious, no major launches.'
-          : moon.isShiva ? '✨ Shiva Moon — two days after New Moon. Auspicious, generative. Plant intentions now.'
-          : moon.isNewMoon ? '🌑 New Moon — the cycle begins. Set intentions in silence.'
-          : moon.isFullMoon ? '🌕 Full Moon — peak illumination. What is ready to be seen or released?'
+        moonAlert: moon.isBlack ? '⚠️ Black Moon, two days before New Moon. A threshold: inward, cautious, no major launches.'
+          : moon.isShiva ? '✨ Shiva Moon, two days after New Moon. Auspicious, generative. Plant intentions now.'
+          : moon.isNewMoon ? '🌑 New Moon, the cycle begins. Set intentions in silence.'
+          : moon.isFullMoon ? '🌕 Full Moon, peak illumination. What is ready to be seen or released?'
           : '',
         kinFull: kin.full,
-        gapAlert: kin.isGAP ? '★ Galactic Activation Portal — heightened sensitivity. Pay close attention to what arrives.' : '',
-        universalDay: `${num.ud}${[11,22,33,44].includes(num.ud)?'★':''} — ${num.udM?.n||''}`,
-        monthEnergy: `${num.mEn} — ${num.mEnM?.n||''}`,
-        yearEnergy: `${num.yEn} — ${num.yEnM?.n||''}`,
-        personalDay: num.pd ? `${num.pd}${[11,22,33,44].includes(num.pd)?'★':''} — ${num.pdM?.n||''}` : null,
-        personalMonth: num.pm ? `${num.pm} — ${num.pmM?.n||''}` : null,
-        personalYear: num.py ? `${num.py} — ${num.pyM?.n||''}` : null,
+        gapAlert: kin.isGAP ? '★ Galactic Activation Portal, heightened sensitivity. Pay close attention to what arrives.' : '',
+        universalDay: `${num.ud}${[11,22,33,44].includes(num.ud)?'★':''}: ${num.udM?.n||''}`,
+        monthEnergy: `${num.mEn}: ${num.mEnM?.n||''}`,
+        yearEnergy: `${num.yEn}: ${num.yEnM?.n||''}`,
+        personalDay: num.pd ? `${num.pd}${[11,22,33,44].includes(num.pd)?'★':''}: ${num.pdM?.n||''}` : null,
+        personalMonth: num.pm ? `${num.pm}: ${num.pmM?.n||''}` : null,
+        personalYear: num.py ? `${num.py}: ${num.pyM?.n||''}` : null,
         threeEnergies: num.threeEnergies,
-        masterAlert: num.isMasterDay ? `★ Master Number ${num.ud} Day — ${num.udM?.n} — portals wide open` : '',
-        specialAlert: num.isSpecialDay ? `✧ Day ${num.ud} — ${num.udM?.n} — a day of particular depth` : '',
+        masterAlert: num.isMasterDay ? `★ Master Number ${num.ud} Day (${num.udM?.n}) portals wide open` : '',
+        specialAlert: num.isSpecialDay ? `✧ Day ${num.ud}: ${num.udM?.n}, a day of particular depth` : '',
       }
     });
   } catch(e) { res.status(500).json({error: e.message}); }
@@ -1703,11 +1703,11 @@ function getBiorhythmSynastry(bioA, bioB) {
       aPhase: a.phase, aPct: a.pct,
       bPhase: b.phase, bPct: b.pct,
       diff, aligned, opposed, bothCritical,
-      dynamic: bothCritical ? 'Both in critical transition — take care'
-        : aligned && a.pct > 30 ? 'Both running high — strong shared energy'
-        : aligned && a.pct < -30 ? 'Both low — a good time to rest together, not push'
-        : opposed ? 'Out of phase — one high, one low. Patience and adaptation needed'
-        : 'Mixed — complement each other\'s energy today'
+      dynamic: bothCritical ? 'Both in critical transition, take care'
+        : aligned && a.pct > 30 ? 'Both running high, strong shared energy'
+        : aligned && a.pct < -30 ? 'Both low, a good time to rest together, not push'
+        : opposed ? 'Out of phase, one high, one low. Patience and adaptation needed'
+        : 'Mixed, complement each other\'s energy today'
     });
   }
   return out;
@@ -1718,13 +1718,13 @@ function getBiorhythmSynastry(bioA, bioB) {
 // LP compatibility (Drayer 2002, Millman 1993 Life You Were Born to Live)
 // ══════════════════════════════════════════════════════════════════
 const LP_COMPAT = {
-  '1-1': { quality: 'Resonant independence', dynamic: 'Two strong wills — inspiring when aligned, competitive when not. Leadership must be shared consciously.' },
+  '1-1': { quality: 'Resonant independence', dynamic: 'Two strong wills, inspiring when aligned, competitive when not. Leadership must be shared consciously.' },
   '1-2': { quality: 'Complementary polarity', dynamic: 'The initiator and the nurturer. Natural fit when both roles are honoured. 2 softens 1\'s edges; 1 gives 2 direction.' },
   '1-3': { quality: 'Creative momentum', dynamic: 'High-energy, expressive pairing. 1 leads, 3 brings joy and communication. Risk: both can be self-focused.' },
   '1-4': { quality: 'Vision and structure', dynamic: '1 dreams, 4 builds. Powerful if the 4 doesn\'t stifle 1\'s initiative, and the 1 respects the 4\'s need for order.' },
-  '1-5': { quality: 'Freedom and fire', dynamic: 'Both love independence. Exciting but can be unstable — neither naturally prioritises the relationship.' },
+  '1-5': { quality: 'Freedom and fire', dynamic: 'Both love independence. Exciting but can be unstable, neither naturally prioritises the relationship.' },
   '1-6': { quality: 'Leadership and care', dynamic: '1 leads outward, 6 holds the home. Strong if 6\'s nurturing isn\'t seen as control, and 1\'s independence isn\'t abandonment.' },
-  '1-7': { quality: 'Inner and outer mastery', dynamic: '1 acts, 7 reflects. They operate on different planes — potential for profound complementarity or mutual frustration.' },
+  '1-7': { quality: 'Inner and outer mastery', dynamic: '1 acts, 7 reflects. They operate on different planes, potential for profound complementarity or mutual frustration.' },
   '1-8': { quality: 'Power pairing', dynamic: 'Both driven. High potential for material success together. Risk: competition and control battles.' },
   '1-9': { quality: 'The pioneer and the sage', dynamic: '1\'s new beginnings meet 9\'s wisdom and completion. 9 can guide 1; 1 can reignite 9\'s forward momentum.' },
   '2-2': { quality: 'Deep emotional resonance', dynamic: 'Highly sensitive pairing. Beautiful emotional depth, but both may wait for the other to lead.' },
@@ -1739,13 +1739,13 @@ const LP_COMPAT = {
   '3-4': { quality: 'Creativity meets structure', dynamic: '3 expands, 4 contains. Productive if 4 doesn\'t dampen 3\'s spark, and 3 respects 4\'s need for order.' },
   '3-5': { quality: 'Expression and adventure', dynamic: 'High energy, sociable, fun. Both resist routine. May lack the depth to weather difficulty.' },
   '3-6': { quality: 'Heart and hearth', dynamic: '3\'s lightness meets 6\'s warmth. Beautiful combination. 6\'s care grounds 3; 3\'s joy uplifts 6.' },
-  '3-7': { quality: 'Surface and depth', dynamic: '3 skims the surface delightfully; 7 dives deep. Can complement beautifully — or talk past each other entirely.' },
+  '3-7': { quality: 'Surface and depth', dynamic: '3 skims the surface delightfully; 7 dives deep. Can complement beautifully, or talk past each other entirely.' },
   '3-8': { quality: 'Charm and authority', dynamic: '3 is social, 8 is powerful. 3 can open doors 8 cannot; 8 can provide the solidity 3 needs.' },
   '3-9': { quality: 'Creative wisdom', dynamic: 'Both generous, both expressive. 9\'s wisdom tempers 3\'s restlessness. High creative and spiritual potential.' },
-  '4-4': { quality: 'The builders', dynamic: 'Stable, reliable, productive. May be too similar — can be rigid. Needs conscious injection of joy and spontaneity.' },
+  '4-4': { quality: 'The builders', dynamic: 'Stable, reliable, productive. May be too similar, can be rigid. Needs conscious injection of joy and spontaneity.' },
   '4-5': { quality: 'Structure vs freedom', dynamic: 'Significant tension. 4 needs order; 5 fights it. Both must stretch well beyond their comfort zone.' },
   '4-6': { quality: 'The foundation', dynamic: 'One of the most compatible pairings. Both responsible, both devoted. Risk: life becomes all duty and no play.' },
-  '4-7': { quality: 'Pragmatism and philosophy', dynamic: '4 builds in the world; 7 seeks inner truth. Can be deeply complementary — 7 gives meaning to 4\'s efforts.' },
+  '4-7': { quality: 'Pragmatism and philosophy', dynamic: '4 builds in the world; 7 seeks inner truth. Can be deeply complementary, 7 gives meaning to 4\'s efforts.' },
   '4-8': { quality: 'The power builders', dynamic: 'Both capable of great achievement together. 4 provides the plan, 8 provides the drive. Risk: all work, no intimacy.' },
   '4-9': { quality: 'The long view', dynamic: '4\'s methodical nature meets 9\'s universal perspective. 9 can inspire 4 beyond the material; 4 can help 9 manifest.' },
   '5-5': { quality: 'The free spirits', dynamic: 'Exhilarating and chaotic. Both need change. May have difficulty committing or creating lasting structure.' },
@@ -1760,7 +1760,7 @@ const LP_COMPAT = {
   '7-7': { quality: 'The philosophers', dynamic: 'Rare depth of intellectual and spiritual understanding. Risk: both retreat inward and the relationship starves of warmth.' },
   '7-8': { quality: 'The thinker and the achiever', dynamic: '7\'s insight informs 8\'s action. Powerful if each respects the other\'s domain.' },
   '7-9': { quality: 'Depth upon depth', dynamic: 'Both oriented toward meaning and truth. Profound potential for spiritual and intellectual growth together.' },
-  '8-8': { quality: 'The magnates', dynamic: 'Extraordinary potential — and extraordinary risk. Power dynamics must be managed consciously or this becomes a battle.' },
+  '8-8': { quality: 'The magnates', dynamic: 'Extraordinary potential, and extraordinary risk. Power dynamics must be managed consciously or this becomes a battle.' },
   '8-9': { quality: 'Material and spiritual', dynamic: '8 builds in the world; 9 transcends it. 9 can soften 8\'s drive; 8 can help 9 manifest their vision.' },
   '9-9': { quality: 'Universal love', dynamic: 'Deeply aligned in compassion and wisdom. Risk: both may be so oriented toward others that the relationship itself is neglected.' },
 };
@@ -1781,10 +1781,10 @@ function getNumerologyCrossAnalysis(numA, numB, nameA, nameB) {
   let pyDynamic = '';
   if (pyA && pyB) {
     const pySum = reduce(pyA + pyB);
-    if (pyA === pyB) pyDynamic = 'Both in Personal Year ' + pyA + ' simultaneously — a year of shared themes and mirrored lessons.';
-    else if (Math.abs(pyA - pyB) === 1 || Math.abs(pyA - pyB) === 8) pyDynamic = 'Personal Years ' + pyA + ' and ' + pyB + ' are adjacent phases — one slightly ahead of the other in the nine-year cycle. This creates a natural mentoring dynamic this year.';
-    else if (pyA + pyB === 10 || pyA + pyB === 19) pyDynamic = 'Personal Years ' + pyA + ' and ' + pyB + ' are complementary within the cycle — what one is releasing, the other is beginning.';
-    else pyDynamic = 'Personal Year ' + pyA + ' (' + nameA + ') and Personal Year ' + pyB + ' (' + nameB + ') — different life themes active this year. Understanding each other\'s current chapter is essential.';
+    if (pyA === pyB) pyDynamic = 'Both in Personal Year ' + pyA + ' simultaneously, a year of shared themes and mirrored lessons.';
+    else if (Math.abs(pyA - pyB) === 1 || Math.abs(pyA - pyB) === 8) pyDynamic = 'Personal Years ' + pyA + ' and ' + pyB + ' are adjacent phases, one slightly ahead of the other in the nine-year cycle. This creates a natural mentoring dynamic this year.';
+    else if (pyA + pyB === 10 || pyA + pyB === 19) pyDynamic = 'Personal Years ' + pyA + ' and ' + pyB + ' are complementary within the cycle, what one is releasing, the other is beginning.';
+    else pyDynamic = 'Personal Year ' + pyA + ' (' + nameA + ') and Personal Year ' + pyB + ' (' + nameB + '), different life themes active this year. Understanding each other\'s current chapter is essential.';
   }
 
   // Combined Life Path
@@ -1797,7 +1797,7 @@ function getNumerologyCrossAnalysis(numA, numB, nameA, nameB) {
     dynamic: compat.dynamic,
     pyDynamic,
     combined, combinedName: combinedData.n || '',
-    combinedMeaning: 'The combined energy of this relationship carries the frequency of ' + combined + ' (' + (combinedData.n || '') + ') — the numerological signature of what this partnership is here to create or learn.'
+    combinedMeaning: 'The combined energy of this relationship carries the frequency of ' + combined + ' (' + (combinedData.n || '') + '), the numerological signature of what this partnership is here to create or learn.'
   };
 }
 
@@ -1822,18 +1822,18 @@ function getDreamspellSynastry(kinA, kinB) {
     : 'cross-family';
 
   const chromaticDesc = {
-    'same-tribe': colorA + ' tribe — you share the same chromatic family. Natural resonance in how you process and express energy. You understand each other\'s fundamental mode without explanation.',
-    'chromatic-partner': colorA + ' and ' + colorB + ' — complementary partner colours. This is one of the most harmonious pairings in Dreamspell. Your energies naturally complete each other.',
-    'cross-family': colorA + ' and ' + colorB + ' — different colour families. Your modes of engaging with reality are genuinely different, which creates richness and the need for translation.',
+    'same-tribe': colorA + ' tribe, you share the same chromatic family. Natural resonance in how you process and express energy. You understand each other\'s fundamental mode without explanation.',
+    'chromatic-partner': colorA + ' and ' + colorB + ' - complementary partner colours. This is one of the most harmonious pairings in Dreamspell. Your energies naturally complete each other.',
+    'cross-family': colorA + ' and ' + colorB + ' - different colour families. Your modes of engaging with reality are genuinely different, which creates richness and the need for translation.',
   }[chromatic];
 
   // Tonal relationship
   const toneA = kinA.toneNum;
   const toneB = kinB.toneNum;
   const toneSum = ((toneA + toneB - 1) % 13) + 1;
-  const toneRelation = toneA === toneB ? 'resonant tones — you pulse at the same frequency'
-    : toneSum === 14 ? 'complementary tones (sum to 14) — you complete each other\'s vibrational arc'
-    : 'distinct tones — each brings a different quality of intention and power';
+  const toneRelation = toneA === toneB ? 'resonant tones, you pulse at the same frequency'
+    : toneSum === 14 ? 'complementary tones (sum to 14), you complete each other\'s vibrational arc'
+    : 'distinct tones, each brings a different quality of intention and power';
 
   // Kin difference relationship
   const kinDiff = Math.abs(kinNumA - kinNumB);
@@ -1861,9 +1861,9 @@ function getDreamspellSynastry(kinA, kinB) {
     sameWavespell,
     bothGAP, oneGAP,
     combinedKin,
-    combinedFull: 'Kin ' + combinedKin + ' — ' + combinedColor + ' ' + combinedTone + ' ' + combinedSeal,
-    combinedMeaning: 'The combined Kin of this relationship is ' + combinedColor + ' ' + combinedTone + ' ' + combinedSeal + ' — the galactic signature of what this connection is here to embody and transmit together.',
-    wavespellNote: sameWavespell ? 'You were born in the same wavespell — a rare and significant bond.' : 'Born in different wavespells, your 13-day arcs create a dynamic interplay of different intentions.'
+    combinedFull: 'Kin ' + combinedKin + ' - ' + combinedColor + ' ' + combinedTone + ' ' + combinedSeal,
+    combinedMeaning: 'The combined Kin of this relationship is ' + combinedColor + ' ' + combinedTone + ' ' + combinedSeal + ' - the galactic signature of what this connection is here to embody and transmit together.',
+    wavespellNote: sameWavespell ? 'You were born in the same wavespell, a rare and significant bond.' : 'Born in different wavespells, your 13-day arcs create a dynamic interplay of different intentions.'
   };
 }
 
@@ -1872,14 +1872,14 @@ function getDreamspellSynastry(kinA, kinB) {
 // What lunar phase was active when each person was born?
 // ══════════════════════════════════════════════════════════════════
 const MOON_PHASE_NAMES = [
-  { max: 1.5,  name: 'New Moon',         archetype: 'The Initiator — spontaneous, instinctive, driven by feeling over reflection' },
-  { max: 7.5,  name: 'Waxing Crescent',  archetype: 'The Seeker — gathering energy, building toward something, full of possibility' },
-  { max: 8.5,  name: 'First Quarter',    archetype: 'The Builder — decisive, action-oriented, willing to push through resistance' },
-  { max: 14.5, name: 'Waxing Gibbous',   archetype: 'The Refiner — analytical, perfection-seeking, always improving' },
-  { max: 16.5, name: 'Full Moon',        archetype: 'The Illuminator — relational, aware, seen and seeing — fulfillment through others' },
-  { max: 22.5, name: 'Waning Gibbous',   archetype: 'The Messenger — drawn to share wisdom, teach, contribute to the larger story' },
-  { max: 23.5, name: 'Last Quarter',     archetype: 'The Reorienteer — reassessing, releasing, turning away from what no longer fits' },
-  { max: 30,   name: 'Waning Crescent',  archetype: 'The Mystic — finishing cycles, surrendering, deeply intuitive and contemplative' },
+  { max: 1.5,  name: 'New Moon',         archetype: 'The Initiator, spontaneous, instinctive, driven by feeling over reflection' },
+  { max: 7.5,  name: 'Waxing Crescent',  archetype: 'The Seeker, gathering energy, building toward something, full of possibility' },
+  { max: 8.5,  name: 'First Quarter',    archetype: 'The Builder, decisive, action-oriented, willing to push through resistance' },
+  { max: 14.5, name: 'Waxing Gibbous',   archetype: 'The Refiner, analytical, perfection-seeking, always improving' },
+  { max: 16.5, name: 'Full Moon',        archetype: 'The Illuminator (relational, aware, seen and seeing) fulfillment through others' },
+  { max: 22.5, name: 'Waning Gibbous',   archetype: 'The Messenger, drawn to share wisdom, teach, contribute to the larger story' },
+  { max: 23.5, name: 'Last Quarter',     archetype: 'The Reorienteer, reassessing, releasing, turning away from what no longer fits' },
+  { max: 30,   name: 'Waning Crescent',  archetype: 'The Mystic, finishing cycles, surrendering, deeply intuitive and contemplative' },
 ];
 
 function getNatalMoonPhase(birthDateStr) {
@@ -1904,15 +1904,15 @@ function getMoonPhaseSynastry(phaseA, phaseB, nameA, nameB) {
 
   let dynamicNote = '';
   if (phaseA.phase === phaseB.phase) {
-    dynamicNote = 'Born under the same lunar phase — you share a fundamental emotional rhythm and approach to relationship. This creates deep instinctive understanding.';
+    dynamicNote = 'Born under the same lunar phase, you share a fundamental emotional rhythm and approach to relationship. This creates deep instinctive understanding.';
   } else if (aWaxing && !bWaxing) {
     dynamicNote = nameA + ' was born under a waxing moon (building energy) and ' + nameB + ' under a waning moon (integrating energy). One of you naturally initiates; the other naturally synthesises and completes. This is a powerful creative polarity.';
   } else if (!aWaxing && bWaxing) {
     dynamicNote = nameB + ' was born under a waxing moon (building energy) and ' + nameA + ' under a waning moon (integrating energy). One of you naturally initiates; the other naturally synthesises and completes. This is a powerful creative polarity.';
   } else if (aWaxing && bWaxing) {
-    dynamicNote = 'Both born under waxing moons — you both naturally build, initiate, and reach toward new things. This creates momentum and possibility, with care needed around slowing down and integrating.';
+    dynamicNote = 'Both born under waxing moons, you both naturally build, initiate, and reach toward new things. This creates momentum and possibility, with care needed around slowing down and integrating.';
   } else {
-    dynamicNote = 'Both born under waning moons — you both naturally turn inward, integrate, and release. Deep shared wisdom and contemplative depth. You may need to consciously inject new energy and forward motion.';
+    dynamicNote = 'Both born under waning moons, you both naturally turn inward, integrate, and release. Deep shared wisdom and contemplative depth. You may need to consciously inject new energy and forward motion.';
   }
 
   return {
@@ -2028,9 +2028,9 @@ app.post('/api/compatibility', async (req, res) => {
     }
     // 12-animal affinity/clash system (Three Harmonies + Six Clashes)
     const _CC = {
-      'Rat-Dragon':{t:'Affinity',q:'Natural strategic alliance — shared ambition and drive',d:'Rat\'s cleverness amplifies Dragon\'s vision. Formidable together.'},
+      'Rat-Dragon':{t:'Affinity',q:'Natural strategic alliance, shared ambition and drive',d:'Rat\'s cleverness amplifies Dragon\'s vision. Formidable together.'},
       'Rat-Monkey':{t:'Affinity',q:'Brilliant inventive partnership',d:'Both quick-witted and adaptable. Risk: each may outmanoeuvre the other.'},
-      'Rat-Ox':{t:'Best Match',q:'Deeply complementary — the most stable pairing',d:'Rat\'s intelligence + Ox\'s dependability = enduring foundation.'},
+      'Rat-Ox':{t:'Best Match',q:'Deeply complementary, the most stable pairing',d:'Rat\'s intelligence + Ox\'s dependability = enduring foundation.'},
       'Rat-Horse':{t:'Clash',q:'Opposing core needs',d:'Rat needs closeness; Horse needs freedom. Growth comes from honouring both.'},
       'Rat-Rabbit':{t:'Neutral',q:'Different rhythms, genuine warmth possible',d:'Rat active and strategic; Rabbit gentle and artistic. Complementary if patient.'},
       'Tiger-Horse':{t:'Affinity',q:'Adventurous, bold, mutually inspiring',d:'Both independent spirits. High energy; must consciously build shared ground.'},
@@ -2040,7 +2040,7 @@ app.post('/api/compatibility', async (req, res) => {
       'Rabbit-Pig':{t:'Affinity',q:'Warm, loyal, mutually supportive',d:'Both value comfort, honesty, and genuine feeling.'},
       'Rabbit-Rooster':{t:'Clash',q:'Contrasting sensibilities',d:'Rabbit seeks peace; Rooster seeks precision. Complementary if each accepts the other\'s rhythm.'},
       'Dragon-Monkey':{t:'Affinity',q:'Dynamic, inventive, ambitious',d:'Shared drive; risk of competing for the stage.'},
-      'Dragon-Rat':{t:'Affinity',q:'Powerful natural alliance',d:'Dragon\'s vision + Rat\'s strategy — formidable.'},
+      'Dragon-Rat':{t:'Affinity',q:'Powerful natural alliance',d:'Dragon\'s vision + Rat\'s strategy, formidable.'},
       'Dragon-Dog':{t:'Clash',q:'Philosophical opposition',d:'Dragon expansive; Dog questioning. Honest dialogue is the bridge.'},
       'Snake-Rooster':{t:'Affinity',q:'Sophisticated, refined, deeply intuitive',d:'Shared depth, patience, and aesthetic intelligence.'},
       'Snake-Ox':{t:'Affinity',q:'Grounded and enduring',d:'Snake\'s insight + Ox\'s persistence = lasting structures.'},
@@ -2059,12 +2059,12 @@ app.post('/api/compatibility', async (req, res) => {
       'Pig-Rabbit':{t:'Affinity',q:'Harmonious, warm, naturally close',d:'Both seek genuine connection and peace.'},
       'Pig-Goat':{t:'Affinity',q:'Creative, emotionally open, joyful',d:'Easy warmth and deep mutual acceptance.'},
     };
-    function _chCompat(a,b){const k1=a+'-'+b,k2=b+'-'+a;return _CC[k1]||_CC[k2]||{t:'Neutral',q:'A unique pairing',d:'Neither natural affinity nor inherent clash — shaped primarily by the individuals themselves.'};}
+    function _chCompat(a,b){const k1=a+'-'+b,k2=b+'-'+a;return _CC[k1]||_CC[k2]||{t:'Neutral',q:'A unique pairing',d:'Neither natural affinity nor inherent clash, shaped primarily by the individuals themselves.'};}
     const chineseA = pA.birthYear ? _chSign(pA.birthYear, pA.birthMonth, pA.birthDay) : null;
     const chineseB = pB.birthYear ? _chSign(pB.birthYear, pB.birthMonth, pB.birthDay) : null;
     const chineseCompat = (chineseA && chineseB) ? _chCompat(chineseA.animal, chineseB.animal) : null;
     const chineseText = (chineseA && chineseB)
-      ? `CHINESE ASTROLOGY (6th framework — solar year signs, CNY-corrected):\n${pA.name||'Person A'}: ${chineseA.element} ${chineseA.animal}\n${pB.name||'Person B'}: ${chineseB.element} ${chineseB.animal}\nRelationship: ${chineseCompat.t} — ${chineseCompat.q}\nDynamic: ${chineseCompat.d}`
+      ? `CHINESE ASTROLOGY (6th framework, solar year signs, CNY-corrected):\n${pA.name||'Person A'}: ${chineseA.element} ${chineseA.animal}\n${pB.name||'Person B'}: ${chineseB.element} ${chineseB.animal}\nRelationship: ${chineseCompat.t}: ${chineseCompat.q}\nDynamic: ${chineseCompat.d}`
       : 'Chinese astrology: birth year data insufficient';
 
     // ── ALL SIX FRAMEWORKS ──
@@ -2100,8 +2100,8 @@ app.post('/api/compatibility', async (req, res) => {
         + 'Sun: ' + natal[0].degStr + ' | Moon: ' + natal[1].degStr + ' | Venus: ' + natal[3].degStr + ' | Mars: ' + natal[4].degStr + '\n'
         + 'Mercury: ' + natal[2].degStr + ' | Jupiter: ' + natal[5].degStr + ' | Saturn: ' + natal[6].degStr + '\n'
         + 'Life Path: ' + (num ? num.lp : '?') + ' (' + (num && num.lpM ? num.lpM.n : '') + ') | Personal Year: ' + (num ? num.py : '?') + '\n'
-        + 'Dreamspell Birth Kin: ' + (kin ? kin.full : '?') + (kin && kin.isGAP ? ' (GAP — portal day birth)' : '') + '\n'
-        + 'Natal Moon Phase: ' + (moonPhase ? moonPhase.phase + ' — ' + moonPhase.archetype : 'unknown');
+        + 'Dreamspell Birth Kin: ' + (kin ? kin.full : '?') + (kin && kin.isGAP ? ' (GAP, portal day birth)' : '') + '\n'
+        + 'Natal Moon Phase: ' + (moonPhase ? moonPhase.phase + ' - ' + moonPhase.archetype : 'unknown');
     };
 
     const aspectList = synAspects.map(a =>
@@ -2111,25 +2111,25 @@ app.post('/api/compatibility', async (req, res) => {
     // Format cross-analysis as structured text for Oracle
     const numCrossText = numCross
       ? 'NUMEROLOGY CROSS-ANALYSIS:\n'
-        + 'Life Path ' + numCross.lpA + ' and ' + numCross.lpB + ' — ' + numCross.quality + '\n'
+        + 'Life Path ' + numCross.lpA + ' and ' + numCross.lpB + ' - ' + numCross.quality + '\n'
         + numCross.dynamic + '\n'
         + (numCross.pyDynamic ? numCross.pyDynamic + '\n' : '')
-        + 'Combined relationship frequency: ' + numCross.combined + ' (' + numCross.combinedName + ') — ' + numCross.combinedMeaning
+        + 'Combined relationship frequency: ' + numCross.combined + ' (' + numCross.combinedName + '), ' + numCross.combinedMeaning
       : 'Numerology: insufficient birth data';
 
     const dreamspellCrossText = dreamspellCross
       ? 'DREAMSPELL SYNASTRY:\n'
         + dreamspellCross.chromaticDesc + '\n'
         + 'Tonal relationship: ' + dreamspellCross.toneRelation + '\n'
-        + (dreamspellCross.sameWavespell ? 'Born in the same wavespell — rare and significant.\n' : '')
-        + (dreamspellCross.bothGAP ? 'Both born on Galactic Activation Portal days — extraordinary portal-day connection.\n' : '')
-        + 'Combined Kin: ' + dreamspellCross.combinedFull + ' — ' + dreamspellCross.combinedMeaning
+        + (dreamspellCross.sameWavespell ? 'Born in the same wavespell, rare and significant.\n' : '')
+        + (dreamspellCross.bothGAP ? 'Both born on Galactic Activation Portal days, extraordinary portal-day connection.\n' : '')
+        + 'Combined Kin: ' + dreamspellCross.combinedFull + ' - ' + dreamspellCross.combinedMeaning
       : 'Dreamspell: insufficient data';
 
     const moonPhaseCrossText = moonPhaseCross
       ? 'NATAL MOON PHASE SYNASTRY:\n'
-        + nameA + ' born at ' + moonPhaseCross.phaseA + ' — ' + moonPhaseCross.archetypeA + '\n'
-        + nameB + ' born at ' + moonPhaseCross.phaseB + ' — ' + moonPhaseCross.archetypeB + '\n'
+        + nameA + ' born at ' + moonPhaseCross.phaseA + ' - ' + moonPhaseCross.archetypeA + '\n'
+        + nameB + ' born at ' + moonPhaseCross.phaseB + ' - ' + moonPhaseCross.archetypeB + '\n'
         + moonPhaseCross.dynamicNote
       : 'Natal moon phase: insufficient data';
 
@@ -2137,19 +2137,19 @@ app.post('/api/compatibility', async (req, res) => {
       ? 'BIORHYTHM CROSS-ANALYSIS TODAY (' + today + '):\n'
         + bioSynastry.map(b =>
             b.cycle + ': ' + nameA + ' at ' + b.aPct + '% (' + b.aPhase + '), '
-            + nameB + ' at ' + b.bPct + '% (' + b.bPhase + ') — ' + b.dynamic
+            + nameB + ' at ' + b.bPct + '% (' + b.bPhase + '), ' + b.dynamic
           ).join('\n')
       : '';
 
     const topicMap = {
-      romance:       'Romantic compatibility — attraction, intimacy, long-term potential, physical chemistry, emotional resonance',
-      communication: 'Communication — how they think, speak, argue, listen, and understand each other',
-      conflict:      'Conflict and growth edges — where they clash, why, and what those tensions are trying to build',
-      parenting:     'Parenting together — how they parent as a team, where they align and diverge, how to be consistent',
-      business:      'Business and creative partnership — complementary strengths, blind spots, decision-making dynamics',
-      friendship:    'Friendship — the nature of the bond, what sustains it, what deepens it over time',
-      children:      'Understanding a child — how to connect with, motivate, nurture, and support this child',
-      fun:           'Where they click best — shared pleasures, compatible rhythms, what brings out the best in each other',
+      romance:       'Romantic compatibility, attraction, intimacy, long-term potential, physical chemistry, emotional resonance',
+      communication: 'Communication, how they think, speak, argue, listen, and understand each other',
+      conflict:      'Conflict and growth edges, where they clash, why, and what those tensions are trying to build',
+      parenting:     'Parenting together, how they parent as a team, where they align and diverge, how to be consistent',
+      business:      'Business and creative partnership, complementary strengths, blind spots, decision-making dynamics',
+      friendship:    'Friendship, the nature of the bond, what sustains it, what deepens it over time',
+      children:      'Understanding a child, how to connect with, motivate, nurture, and support this child',
+      fun:           'Where they click best, shared pleasures, compatible rhythms, what brings out the best in each other',
     };
     const topicDesc = topicMap[topic] || topicMap.romance;
 
@@ -2168,10 +2168,10 @@ app.post('/api/compatibility', async (req, res) => {
       return '{"aspect":"' + a.desc.replace(/"/g, "'") + '","interpretation":"<3 sentences: what this cross-aspect means for ' + nameA + ' and ' + nameB + ' specifically>"}';
     }).join(',\n    ');
 
-    const sys = 'You are the Oracle at Cosmic Daily Planner — the most sophisticated multi-framework relationship reading system in existence.\n\n'
+    const sys = 'You are the Oracle at Cosmic Daily Planner, the most sophisticated multi-framework relationship reading system in existence.\n\n'
       + 'YOUR VOICE: A Jungian analyst, a spiritual director, and the wisest friend they have ever had. Precise. Warm. Deeply honest.\n\n'
       + 'TOPIC: ' + topicDesc + '\n\n'
-      + 'FRAMEWORK SOURCES (all six must be synthesised — not treated separately):\n'
+      + 'FRAMEWORK SOURCES (all six must be synthesised, not treated separately):\n'
       + '1. Western astrology synastry (natal planetary cross-aspects, Meeus 1998)\n'
       + '2. Pythagorean numerology (Life Path compatibility, Drayer 2002; Millman 1993)\n'
       + '3. Dreamspell synastry (chromatic family, tonal relationship, combined Kin, Arguelles 1987)\n'
@@ -2179,24 +2179,24 @@ app.post('/api/compatibility', async (req, res) => {
       + '5. Biorhythm cross-analysis today (physical, emotional, intellectual cycle synchrony)\n'
       + '6. Chinese astrology (solar year signs, CNY-corrected, three-harmony and six-clash system)\n\n'
       + 'RULES:\n'
-      + '— Address ' + nameA + ' directly. Use both names. Never "Person A" or "Person B".\n'
-      + '— Synthesise ALL SIX frameworks. When multiple frameworks agree on a dynamic, name that convergence explicitly — it is the most reliable signal.\n'
-      + '— When frameworks diverge, name the paradox and explain what it means for this specific relationship.\n'
-      + '— Chinese astrology: these are solar year signs (corrected for Chinese New Year date). Note the affinity/clash type where relevant.\n'
-      + '— Be honest about challenges. Do not spiritually bypass difficulty.\n'
-      + '— Planetary positions are approximate mean longitudes — label as such.\n'
-      + '— RESPOND ONLY WITH VALID JSON. No markdown, no preamble.\n'
-      + '— Sources: Greene (1976); Arroyo (1978); Tarnas (2006); Drayer (2002); Millman (1993); Arguelles (1987); Brady (1999).';
+      + '- Address ' + nameA + ' directly. Use both names. Never "Person A" or "Person B".\n'
+      + '- Synthesise ALL SIX frameworks. When multiple frameworks agree on a dynamic, name that convergence explicitly, it is the most reliable signal.\n'
+      + '- When frameworks diverge, name the paradox and explain what it means for this specific relationship.\n'
+      + '- Chinese astrology: these are solar year signs (corrected for Chinese New Year date). Note the affinity/clash type where relevant.\n'
+      + '- Be honest about challenges. Do not spiritually bypass difficulty.\n'
+      + '- Planetary positions are approximate mean longitudes, label as such.\n'
+      + '- RESPOND ONLY WITH VALID JSON. No markdown, no preamble.\n'
+      + '- Sources: Greene (1976); Arroyo (1978); Tarnas (2006); Drayer (2002); Millman (1993); Arguelles (1987); Brady (1999).';
 
     const chineseAStr = chineseA ? chineseA.element + ' ' + chineseA.animal : 'unknown';
     const chineseBStr = chineseB ? chineseB.element + ' ' + chineseB.animal : 'unknown';
-    const chineseCStr = chineseCompat ? chineseCompat.t + ' — ' + chineseCompat.q : 'see data';
+    const chineseCStr = chineseCompat ? chineseCompat.t + ' - ' + chineseCompat.q : 'see data';
 
-    const user = 'PERSON A — ' + nameA + ':\n'
+    const user = 'PERSON A, ' + nameA + ':\n'
       + formatNatal(natalA, kinA, numA, moonPhaseA, pA) + '\n'
       + (chineseA ? 'Chinese sign: ' + chineseAStr + '\n' : '')
       + ctxA + '\n\n'
-      + 'PERSON B — ' + nameB + ':\n'
+      + 'PERSON B, ' + nameB + ':\n'
       + formatNatal(natalB, kinB, numB, moonPhaseB, pB) + '\n'
       + (chineseB ? 'Chinese sign: ' + chineseBStr + '\n' : '')
       + ctxB + '\n\n'
@@ -2210,24 +2210,24 @@ app.post('/api/compatibility', async (req, res) => {
       + userCtx + '\n\n'
       + 'Generate the compatibility reading as valid JSON. Every section must draw on multiple frameworks:\n'
       + '{\n'
-      + '  "headline": "<One sentence capturing the essential truth — specific, grounded in the data>",\n'
+      + '  "headline": "<One sentence capturing the essential truth, specific, grounded in the data>",\n'
       + '  "synthesis": "<4-5 sentences synthesising ALL SIX frameworks. Name convergences explicitly.>",\n'
       + '  "framework_convergence": "<2-3 paragraphs. Where do the six frameworks AGREE? Name it. Then: where do they diverge and what does that mean?>",\n'
       + '  "chinese_connection": "<2 paragraphs: ' + chineseAStr + ' and ' + chineseBStr + '. The ' + chineseCStr + ' relationship. How does this Chinese layer confirm or nuance the other frameworks? What does it reveal about the underlying dynamic that the other systems approach differently? Note: solar year signs, CNY-corrected.>",\n'
       + '  "gifts": { "headline": "<The genuine strengths>", "body": "<3 rich paragraphs drawing on all six frameworks>" },\n'
-      + '  "tensions": { "headline": "<Growth edges — honest>", "body": "<3 paragraphs naming where multiple frameworks signal friction>" },\n'
+      + '  "tensions": { "headline": "<Growth edges, honest>", "body": "<3 paragraphs naming where multiple frameworks signal friction>" },\n'
       + '  "topic_specific": { "headline": "<' + topicDesc + '>", "body": "<4 paragraphs. Concrete. Cross-framework. Practical.>" },\n'
       + '  "key_aspects": [\n    ' + aspJSON + '\n  ],\n'
-      + '  "biorhythm_today": "<2 paragraphs: biorhythm positions TODAY — what is good, what to navigate>",\n'
+      + '  "biorhythm_today": "<2 paragraphs: biorhythm positions TODAY, what is good, what to navigate>",\n'
       + '  "dreamspell_connection": "<2 paragraphs: ' + kinAStr + ' and ' + kinBStr + '. Chromatic, tonal, combined Kin.>",\n'
       + '  "numerology_connection": "<2 paragraphs: LP ' + lpAStr + ' (' + lpAnm + ') and ' + lpBStr + ' (' + lpBnm + ').>",\n'
       + '  "natal_moon_connection": "<2 paragraphs: how their birth moon phases interact emotionally.>",\n'
       + '  "for_them": {\n'
-      + '    "for_a": "<4 sentences for ' + nameA + ' — genuine insight, not advice>",\n'
+      + '    "for_a": "<4 sentences for ' + nameA + ' - genuine insight, not advice>",\n'
       + '    "for_b": "<4 sentences for ' + nameB + '>"\n'
       + '  },\n'
-      + '  "a_question_to_sit_with": "<One question for them both — not rhetorical, but genuinely open. The question that, if they sat with it honestly together, would unlock something important. It should feel slightly uncomfortable to ask.>",\n'
-      + '  "closing": "<One final sentence — the deepest truth of this connection. Warm, precise, honest.>",\n'
+      + '  "a_question_to_sit_with": "<One question for them both, not rhetorical, but genuinely open. The question that, if they sat with it honestly together, would unlock something important. It should feel slightly uncomfortable to ask.>",\n'
+      + '  "closing": "<One final sentence, the deepest truth of this connection. Warm, precise, honest.>",\n'
       + '  "sources": "Astrology: approximate natal positions Meeus (1998) Astronomical Algorithms. Synastry: Greene (1976); Arroyo (1978); Sasportas (1989); Tarnas (2006). Numerology: Drayer (2002); Millman (1993). Dreamspell: Arguelles (1987) modern system. Biorhythms: Teltscher, Fliess, Swoboda (classical three-cycle theory). Natal moon phase archetypes."\n'
       + '}';
 
@@ -2294,7 +2294,7 @@ app.post('/api/quickread', async (req, res) => {
     p.active_threads?(Array.isArray(p.active_threads)?p.active_threads.join(', '):p.active_threads):null,
     p.birthDay?('Born '+p.birthDay+'/'+p.birthMonth+'/'+p.birthYear):null
   ].filter(Boolean).join('. ');
-  const moonNote = moon.isBlack?'BLACK MOON — do not initiate.':moon.isShiva?'SHIVA MOON — plant with intention.':'';
+  const moonNote = moon.isBlack?'BLACK MOON, do not initiate.':moon.isShiva?'SHIVA MOON, plant with intention.':'';
   const sys = 'You are the Oracle at Cosmic Daily Planner. Respond ONLY with valid JSON. No markdown, no preamble. JSON schema: {"synthesis":"string","priorities":[{"title":"string","action":"string"},{"title":"string","action":"string"},{"title":"string","action":"string"}],"shadow":"string","focus_on":["string","string","string"],"ease_off":["string","string","string"]}. Max 700 tokens. Be specific to the person by name.';
   const user = 'Person: '+fn+'. Date: '+ds+'. Moon: '+moon.phase+(moonNote?' '+moonNote:'')+'. UD: '+num.ud+' ('+((num.udM&&num.udM.n)||'')+'), PD: '+(num.pd||num.ud)+'. Kin: '+kin.full+(kin.isGAP?' GAP PORTAL':'')+'. '+ctx+'. Saturn-Neptune Aries 2026 (Tarnas). Generate the daily reading for '+fn+'.';
   try {
@@ -2331,7 +2331,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     version: 'CDP v9',
     time: new Date().toISOString(),
-    apiKey: hasKey ? 'present' : 'MISSING — readings will fail',
+    apiKey: hasKey ? 'present' : 'MISSING, readings will fail',
     jobs: jobs.size,
     uptime: Math.round(process.uptime()) + 's'
   });
@@ -3492,6 +3492,6 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`CDP v9 — port ${PORT}`);
-  console.log(`API key: ${process.env.ANTHROPIC_API_KEY ? 'present ✓' : 'MISSING ✗ — readings will fail'}`);
+  console.log(`CDP v9, port ${PORT}`);
+  console.log(`API key: ${process.env.ANTHROPIC_API_KEY ? 'present ✓' : 'MISSING ✗, readings will fail'}`);
 });
