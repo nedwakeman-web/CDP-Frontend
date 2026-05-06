@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Cosmic Daily Planner — back shortly</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: radial-gradient(ellipse at top, #0e2540 0%, #061224 70%, #02060d 100%);
+    color: rgba(245,228,196,0.96);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 24px;
+    overflow-x: hidden;
+  }
+  .star {
+    position: fixed; width: 2px; height: 2px;
+    background: rgba(245,228,196,0.6); border-radius: 50%;
+    pointer-events: none;
+  }
+  .wrap {
+    max-width: 620px; width: 100%;
+    background: rgba(16,28,48,0.55);
+    border: 1px solid rgba(201,160,80,0.32);
+    border-radius: 8px;
+    padding: 56px 44px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+    position: relative;
+    z-index: 2;
+  }
+  .glyphs {
+    font-size: 28px; letter-spacing: 0.05em;
+    color: #c9a050; margin-bottom: 18px;
+  }
+  .glyphs .meets {
+    font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(245,228,196,0.55); margin: 0 14px;
+    font-family: Georgia, serif;
+  }
+  .glyphs .science { color: #81cdc6; }
+  h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 36px; font-weight: 400; line-height: 1.25;
+    color: #c9a050;
+    margin: 0 0 18px;
+    letter-spacing: 0.01em;
+  }
+  .lead {
+    font-size: 18px; line-height: 1.6; font-style: italic;
+    color: rgba(245,228,196,0.86);
+    margin: 0 0 28px;
+  }
+  .body {
+    font-size: 15px; line-height: 1.7;
+    color: rgba(245,228,196,0.78);
+    margin: 0 0 24px;
+    text-align: left;
+  }
+  .body strong { color: rgba(245,228,196,0.95); font-weight: 600; }
+  .meta {
+    font-family: Georgia, serif;
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(245,228,196,0.5);
+    margin-top: 36px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(201,160,80,0.2);
+  }
+  .pulse {
+    display: inline-block; width: 8px; height: 8px;
+    background: #c9a050; border-radius: 50%;
+    margin-right: 10px;
+    animation: pulse 1.6s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  @media (max-width: 540px) {
+    .wrap { padding: 40px 24px; }
+    h1 { font-size: 28px; }
+    .lead { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="glyphs">
+    <span>☽</span>
+    <span class="meets">refining</span>
+    <span class="science">⬡</span>
+  </div>
+  <h1>The Oracle is being deepened.</h1>
+  <p class="lead">We are integrating new features and improvements you have asked for. Cosmic Daily Planner will be back shortly.</p>
+  <div class="body">
+    <p><strong>What is happening.</strong> We are pushing improvements across the Reading, the Compass, and the Two Telescopes opening journey, plus the memory and continuity layer that holds your readings across days.</p>
+    <p><strong>How long.</strong> Usually a few minutes. Occasionally longer when several changes ship together. Your data is safe and unchanged throughout.</p>
+    <p><strong>What to do.</strong> Refresh the page in a few minutes, or come back later in the day. If you were mid-reading, your progress will resume where you left off.</p>
+  </div>
+  <div class="meta">
+    <span class="pulse"></span>Updates in progress
+  </div>
+</div>
+<script>
+  // Add a small starfield without external libs
+  (function(){
+    const n = 32;
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.style.top = Math.random() * 100 + '%';
+      s.style.left = Math.random() * 100 + '%';
+      s.style.opacity = (0.3 + Math.random() * 0.6).toString();
+      const size = 1 + Math.random() * 2.2;
+      s.style.width = size + 'px';
+      s.style.height = size + 'px';
+      document.body.appendChild(s);
+    }
+  })();
+  // Auto-refresh every 60s so visitors don't have to manually reload
+  setTimeout(function(){ location.reload(); }, 60000);
+</script>
+</body>
+</html>

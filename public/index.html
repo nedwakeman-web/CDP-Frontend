@@ -10,7 +10,7 @@
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://cosmicdailyplanner.com">
 
-<!-- Open Graph — controls how link looks when shared on WhatsApp, Facebook, iMessage -->
+<!-- Open Graph  -  controls how link looks when shared on WhatsApp, Facebook, iMessage -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://cosmicdailyplanner.com">
 <meta property="og:title" content="Cosmic Daily Planner · Your Personalised Daily Oracle">
@@ -651,7 +651,7 @@ body.light{--bg:#F5F0E8;--bg2:#EDE6D6;--bg3:#E4DBC8;--bg4:#F8F4EC;
 .checkin-bar.visible{transform:translateY(0)}
 .checkin-moon{font-size:22px;flex-shrink:0}
 
-/* ── PRESENCE BAR — slides in from top on return visit ── */
+/* ── PRESENCE BAR  -  slides in from top on return visit ── */
 .presence-bar{position:fixed;top:52px;left:0;right:0;z-index:99;
   background:rgba(8,30,51,0.97);border-bottom:1px solid rgba(129,205,182,0.2);
   padding:8px 20px 8px 16px;display:flex;align-items:center;gap:12px;
@@ -667,7 +667,7 @@ body.light{--bg:#F5F0E8;--bg2:#EDE6D6;--bg3:#E4DBC8;--bg4:#F8F4EC;
   border-radius:2px;color:var(--teal);font-family:'EB Garamond',serif;font-size:12px;cursor:pointer;white-space:nowrap}
 .presence-btn.dismiss{border-color:var(--div2);color:var(--text3)}
 
-/* ── CITATION BADGES — tappable inline source references ── */
+/* ── CITATION BADGES  -  tappable inline source references ── */
 .citation-badge{display:inline-block;font-size:10px;letter-spacing:.06em;
   color:var(--teal);border:1px solid var(--teal2);border-radius:2px;
   padding:1px 5px;margin-left:4px;cursor:pointer;vertical-align:middle;
@@ -1549,6 +1549,9 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    max-width: 100%;
+    flex-shrink: 1;
+    min-width: 0;
   }
   .cdp-voice-bar button {
     background: transparent;
@@ -2241,7 +2244,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <h1 class="disc-h1" id="discTitle">Before you start, three things to know.</h1>
     <div class="disc-rule"></div>
     <div class="disc-body">
-      <p><strong>Cosmic Daily Planner is a wellness and self-knowledge companion.</strong> It is not a medical product, a therapist, or a doctor. It does not diagnose, treat, prevent, or cure any condition.</p>
+      <p><strong>Cosmic Daily Planner is a place where ancient frameworks and modern neuroscience meet to show you the texture of your day.</strong> It is a wellness and self-knowledge companion, not a medical product, a therapist, or a doctor. It does not diagnose, treat, prevent, or cure any condition.</p>
       <p>Your readings are written by an AI system, not a human practitioner. The AI draws on frameworks (numerology, astrology, the lunar cycle, the Dreamspell calendar) and on cognitive neuroscience research. We tell you what each reading is based on, and we cite the sources where helpful.</p>
       <p>If you are experiencing a mental health crisis, or if you are concerned about your wellbeing or someone else's, please reach out to a qualified professional. We will signpost relevant resources whenever a reading touches difficult territory; you can also tap the support button at any time to see them.</p>
     </div>
@@ -2517,7 +2520,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 </div>
 
 
-<!-- ── Persistent loading pill — shows across ALL screens during reading generation ── -->
+<!-- ── Persistent loading pill  -  shows across ALL screens during reading generation ── -->
 <div id="cdpLoadPill" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;
   background:rgba(8,19,31,0.97);border:1px solid rgba(201,160,80,0.45);border-radius:4px;
   padding:10px 16px;max-width:280px;box-shadow:0 4px 24px rgba(0,0,0,0.5);
@@ -2589,7 +2592,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
       </svg>
     </button>
     <button id="profileLibBtn" class="thm" onclick="openProfileLibrary()" title="Profiles" style="font-family:'Cinzel',serif;font-size:13px">☿</button>
-    <!-- Persistent voice toggle — always visible in topbar.
+    <!-- Persistent voice toggle  -  always visible in topbar.
          Tradition / Science / Everyday. Calls cdpSetVoice() for single
          source of truth across all toggle render sites (date-header inline,
          floating pill, this topbar). Replaces the legacy 2-button setLang
@@ -2632,6 +2635,19 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 
 <!-- CALENDAR SCREEN -->
 <div id="sc" class="screen">
+  <!-- v22 nudge: surface Best Day at the top of the calendar -->
+  <div onclick="document.getElementById('bestDayInput')?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){document.getElementById('bestDayInput')?.focus();},400)" style="margin:8px 12px 12px;padding:14px 18px;background:linear-gradient(90deg,rgba(129,205,198,0.12),rgba(201,160,80,0.10));border:1px solid rgba(129,205,198,0.32);border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:14px;flex-wrap:wrap;transition:border-color 0.18s ease,transform 0.12s ease" onmouseover="this.style.borderColor='rgba(129,205,198,0.55)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='rgba(129,205,198,0.32)';this.style.transform='translateY(0)'">
+    <div style="font-size:20px;color:var(--teal)">✦</div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:14px;line-height:1.5;color:var(--text);font-style:italic;font-weight:500">
+        Trying to plan something specific this month?
+      </div>
+      <div style="font-size:13px;line-height:1.55;color:var(--text2);margin-top:3px">
+        Find the best day for a pitch, a conversation, a launch, a rest. <span style="color:var(--teal);font-weight:500">↓ Tap or scroll to Find Your Best Day</span>
+      </div>
+    </div>
+  </div>
+
   <div class="cal-head">
     <div class="cal-nav">
       <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
@@ -2701,7 +2717,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   </div>
 
   <div class="compat-people">
-    <!-- Person A — auto-filled from profile -->
+    <!-- Person A  -  auto-filled from profile -->
     <div class="compat-person">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="compat-person-label" style="margin-bottom:0">Person A · You</div>
@@ -2956,7 +2972,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     </div>
   </div>
 
-  <!-- OPTIONAL: Hormonal cycle — Connie's suggestion — local only, never sent to server in raw form -->
+  <!-- OPTIONAL: Hormonal cycle  -  Connie's suggestion  -  local only, never sent to server in raw form -->
   <div class="form-section" id="hormonalSection">
     <div class="form-section-title">
       Hormonal Cycle
@@ -3003,7 +3019,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     </div>
     <div class="auth-body">
 
-      <!-- Google — disabled until OAuth configured -->
+      <!-- Google  -  disabled until OAuth configured -->
       <button class="google-btn" onclick="signInWithGoogle()">
         <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0">
           <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
@@ -3081,8 +3097,8 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(201,160,80,0.15);
         font-family:'Cormorant Garamond',serif;font-size:11px;line-height:1.5;text-align:center;
         color:rgba(232,228,218,0.4);font-style:italic">
-        Two telescopes. Pointed at the same sky.<br>
-        <span style="font-style:normal;font-size:9px;letter-spacing:.05em">Wellness companion, not a medical product</span>
+        Two ways of looking, one sky.<br>
+        <span style="font-style:normal;font-size:9px;letter-spacing:.05em">A wellness and self-knowledge companion</span>
       </div>
     </div>
     <div class="share-card-actions">
@@ -3108,7 +3124,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   </div>
 </div>
 
-<!-- PRESENCE BAR — mid-day orientation prompt, slides from top -->
+<!-- PRESENCE BAR  -  mid-day orientation prompt, slides from top -->
 <div id="presenceBar" class="presence-bar">
   <div class="presence-emoji" id="presenceEmoji">◑</div>
   <div class="presence-text-wrap">
@@ -3330,7 +3346,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 // ══════════════════════════════════════════════════════════
 // API ROUTING
 // ══════════════════════════════════════════════════════════
-// API ROUTING (v16 — hostname-aware)
+// API ROUTING (v16  -  hostname-aware)
 //
 // Each environment talks to its own backend Railway:
 //   Live   (cosmicdailyplanner.com)               -> Live Railway
@@ -3365,7 +3381,29 @@ const RAILWAY_URL = API_BASE || RAILWAY_URL_BETA;
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let profile = JSON.parse(localStorage.getItem('cdp_profile') || '{}');
+// PROFILE STATE - v22 Phase 0: active profile resolution at request time.
+// getActiveProfile() always returns the currently-active profile, not a stale
+// snapshot from script load. This fixes the "Kitty showing when I'm Ned" bug.
+// Active profile id lives in cdp_active_profile_id; resolution falls back to
+// cdp_profile (the "me" object) when no library entry is selected.
+function getActiveProfile() {
+  try {
+    var activeId = localStorage.getItem('cdp_active_profile_id');
+    if (activeId && activeId !== 'me') {
+      var profiles = JSON.parse(localStorage.getItem('cdp_profiles_v1') || '[]');
+      var match = profiles.find(function(x) { return x.id === activeId; });
+      if (match) return match;
+      // Library entry was deleted; reset to me
+      localStorage.setItem('cdp_active_profile_id', 'me');
+    }
+  } catch(e) {}
+  try { return JSON.parse(localStorage.getItem('cdp_profile') || '{}'); }
+  catch(e) { return {}; }
+}
+// Initial profile is the active one. Existing code that reassigns `profile`
+// continues to work; reading-generation paths that need the freshest value
+// should call getActiveProfile() directly.
+let profile = getActiveProfile();
 let currentReading = null;
 let cardTimeMode = 'auto';
 let calYear = new Date().getFullYear();
@@ -3489,7 +3527,7 @@ function showScreen(id, btn) {
 // ══════════════════════════════════════════════════════════
 // COSMIC CONTEXT PAGE
 // ══════════════════════════════════════════════════════════
-// ── Year section drawer helpers — called from onclick ──────────
+// ── Year section drawer helpers  -  called from onclick ──────────
 let _yearCtx = {}; // populated by renderContext before building HTML
 
 function openUYDrawer() {
@@ -4265,7 +4303,7 @@ function selectMode(mode) {
 }
 
 
-// ── ENTRY SCREEN — begin reading from form ───────────────────────────────────
+// ── ENTRY SCREEN  -  begin reading from form ───────────────────────────────────
 function beginFromEntry() {
   var name     = (document.getElementById('entryName')     || {}).value || '';
   var dob      = (document.getElementById('entryDOB')      || {}).value || '';
@@ -4374,7 +4412,7 @@ function saveCompatPersonToProfiles(side) {
 }
 
 function showModeSelector() {
-  // Mode selector removed — tier choice is on landing page, switching via tier bar in-app
+  // Mode selector removed  -  tier choice is on landing page, switching via tier bar in-app
   // Start immediately with saved mode or default (Full Reading / Seeker)
   const saved = localStorage.getItem('cdp_mode') || 'quick';
   selectedMode = saved;
@@ -4602,7 +4640,7 @@ async function sendFeedback(){
 }
 
 
-// ── SHARE VARIABLES — built dynamically from current reading ───────────────
+// ── SHARE VARIABLES  -  built dynamically from current reading ───────────────
 function getShareMsg() {
   var r = currentReading && (currentReading.reading || currentReading);
   var synth = r && r.synthesis ? r.synthesis.slice(0,220) + '…' : '';
@@ -4650,7 +4688,7 @@ function shareViaEmail() {
   window.location.href = `mailto:?subject=Something worth trying. Cosmic Daily Planner&body=${encodeURIComponent(getShareMsg())}`;
 }
 function shareToInstagram() {
-  // Instagram has no web share URL — copy text then open app
+  // Instagram has no web share URL  -  copy text then open app
   navigator.clipboard.writeText(getShareMsg()).catch(()=>{});
   const btn = document.querySelector('.share-copy-btn');
   if (btn) { btn.textContent = 'Copied ✓'; setTimeout(()=>btn.textContent='Copy', 2500); }
@@ -4662,7 +4700,7 @@ function shareToInstagram() {
   showShareToast('Message copied, paste it into your Instagram story or DM ✦');
 }
 function shareToTikTok() {
-  // TikTok has no web share URL — copy text then open app
+  // TikTok has no web share URL  -  copy text then open app
   navigator.clipboard.writeText(getShareMsg()).catch(()=>{});
   setTimeout(() => {
     window.open('https://www.tiktok.com', '_blank');
@@ -4756,8 +4794,8 @@ function saveProfileArrayField(key, val) {
 }
 
 // ══════════════════════════════════════════════════════════
-// HORMONAL CYCLE — local only, never sent raw to server
-// Connie Wakeman's suggestion — osteopath insight
+// HORMONAL CYCLE  -  local only, never sent raw to server
+// Connie Wakeman's suggestion  -  osteopath insight
 // Four phases with distinct energy, cognitive and relational signatures
 // ══════════════════════════════════════════════════════════
 const CYCLE_PHASES = [
@@ -4818,7 +4856,7 @@ function getCyclePhase(cycleStartDate, cycleLength) {
 }
 
 function saveCycleStart(val) {
-  // Store locally only — never in profile object that gets sent to server
+  // Store locally only  -  never in profile object that gets sent to server
   localStorage.setItem('cdp_cycle_start', val);
   updateCycleDisplay();
 }
@@ -4840,7 +4878,7 @@ function updateCycleDisplay() {
 }
 
 function getCycleContext() {
-  // Returns a clean string for injection into Oracle prompts — no raw dates
+  // Returns a clean string for injection into Oracle prompts  -  no raw dates
   const cycleStart = localStorage.getItem('cdp_cycle_start');
   if (!cycleStart) return '';
   const phase = getCyclePhase(cycleStart, profile.cycleLength || 28);
@@ -5146,6 +5184,11 @@ function getNameMeaning(name) {
 }
 
 async function loadReading(dateStr, tier) {
+  // v22 Phase 0: resolve the active profile fresh at request time.
+  // Without this, the reading would use whatever was loaded at script start,
+  // and switching profiles in the library wouldn't take effect until reload.
+  profile = getActiveProfile();
+
   const activeTier = tier || currentTier || 'oracle';
   const cont = document.getElementById('readingContent');
 
@@ -5161,7 +5204,7 @@ async function loadReading(dateStr, tier) {
     oracle:   `Oracle Deep Dive · typically ready in 3 to 6 minutes. The depth is worth it.`,
   }[activeTier] || '';
 
-  // Old loading screen removed — skeleton renders immediately above
+  // Old loading screen removed  -  skeleton renders immediately above
   // Keep a minimal hidden container for the stageTimer IDs to reference
   cont.innerHTML = `<div style="display:none" id="legacyStageHolder">
 
@@ -5218,10 +5261,10 @@ async function loadReading(dateStr, tier) {
 
   const stageTimer = { _fake: true };  // placeholder, skeleton handles stage cycling
 
-  // ── FREE TIER: instant client-side snapshot — no server call needed ──
+  // ── FREE TIER: instant client-side snapshot  -  no server call needed ──
   if (activeTier === 'free') {
     clearInterval(stageTimer);
-    // Compute everything client-side — no server needed
+    // Compute everything client-side  -  no server needed
     const moon = clientMoon(dateStr);
     const kinData = clientKin(dateStr);
     const ud = clientUD(dateStr);
@@ -5296,7 +5339,7 @@ async function loadReading(dateStr, tier) {
     return;
   }
 
-  // ── RENDER SKELETON IMMEDIATELY — before any network call ───────
+  // ── RENDER SKELETON IMMEDIATELY  -  before any network call ───────
   clearInterval(stageTimer);
   window._phase1Rendered = false;
   try {
@@ -5305,7 +5348,7 @@ async function loadReading(dateStr, tier) {
     console.error('Skeleton render error:', skErr.message);
   }
 
-  // ── WAKE CHECK — ensure Railway server is awake before starting ──
+  // ── WAKE CHECK  -  ensure Railway server is awake before starting ──
   // Railway hobby plan sleeps after inactivity; first ping wakes it (~5–15s)
   const skStatusText = document.getElementById('skStatusText');
   const skProgressBar = document.getElementById('skProgressBar');
@@ -5316,7 +5359,7 @@ async function loadReading(dateStr, tier) {
     ]);
     if (!wakeRes.ok) throw new Error('server_not_ok');
     const wakeData = await wakeRes.json();
-    // Check for missing API key — surface immediately rather than waiting 8 minutes
+    // Check for missing API key  -  surface immediately rather than waiting 8 minutes
     if (wakeData.apiKey && wakeData.apiKey.includes('MISSING')) {
       if (skStatusText) skStatusText.textContent = '⚠ Server configuration issue. Please contact support.';
       console.error('ANTHROPIC_API_KEY is missing from Railway environment variables');
@@ -5325,7 +5368,7 @@ async function loadReading(dateStr, tier) {
     console.log('Server awake ✓', wakeData.version, '- uptime:', wakeData.uptime);
   } catch(wakeErr) {
     if (wakeErr.message === 'wake_timeout') {
-      // Server is waking up — show friendly message and retry once
+      // Server is waking up  -  show friendly message and retry once
       if (skStatusText) skStatusText.textContent = 'Server waking up. This takes about 15 seconds on first load…';
       if (skProgressBar) skProgressBar.style.width = '5%';
       await new Promise(r => setTimeout(r, 8000));
@@ -5334,7 +5377,7 @@ async function loadReading(dateStr, tier) {
         if (!retry.ok) throw new Error('still_not_ready');
         if (skStatusText) skStatusText.textContent = 'Server ready. Composing your reading…';
       } catch(retryErr) {
-        // Server truly unreachable — show clear error
+        // Server truly unreachable  -  show clear error
         const sd = document.getElementById('stageDisplay');
         if (sd) {
           sd.style.opacity = '0';
@@ -5350,14 +5393,14 @@ async function loadReading(dateStr, tier) {
         return;
       }
     }
-    // Other wake errors — proceed anyway, start will catch failures
+    // Other wake errors  -  proceed anyway, start will catch failures
     console.warn('Wake check skipped:', wakeErr.message);
   }
 
   try {
     const intention = localStorage.getItem('cdp_intention') || '';
 
-    // ── QUICK READ FIRST — get synthesis+priorities in ~12s via Haiku ──
+    // ── QUICK READ FIRST  -  get synthesis+priorities in ~12s via Haiku ──
     // Fires immediately; full reading runs in parallel
     (async () => {
       try {
@@ -5428,7 +5471,7 @@ async function loadReading(dateStr, tier) {
     sessionStorage.setItem('cdp_active_job', JSON.stringify({ jobId, dateStr, tier: activeTier, startedAt: Date.now() }));
 
     const startedAt = Date.now();
-    // Kill switch — if no response after 8 minutes, show clear error
+    // Kill switch  -  if no response after 8 minutes, show clear error
     const maxWait = 8 * 60 * 1000;
     pollingTimer = setInterval(async () => {
       try {
@@ -5459,7 +5502,7 @@ async function loadReading(dateStr, tier) {
           clearInterval(pollingTimer); pollingTimer = null;
           clearInterval(stageTimer);
           sessionStorage.removeItem('cdp_active_job');
-          // Show prominent retry — server redeployed mid-read
+          // Show prominent retry  -  server redeployed mid-read
           const sb = document.getElementById('skeletonStatusBar');
           if (sb) {
             sb.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:9px 20px">'
@@ -6072,7 +6115,7 @@ function renderVoicedSection(value, opts) {
   if (typeof value !== 'object') return '';
   const hasAnyVoice = ('tradition' in value) || ('science' in value) || ('everyday' in value);
   if (!hasAnyVoice) {
-    // Object but not voiced — try .body or .text fallback (legacy section shape)
+    // Object but not voiced  -  try .body or .text fallback (legacy section shape)
     const body = value.body || value.text || value.content;
     if (body) return renderVoicedSection(body, opts);
     return '';
@@ -6089,7 +6132,7 @@ function renderVoicedSection(value, opts) {
                     : tradition;
 
   if (mode === 'inline') {
-    // Single element with data attributes — toggle swaps textContent in place.
+    // Single element with data attributes  -  toggle swaps textContent in place.
     return '<' + tag + ' class="cdp-voiced cdp-section' + cls + '"' +
       ' data-tradition="' + escapeAttr(tradition) + '"' +
       ' data-science="' + escapeAttr(science) + '"' +
@@ -6098,7 +6141,7 @@ function renderVoicedSection(value, opts) {
       '</' + tag + '>';
   }
 
-  // Block mode — three sibling divs, CSS hides inactive based on body[data-cdp-voice]
+  // Block mode  -  three sibling divs, CSS hides inactive based on body[data-cdp-voice]
   return [
     '<div class="cdp-voice-block cdp-voice-tradition' + cls + '">',
       '<' + tag + '>' + cleanText(tradition) + '</' + tag + '>',
@@ -6112,7 +6155,7 @@ function renderVoicedSection(value, opts) {
   ].join('');
 }
 
-// HTML attribute escape — distinct from escapeHtml because attributes need
+// HTML attribute escape  -  distinct from escapeHtml because attributes need
 // quotes and ampersands handled but not angle brackets stripped.
 function escapeAttr(s) {
   return String(s == null ? '' : s)
@@ -6186,7 +6229,7 @@ function updateHamburgerLabel(screenId) {
 
 
 // ══════════════════════════════════════════════════════════════════
-// OPTIMISTIC IMMEDIATE RENDER — shows computed data instantly
+// OPTIMISTIC IMMEDIATE RENDER  -  shows computed data instantly
 // AI sections fill in when the job completes (~3-6 min wait → 0)
 // ══════════════════════════════════════════════════════════════════
 
@@ -6219,7 +6262,7 @@ function renderSkeletonReading(dateStr, tier) {
   }
 
   // ── Dreamspell Kin ───────────────────────────────────────────────
-  // Use clientKin() — same calculation as calendar and server
+  // Use clientKin()  -  same calculation as calendar and server
   const KS=['Dragon','Wind','Night','Seed','Serpent','World-Bridger','Hand','Star',
     'Moon','Dog','Monkey','Human','Skywalker','Wizard','Eagle','Warrior','Earth','Mirror','Storm','Sun'];
   const KT=['Magnetic','Lunar','Electric','Self-Existing','Overtone','Rhythmic',
@@ -6420,7 +6463,7 @@ function renderSkeletonReading(dateStr, tier) {
     <div class="r-loc">${(profile.location||'').toUpperCase()}</div>
   </div>`;
 
-  // Decision / Best Day CTAs — prominent above the four-square widget row
+  // Decision / Best Day CTAs  -  prominent above the four-square widget row
   // These give users a visible top-of-fold path to the two highest-value engines:
   // Decision Engine (this-decision-today) and Best Day Finder (when-this-month-for-X).
   html += `<div class="cdp-decision-row">
@@ -6437,7 +6480,7 @@ function renderSkeletonReading(dateStr, tier) {
   </div>`;
 
   // Widgets
-  // Widget tap handlers — pre-computed questions
+  // Widget tap handlers  -  pre-computed questions
   const wgtFN = getFirstName();
   const wgtMoonQ = 'The Moon is in ' + moonPhase + ' phase today. Day ' + parseFloat(moonAge).toFixed(1) + ' of the lunar cycle. ' + (isBlack?'BLACK MOON, threshold day.':isShiva?'SHIVA MOON, auspicious.':'') + ' What does this lunar position mean for ' + wgtFN + ' today in terms of energy, emotions, and timing?';
   const wgtKinQ = 'Today\'s Dreamspell Kin is ' + kinFull + (isGAP?' - GALACTIC ACTIVATION PORTAL.':'') + ' What does this Kin specifically invite ' + wgtFN + ' to embody or be aware of today? (Argüelles 1987 Dreamspell system)';
@@ -6490,8 +6533,8 @@ function renderSkeletonReading(dateStr, tier) {
   if (isBlack) html += `<div style="margin-bottom:16px"><span class="moon-badge badge-black">⚠️ Black Moon (2 days before New Moon) threshold day</span></div>`;
   if (isShiva) html += `<div style="margin-bottom:16px"><span class="moon-badge badge-shiva">✨ Shiva Moon (2 days after New Moon) auspicious</span></div>`;
 
-  // AI placeholder: synthesis — shows elegant cycling stage display while Oracle composes
-  // ── TODAY'S SIGNAL — instant, client-side, appears before any network call ──
+  // AI placeholder: synthesis  -  shows elegant cycling stage display while Oracle composes
+  // ── TODAY'S SIGNAL  -  instant, client-side, appears before any network call ──
   const _signalParts = [];
   if (isMD) _signalParts.push('Master Number ' + dispNum + ' day, ' + udD.n + '. ' + (udD.m||''));
   else _signalParts.push('Universal Day ' + dispNum + ' - ' + udD.n + '. ' + (udD.k||udD.m||''));
@@ -6528,7 +6571,7 @@ function renderSkeletonReading(dateStr, tier) {
   // Biorhythms (real data)
   if (bioHtml) html += bioHtml;
 
-  // ── Numerology — month and year component energies ──────────────
+  // ── Numerology  -  month and year component energies ──────────────
   const monthEn = numReduce(_mo);
   const monthEnD = NUM_DATA[monthEn] || {n:'-',m:'',k:''};
   const yearRaw = String(_yr).split('').reduce((a,b)=>a+parseInt(b),0);
@@ -6874,7 +6917,7 @@ function startPolling(jobId, dateStr, tier, startedAt) {
         sessionStorage.removeItem('cdp_active_job');
         window._phase1Rendered = false;
         currentReading = poll.result;
-        // Hide progress dot — reading complete
+        // Hide progress dot  -  reading complete
         const _d2 = document.getElementById('readingProgressDot');
         if (_d2) _d2.style.display = 'none';
         saveToHistory(dateStr, poll.result);
@@ -7147,19 +7190,19 @@ function scheduleCheckin(r, dateStr) {
   let delay, promptText, subText, moonEmoji;
 
   if (hour >= 6 && hour < 12) {
-    // Morning reading generated — check in at noon (3-6 hour delay)
+    // Morning reading generated  -  check in at noon (3-6 hour delay)
     delay = Math.max(5000, (12 - hour) * 3600000);
     promptText = 'Midday check-in, how is your morning energy holding?';
     subText = 'Your Universal Day is still with you';
     moonEmoji = '◑';
   } else if (hour >= 12 && hour < 17) {
-    // Afternoon — check in at 6pm
+    // Afternoon  -  check in at 6pm
     delay = Math.max(5000, (18 - hour) * 3600000);
     promptText = 'Your afternoon energy is shifting. How are you navigating it?';
     subText = 'Open your reading to see what the evening brings';
     moonEmoji = '🌙';
   } else if (hour >= 17) {
-    // Evening — check in now with closing prompt
+    // Evening  -  check in now with closing prompt
     delay = 4000;
     promptText = 'The day is closing. What was the best moment?';
     subText = 'Your evening numerology energy is ' + (r?.numerology?.three_energies?.evening?.name || 'active');
@@ -7222,7 +7265,7 @@ function fillPhase1Sections(p1) {
     requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
   }
 
-  // Synthesis — phase 1 version (shorter, will be replaced by phase 2)
+  // Synthesis  -  phase 1 version (shorter, will be replaced by phase 2)
   if (p1.synthesis) {
     const synthEl = document.getElementById('ai-synthesis');
     if (synthEl) {
@@ -7251,7 +7294,7 @@ function fillPhase1Sections(p1) {
     }
   }
 
-  // Priorities — show immediately
+  // Priorities  -  show immediately
   if (p1.priorities?.length) {
     const priEl = document.getElementById('ai-priorities');
     if (priEl) {
@@ -7274,7 +7317,7 @@ function fillPhase1Sections(p1) {
     }
   }
 
-  // Shadow work — accepts either key (quickread uses 'shadow', phase1 uses 'shadow_work')
+  // Shadow work  -  accepts either key (quickread uses 'shadow', phase1 uses 'shadow_work')
   const _sw_text = p1.shadow_work || p1.shadow || '';
   if (_sw_text) {
     const swEl = document.getElementById('ai-shadow');
@@ -7302,7 +7345,7 @@ function fillPhase1Sections(p1) {
     }
   }
 
-  // Next-tier teaser — locked preview showing what the upgrade reveals
+  // Next-tier teaser  -  locked preview showing what the upgrade reveals
   if (p1.next_tier_teaser && currentTier === 'seeker') {
     const wkEl2 = document.getElementById('ai-week');
     if (wkEl2) {
@@ -7316,7 +7359,7 @@ function fillPhase1Sections(p1) {
     }
   }
 
-  // Week ahead — render immediately from client-side calculation
+  // Week ahead  -  render immediately from client-side calculation
   // If AI week notes are present, use them; otherwise render with just the numbers/kin/moon
   if (!document.getElementById('ai-week')?.classList.contains('week-rendered')) {
     const _wkDates = [];
@@ -7494,7 +7537,7 @@ function loadCompatProfile(person, p) {
 
 // ── Fill in AI sections when the Oracle completes ──────────────────
 function injectUpsellNudge(tier) {
-  // Only show for lower tiers — no upsell on Oracle
+  // Only show for lower tiers  -  no upsell on Oracle
   const nudge = {
     free: {
       title: 'Want personalised priorities for tomorrow?',
@@ -7523,7 +7566,7 @@ function injectUpsellNudge(tier) {
 
   // Only inject once
   if (document.getElementById('upsellNudge')) return;
-  // Find insertion point — after the synthesis+share section
+  // Find insertion point  -  after the synthesis+share section
   const synthEl = document.getElementById('ai-synthesis');
   if (!synthEl) return;
 
@@ -7647,7 +7690,7 @@ function fillAISections(data, dateStr) {
     scheduleCheckin(r, dateStr);
     // Habit loop: tomorrow preview, evening reflection, streak
     setTimeout(() => injectTomorrowPreview(dateStr), 1000);
-    // Upsell nudge — shown after reading, contextual to current tier
+    // Upsell nudge  -  shown after reading, contextual to current tier
     setTimeout(() => injectUpsellNudge(currentTier), 2000);
     // Inject reading navigation for easy skim
     injectReadingNav(currentTier);
@@ -7715,7 +7758,7 @@ function fillAISections(data, dateStr) {
     dsEl.innerHTML = prose(r.dreamspell.body);
   }
 
-  // Week ahead — rich grid. Use AI notes if present, fallback to client-side data.
+  // Week ahead  -  rich grid. Use AI notes if present, fallback to client-side data.
   const wkEl = document.getElementById('ai-week');
   // Build week data: prefer r.week_ahead (AI notes), fallback to data.weekAhead (client calc only)
   const _weekSource = (r?.week_ahead?.length ? r.week_ahead : null)
@@ -7764,7 +7807,7 @@ function fillAISections(data, dateStr) {
     wh += '</div></div>';
     fadeIn(wkEl, wh);
   } else if (wkEl) {
-    // Final fallback — build week from dates with no notes, just numbers/kin/moon
+    // Final fallback  -  build week from dates with no notes, just numbers/kin/moon
     const _wa = data?.weekAhead?.length > 1 ? data.weekAhead.slice(1) : [];
     if (_wa.length) {
       let wh = '<div class="r-section"><div class="sec-label">The Week Ahead <span style="font-size:11px;color:var(--text3);font-style:italic;font-weight:400;text-transform:none;letter-spacing:.05em">· tap any day for deeper insight</span></div>';
@@ -7834,26 +7877,28 @@ function renderReading(data, dateStr) {
   let html = `<div style="max-width:840px;margin:0 auto;padding:0 24px 100px">`;
 
   // v18: Two Telescopes brand ribbon at top of every reading
-  html += `<div class="cdp-two-telescopes-ribbon" style="
-    margin: 8px 0 24px;
-    padding: 14px 18px;
-    background: linear-gradient(90deg, rgba(201,160,80,0.08), rgba(129,205,182,0.06), rgba(201,160,80,0.08));
-    border: 1px solid rgba(201,160,80,0.18);
-    border-radius: 3px;
+  html += `<div class="cdp-two-telescopes-ribbon" onclick="openTwoTelescopesIntro()" style="
+    margin: 12px -8px 28px -8px;
+    padding: 18px 26px;
+    background: linear-gradient(90deg, rgba(201,160,80,0.16), rgba(129,205,182,0.12), rgba(201,160,80,0.16));
+    border: 1px solid rgba(201,160,80,0.42);
+    border-radius: 4px;
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     font-family: 'Cormorant Garamond', Georgia, serif;
-  ">
-    <div style="display:flex;gap:6px;align-items:center;color:#c9a050;font-size:18px;letter-spacing:.05em">
-      <span style="opacity:.85">☽</span>
-      <span style="opacity:.5;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(232,228,218,0.5)">+</span>
-      <span style="opacity:.85">⬡</span>
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  " onmouseover="this.style.borderColor='rgba(201,160,80,0.7)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='rgba(201,160,80,0.42)';this.style.transform='translateY(0)'">
+    <div style="display:flex;gap:8px;align-items:center;color:#c9a050;font-size:22px;letter-spacing:.05em">
+      <span style="opacity:0.98">☽</span>
+      <span style="opacity:.7;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:rgba(232,228,218,0.85)">+</span>
+      <span style="opacity:0.98">⬡</span>
     </div>
     <div style="flex:1;min-width:200px">
-      <div style="font-size:14px;line-height:1.5;color:rgba(232,228,218,0.85);font-style:italic">
-        Two telescopes. Pointed at the same sky.
+      <div style="font-size:16px;line-height:1.5;color:rgba(245,228,196,0.98);font-style:italic;font-weight:500">
+        Two ways of looking. One sky.
       </div>
-      <div style="font-size:12px;line-height:1.55;color:rgba(232,228,218,0.55);margin-top:3px">
-        Frameworks for two and a half thousand years. Neuroscience for fifty. Pick the language.
+      <div style="font-size:13px;line-height:1.55;color:rgba(232,228,218,0.85);margin-top:4px">
+        Numerology, lunar wisdom, Mayan calendrics, Western archetypes. Circadian cognition, attachment, predictive processing. Different languages for the same observed reality. <span style="color:rgba(201,160,80,0.95);font-style:normal;font-weight:500">↗ Tap to see how they meet</span>
       </div>
     </div>
   </div>`;
@@ -7878,7 +7923,7 @@ function renderReading(data, dateStr) {
     </div>
   </div>`;
 
-  // Decision / Best Day CTAs — prominent above the four-square widget row.
+  // Decision / Best Day CTAs  -  prominent above the four-square widget row.
   // Same pair as on the loading skeleton; persists into the rendered reading
   // so users always have a visible top-of-fold path to both engines.
   html += `<div class="cdp-decision-row">
@@ -8027,10 +8072,10 @@ function renderReading(data, dateStr) {
     </div>`;
   }
 
-  // 2. BIORHYTHMS (Sonia #57 — more prominent, higher up)
+  // 2. BIORHYTHMS (Sonia #57  -  more prominent, higher up)
   if (bioHtml) html += bioHtml;
 
-  // 3. TODAY'S PRIORITIES (Sonia #55 — action first)
+  // 3. TODAY'S PRIORITIES (Sonia #55  -  action first)
   if (r.priorities?.length) {
     html += `<div class="r-section"><div class="sec-label">Today's Priorities</div>`;
     r.priorities.forEach((pri, i) => {
@@ -8049,7 +8094,7 @@ function renderReading(data, dateStr) {
     html += `</div>`;
   }
 
-  // 4. SHADOW WORK (Sonia #55 — near top)
+  // 4. SHADOW WORK (Sonia #55  -  near top)
   if (r.shadow_work) {
     const sw = cleanText(r.shadow_work);
     html += `<div class="shadow-box tappable" onclick="tapShadow('${sw.replace(/'/g,"\\'").slice(0,200)}')" title="Tap to go deeper into shadow work">
@@ -8466,6 +8511,62 @@ function buildChips(r) {
 // ══════════════════════════════════════════════════════════
 let drawerContext = '';
 
+// Two Telescopes intro modal, accessible from the ribbon at top of any reading.
+// Self-contained, does not depend on the existing disclosure widget.
+// Includes Tradition lineage, Science lineage, and "Where they meet" panel.
+function openTwoTelescopesIntro() {
+  var existing = document.getElementById('cdp-tt-intro-modal');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'cdp-tt-intro-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-label', 'Two Telescopes introduction');
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(8,18,34,0.92);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto;padding:40px 20px';
+
+  modal.innerHTML = ''
+    + '<div style="max-width:760px;margin:0 auto;background:rgba(16,28,48,0.96);border:1px solid rgba(201,160,80,0.4);border-radius:8px;padding:36px 32px;font-family:Georgia,serif;color:rgba(245,228,196,0.95);position:relative">'
+    +   '<button onclick="document.getElementById(\'cdp-tt-intro-modal\').remove()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:rgba(245,228,196,0.7);font-size:24px;cursor:pointer;padding:6px 10px;line-height:1" aria-label="Close">×</button>'
+    +   '<div style="text-align:center;margin-bottom:8px">'
+    +     '<span style="font-size:28px;color:#c9a050;letter-spacing:.05em">☽</span>'
+    +     '<span style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(245,228,196,0.6);margin:0 12px">meets</span>'
+    +     '<span style="font-size:28px;color:#81cdc6">⬡</span>'
+    +   '</div>'
+    +   '<h2 style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:34px;font-weight:400;text-align:center;margin:0 0 10px;color:#c9a050;letter-spacing:.01em">Two ways of looking. One sky.</h2>'
+    +   '<p style="text-align:center;font-style:italic;color:rgba(245,228,196,0.82);margin:0 0 24px;font-size:17px;line-height:1.55">Ancient traditions and modern neuroscience arrive at the same coordinates. They are not competing explanations. They are different languages for the same observed reality.</p>'
+    +   '<div style="display:grid;grid-template-columns:1fr;gap:14px;margin:22px 0">'
+    +     '<div style="background:rgba(201,160,80,0.08);border-left:3px solid #c9a050;padding:18px 20px;border-radius:4px">'
+    +       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="color:#c9a050;font-size:20px">☽</span><h3 style="margin:0;font-family:Georgia,serif;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#c9a050;font-weight:500">Tradition</h3></div>'
+    +       '<p style="margin:0 0 8px;line-height:1.65;font-size:14px;color:rgba(245,228,196,0.94)">The symbolic voice. Numerology (Pythagoras and the school in Croton, 6th century BCE). Lunar wisdom and Mayan calendrics (Dresden Codex, classical period observatories). Western archetypes (Hellenistic astrology, Vettius Valens, Tetrabiblos). Dreamspell synthesis (Argüelles, 1987).</p>'
+    +       '<p style="margin:0;line-height:1.65;font-size:14px;color:rgba(245,228,196,0.82);font-style:italic">For when you want depth, image, and resonance.</p>'
+    +     '</div>'
+    +     '<div style="background:rgba(129,205,198,0.07);border-left:3px solid #81cdc6;padding:18px 20px;border-radius:4px">'
+    +       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="color:#81cdc6;font-size:20px">⬡</span><h3 style="margin:0;font-family:Georgia,serif;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#81cdc6;font-weight:500">Science</h3></div>'
+    +       '<p style="margin:0 0 8px;line-height:1.65;font-size:14px;color:rgba(245,228,196,0.94)">The neuroscience voice. Circadian cognition (Aschoff and Wever, 1960s). Attachment (Bowlby, Ainsworth). Contemplative neuroscience (Kabat-Zinn, 1979 onward). Hippocampal consolidation (Walker). Constructed emotion theory (Barrett). Predictive processing (Clark).</p>'
+    +       '<p style="margin:0;line-height:1.65;font-size:14px;color:rgba(245,228,196,0.82);font-style:italic">For when you want what is happening in the brain and body.</p>'
+    +     '</div>'
+    +     '<div style="background:rgba(108,138,114,0.12);border-left:3px solid #6c8a72;padding:18px 20px;border-radius:4px">'
+    +       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="color:#9bb89e;font-size:20px">✦</span><h3 style="margin:0;font-family:Georgia,serif;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#9bb89e;font-weight:500">Everyday</h3></div>'
+    +       '<p style="margin:0;line-height:1.65;font-size:14px;color:rgba(245,228,196,0.94)">The plain-spoken voice. Same reading, no jargon either way. Just what today is good for, what to be careful about, and what to do next.</p>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div style="margin-top:20px;padding:16px 20px;background:rgba(201,160,80,0.04);border:1px dashed rgba(201,160,80,0.3);border-radius:4px">'
+    +     '<h4 style="margin:0 0 8px;font-family:Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,228,196,0.85);font-weight:500">Where they meet</h4>'
+    +     '<p style="margin:0;line-height:1.6;font-size:13px;color:rgba(245,228,196,0.85)">Lunar phase and memory consolidation. Numerology of completion and the predictive processing account of closure. Saturn transits and developmental individuation. Mercury retrograde and metacognitive friction. The same observed patterns of human experience, named in two grammars.</p>'
+    +   '</div>'
+    +   '<div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(201,160,80,0.2);text-align:center">'
+    +     '<p style="margin:0 0 14px;font-size:13px;color:rgba(245,228,196,0.72);font-style:italic">Switch voices any time using the Tradition / Science / Everyday toggle in the navigation.</p>'
+    +     '<button onclick="document.getElementById(\'cdp-tt-intro-modal\').remove()" style="background:rgba(201,160,80,0.16);border:1px solid rgba(201,160,80,0.55);color:#c9a050;font-family:Georgia,serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;padding:11px 30px;border-radius:2px;cursor:pointer">Continue</button>'
+    +   '</div>'
+    + '</div>';
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.remove();
+  });
+
+  document.body.appendChild(modal);
+}
+
 function openDrawer(topic, question, chips) {
   document.getElementById('drawerTopic').textContent = topic;
   document.getElementById('drawerBody').innerHTML = `<div class="drawer-loading">Consulting the Oracle…</div>`;
@@ -8477,7 +8578,7 @@ function openDrawer(topic, question, chips) {
   fetchInsight(question, chips);
 }
 
-// ── Widget card drawer helper — avoids quote-hell in onclick attrs ────────────
+// ── Widget card drawer helper  -  avoids quote-hell in onclick attrs ────────────
 function openWgtMoon(phase, q, isBlack, isShiva, fn) {
   const chips = [
     {q:'How does the '+phase+' affect my energy and mood today?', l:'Energy & mood'},
@@ -8861,7 +8962,7 @@ function updateLangToggleBar() {
   }
 }
 
-// ── SCIENCE BRIDGE — threads neuroscience through every reading section ───────
+// ── SCIENCE BRIDGE  -  threads neuroscience through every reading section ───────
 // This is the delivery mechanism for the landing page's central promise:
 // "ancient wisdom meets modern science." Every framework has a parallel scientific
 // explanation. openScienceBridge() makes that explanation available at every touchpoint.
@@ -9067,7 +9168,7 @@ function tapClosing(closing) {
 }
 
 // ══════════════════════════════════════════════════════════
-// DECISION ENGINE — "Should I act today or wait?"
+// DECISION ENGINE  -  "Should I act today or wait?"
 // Routes a specific decision through all four frameworks.
 // JTBD: High-performer needs timing intelligence.
 // ══════════════════════════════════════════════════════════
@@ -9199,7 +9300,7 @@ async function runDecisionEngine() {
 }
 
 // ══════════════════════════════════════════════════════════
-// PRESENCE LAYER — time-of-day micro-prompt on return
+// PRESENCE LAYER  -  time-of-day micro-prompt on return
 // Fires when user returns to tab/window if reading is loaded
 // ══════════════════════════════════════════════════════════
 function showPresencePrompt() {
@@ -9272,7 +9373,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => setTimeout(showPresencePrompt, 800));
 
 // ══════════════════════════════════════════════════════════
-// DYNAMIC CHIPS — day-specific, built from actual reading
+// DYNAMIC CHIPS  -  day-specific, built from actual reading
 // ══════════════════════════════════════════════════════════
 function buildChips(r) {
   const firstName = getFirstName();
@@ -9285,7 +9386,7 @@ function buildChips(r) {
   const userCtx = getUserContext();
   const chips = [];
 
-  // 1. Universal Day — anchored to their actual work/life
+  // 1. Universal Day  -  anchored to their actual work/life
   if (num.ud) {
     const udName = NUM_DATA[num.ud]?.n || '';
     const udChipLabel = 'UD ' + num.ud + ' · ' + udName;
@@ -9295,7 +9396,7 @@ function buildChips(r) {
     chips.push({l: udChipLabel, q: udQ});
   }
 
-  // 2. Time-of-day — specific to what they are likely doing right now
+  // 2. Time-of-day  -  specific to what they are likely doing right now
   const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
   const energyNum = hour < 12 ? (num.pd||num.ud) : hour < 17 ? (num.pm||num.mEn) : (num.py||num.yEn);
   const timeQ = lifeCtx
@@ -9303,7 +9404,7 @@ function buildChips(r) {
     : 'It is ' + timeOfDay + '. Energy: ' + energyNum + ' (' + (NUM_DATA[energyNum]?.n||'') + '). ' + userCtx + ' What is the single most important thing for ' + firstName + ' in the next 2 hours, and what should they avoid?';
   chips.push({l: (hour<12?'🌅 Morning':hour<17?'☀️ Now':'🌙 Evening') + ' · ' + energyNum, q: timeQ});
 
-  // 3. Moon — specific to their relationship and decision context
+  // 3. Moon  -  specific to their relationship and decision context
   if (moon.phase) {
     const special = moon.isBlack ? '★ Black Moon, threshold. Do not initiate.' : moon.isShiva ? '✨ Shiva Moon, auspicious. Plant with intention.' : '';
     const moonQ = lifeCtx
@@ -9312,7 +9413,7 @@ function buildChips(r) {
     chips.push({l: (moon.emoji||'☽') + ' ' + moon.phase + (special?' · Special':''), q: moonQ});
   }
 
-  // 4. Dreamspell Kin — specific archetype + their situation
+  // 4. Dreamspell Kin  -  specific archetype + their situation
   if (kin.full) {
     const kinQ = lifeCtx
       ? 'Dreamspell Kin: ' + kin.full + '. Tone ' + kin.toneNum + ' (' + kin.tone + ') of the ' + kin.seal + '. ' + (kin.isGAP?'GAP portal day, heightened synchronicities. ':'') + userCtx + ' The ' + kin.seal + ' archetype: what specific quality does it invite ' + firstName + ' to embody in their work on ' + lifeCtx + ' today? Not abstract symbolism, how does it change how they show up? (Argüelles 1987 Dreamspell)'
@@ -9320,13 +9421,13 @@ function buildChips(r) {
     chips.push({l: '◈ ' + kin.seal + (kin.isGAP?' ★':''), q: kinQ});
   }
 
-  // 5. Priority 1 — go deeper on the specific priority
+  // 5. Priority 1  -  go deeper on the specific priority
   if (rd.priorities?.[0]?.title) {
     const p1 = rd.priorities[0];
     chips.push({l: '↗ ' + (p1.title||'').slice(0,30) + (p1.title?.length>30?'…':''), q: firstName + '\'s top priority today: "' + p1.title + '". Rationale: ' + (p1.rationale||'') + '. Concrete action: ' + (p1.action||'') + '. ' + userCtx + ' Get specific, what does this look like in the next 3 hours? What is the most likely resistance ' + firstName + ' will hit, and how do they work with it rather than against it today?'});
   }
 
-  // 6. Shadow work — personal and direct
+  // 6. Shadow work  -  personal and direct
   if (rd.shadow_work) {
     chips.push({l: '◾ Shadow: dig deeper', q: 'Shadow question for ' + firstName + ': "' + rd.shadow_work + '". ' + userCtx + ' What is this actually pointing to in ' + firstName + '\'s current life, not as a problem to fix, but as something they\'ve been avoiding seeing? What would honest engagement look like in practice today? What does this shadow protect them from having to face?'});
   }
@@ -9337,7 +9438,7 @@ function buildChips(r) {
     : 'Saturn-Neptune conjunct in Aries 2026, historically significant (Tarnas 2006: last conjunctions 1952, 1989 Berlin Wall). ' + userCtx + ' What does this civilisational reset mean for ' + firstName + '\'s current chapter? How is the dissolution of old structures showing up in their daily reality?';
   chips.push({l: 'Saturn-Neptune & ' + (lifeCtx ? lifeCtx.slice(0,20) : 'your situation'), q: satNepCtx});
 
-  // 8. GAP portal — only on portal days
+  // 8. GAP portal  -  only on portal days
   if (kin.isGAP) {
     chips.push({l: '★ GAP portal, what arrives today', q: 'GAP Portal Kin ' + kin.kin + '. The veil is thinner; synchronicities amplified. ' + userCtx + ' What specific types of arrivals, encounters, insights, or conversations should ' + firstName + ' be especially receptive to today? What would be a waste of this portal day? What should they write down before the day ends?'});
   }
@@ -9359,7 +9460,7 @@ function buildChips(r) {
 }
 
 // ══════════════════════════════════════════════════════════
-// INLINE SOURCE CITATIONS — tappable scholarly references
+// INLINE SOURCE CITATIONS  -  tappable scholarly references
 // ══════════════════════════════════════════════════════════
 const CDP_SOURCES = {
   tarnas:{label:'Tarnas 2006',full:'Tarnas, R. (2006). Cosmos and Psyche. Viking Penguin.',context:'Richard Tarnas\'s Cosmos and Psyche is the most comprehensive scholarly treatment of planetary cycle correlations with historical events. His analysis of the Saturn-Neptune cycle (pp. 234-251) provides the intellectual foundation for CDP\'s civilisational-context readings. The data-driven case for why these cycles matter (not as mysticism, but as demonstrable historical pattern) is his singular contribution.'},
@@ -9384,7 +9485,7 @@ function openCitation(key) {
 }
 
 // ══════════════════════════════════════════════════════════
-// DIRECTION SYNTHESIS — AI full career/life direction reading
+// DIRECTION SYNTHESIS  -  AI full career/life direction reading
 // ══════════════════════════════════════════════════════════
 async function loadDirectionSynthesis(btn) {
   const expanded = document.getElementById('directionExpanded');
@@ -9470,12 +9571,12 @@ function openDirDrawer() {
 }
 
 // ══════════════════════════════════════════════════════════
-// HABIT LOOP — five features for daily return
+// HABIT LOOP  -  five features for daily return
 // 1. Tomorrow's Preview   2. Evening Reflection
 // 3. Streak badge         4. Progress dot on tab change
 // ══════════════════════════════════════════════════════════
 
-// 1. Tomorrow's Preview — injected at bottom of reading
+// 1. Tomorrow's Preview  -  injected at bottom of reading
 function injectTomorrowPreview(dateStr) {
   const container = document.getElementById('ai-week');
   if (!container || container.querySelector('#tomorrowPreview')) return;
@@ -9507,7 +9608,7 @@ function injectTomorrowPreview(dateStr) {
   container.appendChild(el);
 }
 
-// 2. Evening reflection — slides in after 6pm with memory + tomorrow intent
+// 2. Evening reflection  -  slides in after 6pm with memory + tomorrow intent
 function showEveningReflection() {
   if (!currentReading?.reading) return;
   if (new Date().getHours() < 18) return;
@@ -9634,7 +9735,7 @@ const KIN_TONES_CAL=['Magnetic','Lunar','Electric','Self-Existing','Overtone','R
 const LUNAR_C=29.53058867;
 // v15 fix: USNO Jan 2026 new moon (18 Jan 19:52 UTC). Was incorrectly 17 Jan 02:02.
 const MOON_A=new Date('2026-01-18T19:52:00Z');
-// GAP portals — 52 Galactic Activation Portal kins per Starroot/Tortuga source
+// GAP portals  -  52 Galactic Activation Portal kins per Starroot/Tortuga source
 const GAP_S=new Set([
   1,2,3,4,5,6,7,8,9,10,11,12,13,
   14,28,41,54,67,80,93,106,119,132,145,158,171,184,197,210,223,236,249,260,
@@ -9662,9 +9763,9 @@ function clientMoon(ds){
   else if(cyc<23.5){emoji='🌗';phase='Last Quarter';}
   else{emoji='🌘';phase='Waning Crescent';}
   const toNew=cyc<0.5?0:LUNAR_C-cyc;
-  // BLACK MOON: 2 days before new moon — toNew 0.6–2.6 days
+  // BLACK MOON: 2 days before new moon  -  toNew 0.6–2.6 days
   const isBlack=toNew>=0.6&&toNew<=2.6;
-  // SHIVA MOON: 2 days after new moon — cyc 1.0–2.5 days
+  // SHIVA MOON: 2 days after new moon  -  cyc 1.0–2.5 days
   const isShiva=cyc>=1.0&&cyc<=2.5;
   const isNewMoon=cyc<0.5||cyc>29.0;
   const isFullMoon=cyc>=14.0&&cyc<=16.0;
@@ -9773,7 +9874,7 @@ function renderCalendar(){
   grid.innerHTML=html;
 }
 
-// ── Day modal drawer helpers — called from onclick attributes ──
+// ── Day modal drawer helpers  -  called from onclick attributes ──
 let _dayModalData = {}; // store computed values for drawer access
 
 function openDayMoonDrawer() {
@@ -9911,7 +10012,7 @@ async function saveDayCardImage(ds) {
           await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
           if (btn) { btn.textContent = '✓ Copied to clipboard'; setTimeout(()=>{ btn.textContent='⎘ Save as Image'; btn.disabled=false; }, 2500); }
         } catch(e) {
-          // Clipboard API not available — download instead
+          // Clipboard API not available  -  download instead
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = 'cosmic-day-' + ds + '.png';
@@ -10031,7 +10132,7 @@ function openDayModal(ds){
     moonQ: '', udQ: '', myQ: ''
   };
 
-  // Pre-compute drawer questions — stored in _dayModalData for helper functions
+  // Pre-compute drawer questions  -  stored in _dayModalData for helper functions
   const moonQ = moon.phase + ' - day ' + parseFloat(moon.cyc).toFixed(1) + ' of the lunar cycle, ' + parseFloat(moon.toNew).toFixed(1) + ' days to the New Moon. ' + (moon.isBlack?'BLACK MOON, threshold day.':moon.isShiva?'SHIVA MOON, auspicious.':'') + ' What does this lunar position ask of ' + firstName + ' on ' + dLabel + '?';
   const kinQ = 'Dreamspell Kin ' + kinD.kin + ' - ' + kinD.col + ' ' + kinD.tone + ' ' + kinD.seal + '. Tone ' + ((kinD.kin-1)%13+1) + '. ' + (kinD.isGAP?'GALACTIC ACTIVATION PORTAL. ':'') + 'What does this Kin specifically invite ' + firstName + ' to embody on ' + dLabel + '? (Arguelles 1987)';
   _dayModalData.kinQ = kinQ;
@@ -10113,7 +10214,7 @@ function openDayModal(ds){
 
     <div class="modal-grid">
 
-      <!-- MOON — tappable -->
+      <!-- MOON  -  tappable -->
       <div class="modal-item tappable" style="cursor:pointer"
         data-title="Moon Phase · ${moon.phase}"
         data-q="${moonQ}"
@@ -10125,7 +10226,7 @@ function openDayModal(ds){
         <div style="font-size:10px;color:var(--teal);margin-top:6px;opacity:.7">↗ Tap for insight</div>
       </div>
 
-      <!-- DREAMSPELL — tappable -->
+      <!-- DREAMSPELL  -  tappable -->
       <div class="modal-item tappable" style="cursor:pointer"
         onclick="openDayKinDrawer()">
         <div class="modal-item-label">Dreamspell · ${kinD.isGAP?'★ Portal':'Kin '+kinD.kin}</div>
@@ -10135,7 +10236,7 @@ function openDayModal(ds){
         <div style="font-size:10px;color:var(--teal);margin-top:6px;opacity:.7">↗ Tap for insight</div>
       </div>
 
-      <!-- UNIVERSAL DAY — tappable -->
+      <!-- UNIVERSAL DAY  -  tappable -->
       <div class="modal-item tappable" style="cursor:pointer"
         data-title="Universal Day ${ud} · ${udD.n}"
         data-q="${udQ}"
@@ -10147,7 +10248,7 @@ function openDayModal(ds){
         <div style="font-size:10px;color:var(--gold);margin-top:6px;opacity:.7">↗ Tap for insight</div>
       </div>
 
-      <!-- MONTH & YEAR ENERGY — tappable -->
+      <!-- MONTH & YEAR ENERGY  -  tappable -->
       <div class="modal-item tappable" style="cursor:pointer"
         data-title="Month ${m} · Year ${y}"
         data-q="${myQ}"
@@ -10161,7 +10262,7 @@ function openDayModal(ds){
 
     </div>
 
-    <!-- THREE ENERGIES — each tappable -->
+    <!-- THREE ENERGIES  -  each tappable -->
     <div style="margin:14px 0 8px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)">Three Energies of the Day</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
       ${['🌅 Morning','☀️ Afternoon','🌙 Evening'].map((label,i)=>{
@@ -10286,7 +10387,7 @@ function openDayModal(ds){
 function closeModal(){document.getElementById('dayModal').classList.remove('open');}
 
 // ══════════════════════════════════════════════════════════
-// SUPABASE — Auth, Profile Sync, Reading History
+// SUPABASE  -  Auth, Profile Sync, Reading History
 // ══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://rbezcpwevlycslhnbtry.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tA2czthtFFN61dJpVuYeOA_v9NGONwO';
@@ -10308,7 +10409,7 @@ function setBestDayIntent(intent) {
   if (inp) { inp.value = intent; inp.focus(); }
 }
 
-// Called from Reading page chip — switches to Calendar and pre-fills intent
+// Called from Reading page chip  -  switches to Calendar and pre-fills intent
 function jumpToBestDay(intent) {
   // Switch to Calendar screen first
   const navBtns = document.querySelectorAll('.npill');
@@ -10490,7 +10591,7 @@ function renderBestDayResults(opts) {
     html += more.map((d, i) => bestCard(d, i + 4)).join('');
   }
 
-  // Worst 3 — always shown
+  // Worst 3  -  always shown
   html += `<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--div)">
     <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(220,140,140,0.8);opacity:.85;margin-bottom:10px">⚠ Days to avoid</div>
     ${worst.map(avoidCard).join('')}
@@ -10849,7 +10950,7 @@ function printMyEnergy() {
   }
 }
 
-// ── 7. Tap natal chart — open drawer with deeper question on user's chart
+// ── 7. Tap natal chart  -  open drawer with deeper question on user's chart
 function tapNatalChart() {
   if (typeof openDrawer !== 'function') return;
   const firstName = (typeof getFirstName === 'function') ? getFirstName() : 'you';
@@ -10865,7 +10966,7 @@ function tapNatalChart() {
     ]);
 }
 
-// ── 8. Tap transits — open drawer focused on today's transits ───────
+// ── 8. Tap transits  -  open drawer focused on today's transits ───────
 function tapTransits() {
   if (typeof openDrawer !== 'function') return;
   const firstName = (typeof getFirstName === 'function') ? getFirstName() : 'you';
@@ -10881,7 +10982,7 @@ function tapTransits() {
     ]);
 }
 
-// ── 9. Tap daily gift quote — open drawer about the quote's meaning ──
+// ── 9. Tap daily gift quote  -  open drawer about the quote's meaning ──
 function tapGift() {
   if (typeof openDrawer !== 'function') return;
   const firstName = (typeof getFirstName === 'function') ? getFirstName() : 'you';
@@ -10995,12 +11096,12 @@ async function syncProfileToSupabase() {
 
 async function syncProfileFromSupabase() {
   if (!sb || !currentUser) return;
-  // Mark entry as done for authenticated users — skip entry screen on return
+  // Mark entry as done for authenticated users  -  skip entry screen on return
   localStorage.setItem('cdp_entry_done', '1');
   try {
     const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
     if (error || !data) return;
-    // Merge Supabase profile — Beta 2: includes life context fields
+    // Merge Supabase profile  -  Beta 2: includes life context fields
     const merged = {
       ...profile,
       name:           data.name           || profile.name,
@@ -11058,7 +11159,11 @@ async function saveReadingToSupabase(dateStr, tier, reading) {
     ].filter(Boolean);
     const summary = summaryParts.join('. ').slice(0, 500);
 
-    await sb.from('readings').upsert({
+    // v22 Phase 0: defensive readings save.
+    // Strategy: write minimal known-good columns first. If that succeeds,
+    // optionally extend with richer columns. This survives schema variations
+    // between Live, Beta, and any future DB variants without breaking saves.
+    const minimalPayload = {
       user_id: currentUser.id,
       date: dateStr,
       tier: tier,
@@ -11067,11 +11172,23 @@ async function saveReadingToSupabase(dateStr, tier, reading) {
       kin: currentReading?.kin?.full?.slice(0, 100) || null,
       moon_phase: currentReading?.moon?.phase || null,
       shadow_work: reading.shadow_work?.slice(0, 300) || null,
-      priority_1: reading.priorities?.[0]?.title || null,
+      priority_1: reading.priorities?.[0]?.title || null
+    };
+    const extendedPayload = Object.assign({}, minimalPayload, {
       full_json: reading,
-      summary: summary,  // Beta 2
-      created_at: new Date().toISOString()
-    }, { onConflict: 'user_id,date' });
+      summary: summary
+    });
+
+    let saveResult = await sb.from('readings').upsert(extendedPayload, { onConflict: 'user_id,date' });
+    if (saveResult.error) {
+      console.warn('[readings] extended save failed, retrying minimal:', saveResult.error.message);
+      saveResult = await sb.from('readings').upsert(minimalPayload, { onConflict: 'user_id,date' });
+      if (saveResult.error) {
+        console.warn('[readings] minimal save also failed:', saveResult.error.message);
+      } else {
+        console.info('[readings] minimal save succeeded; full_json/summary skipped');
+      }
+    }
   } catch(e) {
     console.warn('Reading save failed:', e.message);
   }
@@ -11114,7 +11231,7 @@ function maybeShowEmailCapture() {
   if (localStorage.getItem('cdp_email_dismissed')) return;
   if (sessionStorage.getItem('cdp_ec_shown')) return; // once per browser session
   sessionStorage.setItem('cdp_ec_shown', '1');
-  // Show after 45s — user has read and engaged, not immediately overlaying the reading
+  // Show after 45s  -  user has read and engaged, not immediately overlaying the reading
   setTimeout(() => {
     if (!currentUser && !localStorage.getItem('cdp_email_captured')) {
       document.getElementById('emailCaptureModal').classList.add('open');
@@ -11839,7 +11956,7 @@ async function generateCompatibility() {
     return;
   }
 
-  // Save Person B for next visit — auto-repopulates the form
+  // Save Person B for next visit  -  auto-repopulates the form
   localStorage.setItem('cdp_last_compat_b', JSON.stringify({
     name: personB.name,
     birthDay: personB.birthDay,
@@ -11951,14 +12068,14 @@ function renderCompatResult(data) {
 
   let html = `<div style="background:var(--bg2);border:1px solid rgba(201,160,80,0.2);border-radius:3px;overflow:hidden;margin-bottom:20px">`;
 
-  // Headline — tappable
+  // Headline  -  tappable
   if (r.headline) {
     const safeH = (r.headline||'').replace(/'/g,"\\'").slice(0,200);
     html += `<div class="compat-headline tappable" style="cursor:pointer"
       onclick="openDrawer('Connection · Headline','${safeH}, Go deeper: what is the single most important thing ${(nameA||'').replace(/'/g,"\\'")} and ${(nameB||'').replace(/'/g,"\\'")} most need to understand about this connection right now?',[{q:'What does this connection want from both people?',l:'What this connection wants'},{q:'What is the greatest risk if they ignore what this connection is asking?',l:'The risk of not listening'}])">${r.headline}</div>`;
   }
 
-  // Synthesis — tappable
+  // Synthesis  -  tappable
   if (r.synthesis) {
     const safeS = (r.synthesis||'').replace(/'/g,"\\'").slice(0,300);
     html += `<div class="compat-synthesis tappable" style="cursor:pointer"
@@ -12112,7 +12229,7 @@ function renderCompatResult(data) {
     html += `</div>`;
   }
 
-  // Key aspects — each tappable
+  // Key aspects  -  each tappable
   if (r.key_aspects && r.key_aspects.length) {
     html += `<div style="padding:0 24px 20px">
       <div style="font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:var(--text3);
@@ -12142,7 +12259,7 @@ function renderCompatResult(data) {
 
   html += `</div>`; // close main card
 
-  // Gifts / Tensions / Topic sections — each tappable
+  // Gifts / Tensions / Topic sections  -  each tappable
   [[r.gifts,'var(--teal2)','✦ '],[r.tensions,'rgba(200,80,80,.3)','⚡ '],[r.topic_specific,'var(--gold3)','◈ ']].forEach(([section, borderColor, icon]) => {
     if (!section || !section.headline) return;
     const safeHL = (section.headline||'').replace(/'/g,"\\'").slice(0,100);
@@ -12155,7 +12272,7 @@ function renderCompatResult(data) {
     </div>`;
   });
 
-  // Framework deep-dives — each tappable
+  // Framework deep-dives  -  each tappable
   [
     ['Dreamspell Connection', r.dreamspell_connection, '◈'],
     ['Numerology Connection', r.numerology_connection, ''],
@@ -12191,7 +12308,7 @@ function renderCompatResult(data) {
     </div>`;
   }
 
-  // The question to sit with — tappable
+  // The question to sit with  -  tappable
   if (r.a_question_to_sit_with) {
     const safeQ = r.a_question_to_sit_with.replace(/'/g,"\\'").slice(0,200);
     html += `<div class="shadow-box tappable" style="margin-bottom:14px;cursor:pointer"
@@ -12329,7 +12446,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=>trackEvent('page_view',{referrer:document.referrer}),1500);
   loadProfileUI();
   renderCalendar();
-  // Read mode from URL — if landing page sent us here with ?mode=xxx, start immediately
+  // Read mode from URL  -  if landing page sent us here with ?mode=xxx, start immediately
   const _urlMode = new URLSearchParams(window.location.search).get('mode');
   const _modeMap = { quick:'quick', free:'free', standard:'standard', mystic:'mystic', deep:'deep' };
   if (_urlMode && _modeMap[_urlMode]) {
@@ -12363,7 +12480,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 <div id="cdp-gate" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;background:rgba(8,16,26,0.96);backdrop-filter:blur(8px)">
   <div style="width:100%;max-width:460px;margin:auto;position:relative">
 
-    <!-- Skip link — top right, always visible -->
+    <!-- Skip link  -  top right, always visible -->
     <div style="text-align:right;margin-bottom:12px">
       <button onclick="gateSkip()" style="background:none;border:none;color:rgba(240,237,230,0.3);font-size:12px;cursor:pointer;letter-spacing:.08em;font-family:'Cinzel',serif;padding:4px 8px" onmouseover="this.style.color='rgba(240,237,230,0.6)'" onmouseout="this.style.color='rgba(240,237,230,0.3)'">
         skip for now →
@@ -12444,7 +12561,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </div>
 
 <script>
-// ══ INVITE GATE v2 — frictionless with optional email collection ══
+// ══ INVITE GATE v2  -  frictionless with optional email collection ══
 (function(){
   var KEY = 'cdp_gate_v2';
 
@@ -12492,7 +12609,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       } catch(e) {}
     }
 
-    // OPEN IMMEDIATELY — no waiting for network
+    // OPEN IMMEDIATELY  -  no waiting for network
     setAdmitted();
     var form = document.getElementById('g-form');
     var succ = document.getElementById('g-success');
@@ -12500,7 +12617,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (succ) succ.style.display = 'block';
     setTimeout(function(){ admit(true); }, 1200);
 
-    // Fire-and-forget Supabase save — runs in background after gate opens
+    // Fire-and-forget Supabase save  -  runs in background after gate opens
     if (email) {
       setTimeout(function() {
         try {
@@ -13108,7 +13225,7 @@ window.addEventListener('load', function() {
   // ===== Initialise =====
 
   // ── PREFERRED VOICE PERSISTENCE (v13) ─────────────────────────────────
-  // The user's "natural" voice — Ned defaults to Science, Sonia to Tradition,
+  // The user's "natural" voice  -  Ned defaults to Science, Sonia to Tradition,
   // Connie probably Everyday. Saved across sessions so each reading opens in
   // the user's preferred register without re-toggling.
   const PREF_VOICE_KEY = 'cdp_preferred_voice';
@@ -13193,7 +13310,7 @@ window.addEventListener('load', function() {
   }
 
   // ════════════════════════════════════════════════════════════════════
-  // V13 COMPARE VOICES — per-section expander
+  // V13 COMPARE VOICES  -  per-section expander
   // For every .cdp-voiced element with at least 2 voices populated,
   // inject a "Compare voices ▾" button. Tapping expands a panel showing
   // all populated voices stacked, labelled and colour-coded.
@@ -13556,7 +13673,8 @@ document.addEventListener('cdp:reading-ready', function() {
 
   // LAYER 2: persistent disclosure footer auto-injection
   var DISCLOSURE_FOOTER_HTML = '<div class="reading-disclosure-footer" data-cdp-disclosure="1">' +
-    'Written by an AI system. Wellness companion, not a medical product. ' +
+    'Written by our Oracle, an AI integration of ancient frameworks and modern neuroscience. ' +
+    'A wellness and self-knowledge companion, not a medical or clinical product. ' +
     'Not a substitute for professional advice. ' +
     '<a onclick="cdpOpenSupportResources()">Tap here for support resources.</a>' +
     '</div>';
@@ -14238,7 +14356,7 @@ document.addEventListener('cdp:reading-ready', function() {
       <strong id="ihInviterName">Someone</strong> sent you a compatibility reading. It takes 30 seconds.
     </div>
     <div class="ih-eyebrow">Cosmic Daily Planner · Compatibility</div>
-    <h1 class="ih-h1">Two telescopes. Pointed at the same sky.</h1>
+    <h1 class="ih-h1">Two ways of looking. One sky.</h1>
     <div class="ih-sub">
       To create your reading, we need three things. Your birth data is private and used only for your chart. We do not store it without your account, and you can delete it any time.
     </div>
