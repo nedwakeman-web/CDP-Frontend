@@ -835,7 +835,7 @@ function callAPI(model, maxTok, sys, user) {
 // Converts user profile + reading history into a rich Oracle brief.
 // Called by generateReading() — replaces the old ad-hoc profileBlock.
 // ══════════════════════════════════════════════════════════════════
-function buildProfileContext(p, recentHistory = []) {
+function buildProfileContext(p, recentHistory = [], yesterdayIntention = null) {
   if (!p || Object.keys(p).length === 0) return 'No personal profile provided, give a universal reading grounded in the cosmic data.';
 
   const lines = [];
@@ -935,13 +935,25 @@ function buildProfileContext(p, recentHistory = []) {
     lines.push('');
   }
 
+  // ── v22 memory continuity: yesterday's intention threads into today ──
+  // The user typed an intention into the compass yesterday (or earlier today).
+  // The Oracle should reference it explicitly. "Yesterday you focused on X.
+  // Today asks about Y. Here is how they connect." This is the continuity surface.
+  if (yesterdayIntention && typeof yesterdayIntention === 'string' && yesterdayIntention.trim()) {
+    lines.push('');
+    lines.push('YESTERDAY THE USER TYPED THIS INTENTION INTO THE COMPASS:');
+    lines.push(`  "${yesterdayIntention.trim().slice(0, 240)}"`);
+    lines.push('Reference it briefly in the synthesis or first priority. Make the bridge explicit. The user should feel that today is in conversation with yesterday, not a fresh shuffle of cards.');
+    lines.push('');
+  }
+
   return lines.filter(Boolean).join('\n');
 }
 
 // ══════════════════════════════════════════════════════════════════
 // ORACLE READING — FULL SCHEMA, FULL QUALITY, BENCHMARK STANDARD
 // ══════════════════════════════════════════════════════════════════
-async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHistory = [], _planets, _moon, _kin, _num, _aspects) {
+async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHistory = [], _planets, _moon, _kin, _num, _aspects, _yesterdayIntention = null) {
   const _langNote = (profile && profile.readingLang === 'modern')
     ? '\n\nLANGUAGE MODE. MODERN SCIENTIFIC: Translate every cosmic insight into neuroscience terms. Frame numerology as cognitive priming (salience network), lunar cycles as circadian biology, shadow work as interoceptive signal (Barrett 2017), transits as predictive framework shifts. Name the mechanism. The ancient framework is the scaffold; the language is neuroscience.'
     : '';
@@ -956,7 +968,7 @@ async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHis
 
   // ── DYNAMIC PROFILE — Beta 2: uses buildProfileContext ──
   const firstName = p.nickname || (p.name ? p.name.split(' ')[0] : 'you');
-  const profileBlock = buildProfileContext(p, recentHistory);
+  const profileBlock = buildProfileContext(p, recentHistory, _yesterdayIntention);
 
   // Build birth kin string from calculated num
   const birthKinStr = num.birthKin ? `Kin ${num.birthKin.kin}: ${num.birthKin.full}` : 'not calculated';
@@ -1006,7 +1018,9 @@ Do NOT truncate any field. Every field in the JSON schema populated to maximum d
   };
   // standard mode in frontend maps to 'oracle' tier for full depth
   // Three-voice architecture: append to system prompt for oracle tier
-  const voiceInstruction = (tier === 'oracle' || tier === 'mystic') ? THREE_VOICE_INSTRUCTION : '';
+  // v22 magazine model: three voices available at every tier, not just Oracle/Mystic.
+  // The toggle and cross-voice nudges are the engagement loop, free to all users.
+  const voiceInstruction = (tier === 'free' || tier === 'quick') ? '' : THREE_VOICE_INSTRUCTION;
   const scope = tierScope[tier] || tierScope.oracle;
 
   const sys = `You are the Oracle at Cosmic Daily Planner (cosmicdailyplanner.com), a rigorous, personalised daily cosmic planner synthesising Swiss Ephemeris astronomy, Pythagorean numerology, Western psychological astrology, and Dreamspell/Law of Time.${_langNote}
@@ -1196,7 +1210,7 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
   // section. Failures are logged and surfaced on the response (reading._voices)
   // but never block the reading: missing voices fall back to single-voice display
   // on the frontend.
-  if ((tier === 'oracle' || tier === 'mystic') && reading && !reading.raw) {
+  if ((tier !== 'free' && tier !== 'quick') && reading && !reading.raw) {
     try {
       const v = validateThreeVoiceReading(reading);
       reading._voices = {
@@ -1356,6 +1370,22 @@ app.post('/api/reading/start', async (req, res) => {
   const jobId = newJobId();
   const activeTier = tier || 'oracle';
 
+  // v22 memory continuity: pull yesterday-intention from server-side store.
+  // Same logic as /api/reading single-shot path. Plumbed into Phase 2.
+  let yesterdayIntention = null;
+  try {
+    const userKey = (typeof v19_userKey === 'function') ? v19_userKey(req) : null;
+    if (userKey && typeof v19_intentions !== 'undefined' && v19_intentions.get) {
+      const userMap = v19_intentions.get(userKey);
+      if (userMap) {
+        const dateNow = new Date(ds + 'T12:00:00Z');
+        const dateYest = new Date(dateNow.getTime() - 86400000);
+        const yIso = dateYest.toISOString().slice(0,10);
+        yesterdayIntention = userMap[yIso] || null;
+      }
+    }
+  } catch(e) { /* non-fatal */ }
+
   jobs.set(jobId, {
     status: 'pending',
     startedAt: Date.now(),
@@ -1441,7 +1471,7 @@ app.post('/api/reading/start', async (req, res) => {
       }
 
       // Phase 2 — full depth (runs for initiate/mystic/oracle; free goes direct)
-      const r = await generateReading(ds, profile || {}, activeTier, recentHistory || [], planets, moon, kin, num, aspects);
+      const r = await generateReading(ds, profile || {}, activeTier, recentHistory || [], planets, moon, kin, num, aspects, yesterdayIntention);
       const job = jobs.get(jobId);
       if (job) {
         // Merge phase1 into full reading (phase1 had fresher/shorter prompts — keep phase2 for depth)
@@ -1486,11 +1516,35 @@ app.get('/api/reading/status/:jobId', (req, res) => {
 app.post('/api/reading', async (req, res) => {
   const {date, profile, tier, recentHistory} = req.body;
   const ds = date || new Date().toISOString().slice(0, 10);
+  const tStart = Date.now();
+  const reqTier = tier || 'oracle';
+  const userKey = (typeof v19_userKey === 'function') ? v19_userKey(req) : null;
+  console.log(`[reading START] tier=${reqTier} date=${ds} user=${userKey ? userKey.slice(0,8) : 'anon'}`);
   try {
-    const r = await generateReading(ds, profile || {}, tier || 'oracle', recentHistory || []);
+    // v22 memory continuity: try to surface yesterday's intention if available.
+    // Reads from the same v19_intentions Map used by /api/compass/today.
+    let yesterdayIntention = null;
+    try {
+      if (userKey && typeof v19_intentions !== 'undefined' && v19_intentions.get) {
+        const userMap = v19_intentions.get(userKey);
+        if (userMap) {
+          const dateNow = new Date(ds + 'T12:00:00Z');
+          const dateYest = new Date(dateNow.getTime() - 86400000);
+          const yIso = dateYest.toISOString().slice(0,10);
+          yesterdayIntention = userMap[yIso] || null;
+          if (yesterdayIntention) console.log(`[reading] yesterday-intention found for ${yIso}`);
+        }
+      }
+    } catch(e) { /* non-fatal */ }
+
+    const r = await generateReading(ds, profile || {}, reqTier, recentHistory || [], undefined, undefined, undefined, undefined, undefined, yesterdayIntention);
+    const elapsed = Date.now() - tStart;
+    console.log(`[reading DONE] tier=${reqTier} elapsed=${elapsed}ms hasReading=${!!r} hasError=${!!r?.error}`);
     res.json(r);
   } catch(e) {
-    console.error('Reading error:', e.message);
+    const elapsed = Date.now() - tStart;
+    console.error(`[reading ERROR] tier=${reqTier} elapsed=${elapsed}ms message=${e.message}`);
+    console.error(e.stack);
     res.status(500).json({error: e.message});
   }
 });
