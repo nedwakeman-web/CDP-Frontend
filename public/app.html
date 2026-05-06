@@ -2384,6 +2384,188 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     }
   });
 
+  // ════════════════════════════════════════════════════════════════════
+  // v22 WELCOME MODAL: collaborative onboarding after disclaimer/age-gate.
+  // Fires once per user on first visit. Captures name, birth date, life
+  // context, and consent for follow-up surveys. Writes to localStorage
+  // (and to Supabase profile if signed in). The relationship framing is
+  // intentional: "we are building this carefully and want to learn from
+  // how you use it" - the user is a collaborator, not just a customer.
+  // ════════════════════════════════════════════════════════════════════
+  window.cdpAfterDisclosure = function() {
+    try {
+      var welcomed = localStorage.getItem('cdp_v22_welcomed');
+      if (welcomed) return; // already done
+      cdpShowV22Welcome();
+    } catch(e) {}
+  };
+
+  window.cdpShowV22Welcome = function() {
+    // If already open, do nothing
+    if (document.getElementById('cdp-v22-welcome')) return;
+
+    var modal = document.createElement('div');
+    modal.id = 'cdp-v22-welcome';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-label', 'Welcome to Cosmic Daily Planner');
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(8,18,34,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow-y:auto;padding:32px 18px;animation:cdpFadeIn 0.32s ease';
+
+    // Pull existing profile fields if any (returning visitor who skipped before)
+    var existingProfile = {};
+    try { existingProfile = JSON.parse(localStorage.getItem('cdp_profile') || '{}'); } catch(e) {}
+    var pre = function(k) { return (existingProfile[k] || '').toString().replace(/"/g,'&quot;'); };
+    var preNum = function(k) { return existingProfile[k] || ''; };
+
+    modal.innerHTML = ''
+      + '<div style="max-width:640px;margin:0 auto;background:rgba(16,28,48,0.97);border:1px solid rgba(201,160,80,0.42);border-radius:8px;padding:36px 32px;font-family:Georgia,serif;color:rgba(245,228,196,0.96);position:relative">'
+      +   '<div style="text-align:center;margin-bottom:18px">'
+      +     '<span style="font-size:24px;color:#c9a050;letter-spacing:.05em">☽</span>'
+      +     '<span style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(245,228,196,0.6);margin:0 12px">welcome</span>'
+      +     '<span style="font-size:24px;color:#81cdc6">⬡</span>'
+      +   '</div>'
+      +   '<h2 style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:30px;font-weight:400;text-align:center;margin:0 0 12px;color:#c9a050;letter-spacing:.01em">Welcome. Let us know you a little.</h2>'
+      +   '<p style="text-align:center;font-style:italic;color:rgba(245,228,196,0.84);margin:0 0 20px;font-size:15px;line-height:1.6">The more we know, the more your readings can be about your specific life rather than the general weather of the week. None of this is required, all of it helps. You can edit any of it later in Profile.</p>'
+
+      // Name + nickname
+      + '<div style="margin-bottom:18px">'
+      +   '<label style="display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,160,80,0.85);margin-bottom:6px;font-weight:500">What should the Oracle call you?</label>'
+      +   '<input type="text" id="cdpV22Nickname" placeholder="e.g. Ned, or your full name" value="' + pre('nickname') + '" style="width:100%;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none">'
+      + '</div>'
+
+      // Birth date
+      + '<div style="margin-bottom:18px">'
+      +   '<label style="display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,160,80,0.85);margin-bottom:6px;font-weight:500">Date of birth</label>'
+      +   '<div style="display:flex;gap:8px">'
+      +     '<input type="number" id="cdpV22BD" min="1" max="31" placeholder="DD" value="' + preNum('birthDay') + '" style="flex:1;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none;text-align:center">'
+      +     '<input type="number" id="cdpV22BM" min="1" max="12" placeholder="MM" value="' + preNum('birthMonth') + '" style="flex:1;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none;text-align:center">'
+      +     '<input type="number" id="cdpV22BY" min="1900" max="2025" placeholder="YYYY" value="' + preNum('birthYear') + '" style="flex:1.4;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none;text-align:center">'
+      +   '</div>'
+      +   '<div style="font-size:12px;color:rgba(245,228,196,0.55);margin-top:6px;font-style:italic">Used to calculate your Personal Day, Personal Year, Life Path, and Birth Kin. Stays private.</div>'
+      + '</div>'
+
+      // Birth time + location (optional, but enables natal chart)
+      + '<div style="margin-bottom:18px">'
+      +   '<label style="display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,160,80,0.85);margin-bottom:6px;font-weight:500">Birth time and place <span style="color:rgba(245,228,196,0.55);text-transform:none;letter-spacing:0;font-style:italic">(optional, enables natal chart)</span></label>'
+      +   '<div style="display:flex;gap:8px">'
+      +     '<input type="time" id="cdpV22BT" value="' + pre('birthTime') + '" style="flex:1;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none">'
+      +     '<input type="text" id="cdpV22BL" placeholder="City, country" value="' + pre('birthLocation') + '" style="flex:2;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:15px;outline:none">'
+      +   '</div>'
+      + '</div>'
+
+      // Life context
+      + '<div style="margin-bottom:20px">'
+      +   '<label style="display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,160,80,0.85);margin-bottom:6px;font-weight:500">What is on your plate right now?</label>'
+      +   '<textarea id="cdpV22Ctx" rows="3" placeholder="A current project, a family chapter, a question you are sitting with. Whatever the Oracle should know to make your readings about your life, not the abstract weather." style="width:100%;padding:11px 14px;background:rgba(8,18,34,0.6);border:1px solid rgba(201,160,80,0.32);border-radius:4px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:14px;outline:none;resize:vertical;line-height:1.55">' + pre('context') + '</textarea>'
+      + '</div>'
+
+      // Opt-in for follow-up
+      + '<div style="margin-bottom:22px;padding:14px 18px;background:rgba(129,205,198,0.06);border:1px solid rgba(129,205,198,0.28);border-radius:4px">'
+      +   '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13px;line-height:1.55;color:rgba(245,228,196,0.92)">'
+      +     '<input type="checkbox" id="cdpV22OptIn" checked style="margin-top:3px;flex-shrink:0;accent-color:#81cdc6">'
+      +     '<span>We are building this carefully and want to learn from how you use it. <strong style="color:#81cdc6">May we contact you occasionally</strong> for short surveys, or to invite you to test new features early? <span style="color:rgba(245,228,196,0.65);font-style:italic">You can decline now or at any time.</span></span>'
+      +   '</label>'
+      + '</div>'
+
+      // Disclaimer reaffirmation (terse, since user already passed full disclaimer)
+      + '<div style="margin-bottom:24px;padding:12px 16px;background:rgba(245,228,196,0.04);border-left:3px solid rgba(201,160,80,0.4);font-size:12px;line-height:1.55;color:rgba(245,228,196,0.78);font-style:italic">'
+      +   'Cosmic Daily Planner is a wellness and self-knowledge companion that integrates ancient frameworks with modern neuroscience. It is not a medical product, therapist, or doctor, and not a substitute for professional advice.'
+      + '</div>'
+
+      // Actions
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center">'
+      +   '<button onclick="cdpV22SkipWelcome()" style="background:none;border:none;color:rgba(245,228,196,0.6);font-family:Georgia,serif;font-size:13px;letter-spacing:.04em;cursor:pointer;padding:10px 14px">Skip for now</button>'
+      +   '<button onclick="cdpV22SaveWelcome()" style="background:rgba(201,160,80,0.18);border:1px solid rgba(201,160,80,0.55);color:#c9a050;font-family:Georgia,serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;padding:12px 28px;border-radius:2px;cursor:pointer;font-weight:500">Save and begin →</button>'
+      + '</div>'
+      + '</div>';
+
+    document.body.appendChild(modal);
+  };
+
+  window.cdpV22SaveWelcome = function() {
+    try {
+      var nickname = (document.getElementById('cdpV22Nickname') || {}).value || '';
+      var bd = parseInt((document.getElementById('cdpV22BD') || {}).value, 10) || null;
+      var bm = parseInt((document.getElementById('cdpV22BM') || {}).value, 10) || null;
+      var by = parseInt((document.getElementById('cdpV22BY') || {}).value, 10) || null;
+      var bt = (document.getElementById('cdpV22BT') || {}).value || '';
+      var bl = (document.getElementById('cdpV22BL') || {}).value || '';
+      var ctx = (document.getElementById('cdpV22Ctx') || {}).value || '';
+      var optIn = !!(document.getElementById('cdpV22OptIn') || {}).checked;
+
+      // Merge into existing profile
+      var existing = {};
+      try { existing = JSON.parse(localStorage.getItem('cdp_profile') || '{}'); } catch(e) {}
+      var merged = Object.assign({}, existing, {
+        nickname: nickname.trim() || existing.nickname || '',
+        birthDay: bd || existing.birthDay,
+        birthMonth: bm || existing.birthMonth,
+        birthYear: by || existing.birthYear,
+        birthTime: bt.trim() || existing.birthTime || '',
+        birthLocation: bl.trim() || existing.birthLocation || '',
+        context: ctx.trim() || existing.context || '',
+        followUpOptIn: optIn,
+        followUpOptInAt: new Date().toISOString()
+      });
+      localStorage.setItem('cdp_profile', JSON.stringify(merged));
+      localStorage.setItem('cdp_v22_welcomed', new Date().toISOString());
+
+      // If signed in, sync to Supabase profile
+      try {
+        if (typeof sb !== 'undefined' && sb && typeof currentUser !== 'undefined' && currentUser && currentUser.id) {
+          sb.from('profiles').upsert({
+            id: currentUser.id,
+            nickname: merged.nickname,
+            birth_day: merged.birthDay,
+            birth_month: merged.birthMonth,
+            birth_year: merged.birthYear,
+            birth_time: merged.birthTime,
+            birth_location: merged.birthLocation,
+            context: merged.context,
+            follow_up_opt_in: optIn,
+            follow_up_opt_in_at: merged.followUpOptInAt,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' }).then(function(r){
+            if (r.error) console.warn('[v22 welcome] Supabase profile save failed:', r.error.message);
+            else console.info('[v22 welcome] Supabase profile saved');
+          });
+        }
+      } catch(e) {}
+
+      // Track
+      try { if (window.plausible) window.plausible('v22_welcome_saved', { props: { optIn: optIn ? 'yes' : 'no' } }); } catch(e) {}
+      try { if (window.trackEvent) window.trackEvent('v22_welcome_saved', { opt_in: optIn ? 'yes' : 'no', has_birth: (bd && bm && by) ? 'yes' : 'no' }); } catch(e) {}
+
+      // Sync any forms on the Profile page that mirror these fields
+      try {
+        if (document.getElementById('pNick')) document.getElementById('pNick').value = merged.nickname;
+        if (document.getElementById('pBD')) document.getElementById('pBD').value = merged.birthDay || '';
+        if (document.getElementById('pBM')) document.getElementById('pBM').value = merged.birthMonth || '';
+        if (document.getElementById('pBY')) document.getElementById('pBY').value = merged.birthYear || '';
+        if (document.getElementById('pBT')) document.getElementById('pBT').value = merged.birthTime;
+        if (document.getElementById('pBL')) document.getElementById('pBL').value = merged.birthLocation;
+        if (document.getElementById('pCtx')) document.getElementById('pCtx').value = merged.context;
+      } catch(e) {}
+    } catch(e) {
+      console.warn('[v22 welcome] save failed:', e.message);
+    }
+    var modal = document.getElementById('cdp-v22-welcome');
+    if (modal) modal.remove();
+  };
+
+  window.cdpV22SkipWelcome = function() {
+    try { localStorage.setItem('cdp_v22_welcomed', new Date().toISOString() + '_skipped'); } catch(e) {}
+    try { if (window.trackEvent) window.trackEvent('v22_welcome_skipped', {}); } catch(e) {}
+    var modal = document.getElementById('cdp-v22-welcome');
+    if (modal) modal.remove();
+  };
+
+  // Optional: expose a way to re-open the welcome from settings (so users can edit consent later)
+  window.cdpV22ReopenWelcome = function() {
+    try { localStorage.removeItem('cdp_v22_welcomed'); } catch(e) {}
+    cdpShowV22Welcome();
+  };
+
+
   // Expose for debugging / testing
   window.cdpResetDisclosure = function() {
     try {
@@ -5220,6 +5402,21 @@ async function loadReading(dateStr, tier) {
   // Without this, the reading would use whatever was loaded at script start,
   // and switching profiles in the library wouldn't take effect until reload.
   profile = getActiveProfile();
+
+  // v22 memory continuity: pre-populate yesterday-thread cache from Supabase
+  // so the reading page can show "Yesterday's thread" even if the user did
+  // not visit Compass first this session. Non-blocking fail-safe.
+  try {
+    if (typeof v19FetchYesterdayIntentionFromSupabase === 'function') {
+      const sbY = await v19FetchYesterdayIntentionFromSupabase();
+      if (sbY) {
+        sessionStorage.setItem('cdp_compass_yesterday', JSON.stringify({
+          yesterday_intention: sbY,
+          captured_at: Date.now()
+        }));
+      }
+    }
+  } catch(e) {}
 
   const activeTier = tier || currentTier || 'oracle';
   const cont = document.getElementById('readingContent');
@@ -13417,6 +13614,113 @@ window.addEventListener('load', function() {
       }
       el.setAttribute('data-cdp-compare-attached', 'true');
 
+      // v22 magazine model: render three chips ("More: Tradition / Science / Everyday")
+      // for the voices that are not currently selected. Each chip reveals just
+      // that voice in an inline expansion below the section. The user can open
+      // multiple to build a stereoscopic understanding without swapping the
+      // global voice. This is the convergence-made-visible engagement loop.
+      const wrap = document.createElement('div');
+      wrap.className = 'cdp-xvoice-wrap';
+      wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;align-items:center;justify-content:flex-start';
+
+      const VOICE_LABELS = { tradition: 'Tradition', science: 'Science', everyday: 'Everyday' };
+      const VOICE_COLORS = {
+        tradition: { fg: '#c9a050', bg: 'rgba(201,160,80,0.10)', border: 'rgba(201,160,80,0.45)' },
+        science:   { fg: '#81cdc6', bg: 'rgba(129,205,198,0.10)', border: 'rgba(129,205,198,0.45)' },
+        everyday:  { fg: '#9bb89e', bg: 'rgba(155,184,158,0.10)', border: 'rgba(155,184,158,0.45)' }
+      };
+
+      const currentVoice = getVoice();
+      const otherVoices = VALID_VOICES.filter(v => v !== currentVoice && voices[v] && voices[v].trim());
+
+      if (otherVoices.length === 0) {
+        // current voice is the only one populated; nothing to cross-link to
+        return;
+      }
+
+      // Inline expansion container (initially empty)
+      const panel = document.createElement('div');
+      panel.className = 'cdp-xvoice-panel';
+      panel.style.cssText = 'display:none;margin:8px 0 4px';
+
+      // Build a chip for each non-current voice
+      otherVoices.forEach(v => {
+        const c = VOICE_COLORS[v];
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'cdp-xvoice-chip cdp-xvoice-chip-' + v;
+        chip.setAttribute('data-xvoice', v);
+        chip.setAttribute('aria-expanded', 'false');
+        chip.style.cssText = 'background:' + c.bg + ';border:1px solid ' + c.border + ';color:' + c.fg + ';font-family:Georgia,serif;font-size:12px;letter-spacing:.04em;padding:6px 12px;border-radius:999px;cursor:pointer;transition:background 0.15s ease, border-color 0.15s ease;display:inline-flex;align-items:center;gap:6px';
+        chip.innerHTML = '<span style="opacity:0.85">More:</span> <span style="font-weight:500">' + VOICE_LABELS[v] + '</span> <span style="opacity:0.7">\u2197</span>';
+
+        chip.addEventListener('mouseover', function() {
+          chip.style.background = c.bg.replace('0.10', '0.20');
+          chip.style.borderColor = c.fg;
+        });
+        chip.addEventListener('mouseout', function() {
+          // Only reset if not currently expanded
+          if (chip.getAttribute('aria-expanded') !== 'true') {
+            chip.style.background = c.bg;
+            chip.style.borderColor = c.border;
+          }
+        });
+
+        chip.addEventListener('click', function() {
+          // Toggle reveal of this voice's content
+          const isOpen = chip.getAttribute('aria-expanded') === 'true';
+          if (isOpen) {
+            // Close: remove this voice's block from panel
+            const block = panel.querySelector('[data-xvoice-block="' + v + '"]');
+            if (block) block.remove();
+            chip.setAttribute('aria-expanded', 'false');
+            chip.style.background = c.bg;
+            chip.style.borderColor = c.border;
+            chip.innerHTML = '<span style="opacity:0.85">More:</span> <span style="font-weight:500">' + VOICE_LABELS[v] + '</span> <span style="opacity:0.7">\u2197</span>';
+          } else {
+            // Open: render this voice's content inline
+            const block = document.createElement('div');
+            block.setAttribute('data-xvoice-block', v);
+            block.style.cssText = 'background:' + c.bg + ';border-left:3px solid ' + c.fg + ';padding:14px 18px;margin:6px 0 10px;border-radius:4px;font-family:Georgia,serif;color:rgba(245,228,196,0.94);line-height:1.6;font-size:14px';
+            block.innerHTML = '<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:' + c.fg + ';font-weight:500;margin-bottom:6px">' + VOICE_LABELS[v] + ' lens</div>' +
+              '<div>' + escapeHtml(voices[v]) + '</div>';
+            panel.appendChild(block);
+            panel.style.display = 'block';
+            chip.setAttribute('aria-expanded', 'true');
+            chip.style.background = c.bg.replace('0.10', '0.22');
+            chip.style.borderColor = c.fg;
+            chip.innerHTML = '<span style="opacity:0.85">Hide:</span> <span style="font-weight:500">' + VOICE_LABELS[v] + '</span> <span style="opacity:0.7">\u00d7</span>';
+          }
+          if (window.trackEvent) {
+            try { window.trackEvent('xvoice_chip_toggled', { voice: v, state: isOpen ? 'closed' : 'opened' }); } catch(e){}
+          }
+        });
+
+        wrap.appendChild(chip);
+      });
+
+      // Insert chips and panel right after the voiced element
+      el.parentNode.insertBefore(wrap, el.nextSibling);
+      el.parentNode.insertBefore(panel, wrap.nextSibling);
+    });
+  }
+
+  // Old buildComparePanel-driven injectCompareButtons replaced by chip-based version above.
+  function injectCompareButtons_legacy(root) {
+    const scope = root || document;
+    const elems = scope.querySelectorAll('.cdp-voiced');
+    elems.forEach(el => {
+      // Skip if already has Compare attached (idempotent)
+      if (el.hasAttribute('data-cdp-compare-attached')) return;
+      const voices = getVoicesFromElement(el);
+      const populated = countPopulatedVoices(voices);
+      // Only attach Compare when there's actually something to compare (2+ voices)
+      if (populated < 2) {
+        el.setAttribute('data-cdp-compare-attached', 'single');
+        return;
+      }
+      el.setAttribute('data-cdp-compare-attached', 'true');
+
       // Build the trigger + panel as siblings right after the voiced element
       const wrap = document.createElement('div');
       wrap.className = 'cdp-compare-wrap';
@@ -15027,21 +15331,26 @@ document.addEventListener('cdp:reading-ready', function() {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: var(--v19-gold-soft);
-  border: 1px solid var(--v19-rule);
+  background: rgba(201, 160, 80, 0.16);
+  border: 1px solid rgba(201, 160, 80, 0.55);
   border-radius: 999px;
   font-family: 'Helvetica Neue', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: var(--v19-navy);
+  color: rgba(245, 228, 196, 0.96);
   cursor: pointer;
   transition: all 0.15s ease;
   margin-right: 8px;
+  letter-spacing: 0.02em;
 }
-.cdp-streak-chip:hover { background: var(--v19-gold); color: #fff; }
-.cdp-streak-chip.streak-zero { opacity: 0.5; }
-.cdp-streak-flame { font-size: 13px; }
-.cdp-streak-num { font-size: 13px; }
+.cdp-streak-chip:hover {
+  background: rgba(201, 160, 80, 0.28);
+  border-color: #c9a050;
+  color: #fff;
+}
+.cdp-streak-chip.streak-zero { opacity: 0.6; }
+.cdp-streak-flame { font-size: 13px; color: #c9a050; }
+.cdp-streak-num { font-size: 13px; color: rgba(245, 228, 196, 0.96); font-weight: 700; }
 
 /* STREAK PAGE (calendar grid) */
 .cdp-streak-page {
@@ -15838,14 +16147,23 @@ document.addEventListener('cdp:reading-ready', function() {
     // Yesterday's intention pre-fill hint
     const yhint = document.getElementById('v19YesterdayHint');
     const intentEl = document.getElementById('v19Intention');
-    if (context.yesterday_intention && yhint && intentEl) {
-      yhint.textContent = `Yesterday: "${context.yesterday_intention}"`;
+
+    // v22 memory continuity: prefer Supabase-stored yesterday intention
+    // (durable across server restarts). Fall back to server context value.
+    let resolvedYesterday = context.yesterday_intention || null;
+    try {
+      const sbYesterday = await v19FetchYesterdayIntentionFromSupabase();
+      if (sbYesterday) resolvedYesterday = sbYesterday;
+    } catch(e) {}
+
+    if (resolvedYesterday && yhint && intentEl) {
+      yhint.textContent = `Yesterday: "${resolvedYesterday}"`;
       yhint.style.display = 'block';
       // v22 memory continuity: cache yesterday_intention so the reading page
       // can render the "Yesterday's thread" panel above the reading body.
       try {
         sessionStorage.setItem('cdp_compass_yesterday', JSON.stringify({
-          yesterday_intention: context.yesterday_intention,
+          yesterday_intention: resolvedYesterday,
           captured_at: Date.now()
         }));
       } catch(e) {}
@@ -16076,6 +16394,27 @@ document.addEventListener('cdp:reading-ready', function() {
     if (!intention) return;
 
     const userId = v19GetUserId();
+    const today = (new Date()).toISOString().slice(0,10);
+
+    // v22 memory persistence: write to Supabase for signed-in users.
+    // Survives server restart, syncs across devices, anchors yesterday-thread.
+    try {
+      if (typeof sb !== 'undefined' && sb && currentUser && currentUser.id) {
+        const sbResult = await sb.from('intentions').upsert({
+          user_id: currentUser.id,
+          date: today,
+          intention: intention.slice(0, 240)
+        }, { onConflict: 'user_id,date' });
+        if (sbResult.error) {
+          console.warn('[intentions] Supabase save failed, falling back to server:', sbResult.error.message);
+        } else {
+          console.info('[intentions] Supabase save ok:', today);
+        }
+      }
+    } catch(e) { /* non-fatal, continue to server fallback */ }
+
+    // Server-side save (in-memory, anchors yesterday-thread for anonymous users
+    // and signed-in users on the same session before Supabase round-trip).
     try {
       await fetch(API_BASE + '/api/compass/intention', {
         method: 'POST',
@@ -16085,6 +16424,32 @@ document.addEventListener('cdp:reading-ready', function() {
       v19Track('intention_saved', { length: String(intention.length) });
     } catch (e) {}
   }
+
+  // v22 memory persistence: at compass load, fetch yesterday's intention
+  // from Supabase (authoritative), else fall back to server response.
+  async function v19FetchYesterdayIntentionFromSupabase() {
+    try {
+      if (typeof sb === 'undefined' || !sb || !currentUser || !currentUser.id) return null;
+      const today = new Date();
+      const yest = new Date(today.getTime() - 86400000);
+      const yIso = yest.toISOString().slice(0,10);
+      const { data, error } = await sb.from('intentions')
+        .select('intention, date')
+        .eq('user_id', currentUser.id)
+        .eq('date', yIso)
+        .maybeSingle();
+      if (error) {
+        console.warn('[intentions] Supabase yesterday fetch failed:', error.message);
+        return null;
+      }
+      if (data && data.intention) {
+        console.info('[intentions] Supabase yesterday loaded:', yIso);
+        return data.intention;
+      }
+    } catch(e) { /* non-fatal */ }
+    return null;
+  }
+
 
   // ── Streak ─────────────────────────────────────────────────────
   async function v19RecordVisit() {
