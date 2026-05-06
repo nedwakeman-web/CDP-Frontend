@@ -12904,58 +12904,167 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 <!-- ── HELP DRAWER ─────────────────────────────────────────────── -->
-<div id="helpDrawer" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7)" onclick="if(event.target===this)closeHelp()">
-  <div style="position:absolute;right:0;top:0;bottom:0;width:min(480px,100vw);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border-bottom:1px solid var(--div);padding-bottom:16px">
-      <span style="font-family:'Cinzel',serif;font-size:13px;letter-spacing:.18em;color:var(--gold)">HOW TO USE CDP</span>
+<div id="helpDrawer" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.78);backdrop-filter:blur(4px)" onclick="if(event.target===this)closeHelp()">
+  <div style="position:absolute;right:0;top:0;bottom:0;width:min(560px,100vw);background:linear-gradient(180deg, #0d1e33 0%, #122845 100%);display:flex;flex-direction:column;overflow:hidden;border-left:1px solid rgba(201,160,80,0.3);box-shadow:-4px 0 24px rgba(0,0,0,0.45)">
+    <!-- Header -->
+    <div style="padding:22px 28px 16px;border-bottom:1px solid rgba(201,160,80,0.22);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(8,18,34,0.5)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;color:#c9a050">☽</span>
+        <span style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.28em;color:rgba(201,160,80,0.95);font-weight:500">CDP GUIDE</span>
+        <span style="font-size:18px;color:#81cdc6">⬡</span>
+      </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="downloadGuidePDF()" style="background:none;border:1px solid rgba(201,160,80,0.4);color:var(--gold);font-family:'Cinzel',serif;font-size:9px;letter-spacing:.1em;padding:5px 9px;cursor:pointer;border-radius:2px">⬇ PDF</button>
-        <button onclick="closeHelp()" style="background:none;border:1px solid rgba(240,230,204,0.3);color:var(--text);font-size:22px;line-height:1;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">×</button>
+        <button onclick="downloadGuidePDF()" style="background:none;border:1px solid rgba(201,160,80,0.4);color:#c9a050;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.14em;padding:6px 11px;cursor:pointer;border-radius:2px;transition:border-color 0.15s ease" onmouseover="this.style.borderColor='#c9a050'" onmouseout="this.style.borderColor='rgba(201,160,80,0.4)'">PDF</button>
+        <button onclick="closeHelp()" style="background:none;border:1px solid rgba(245,228,196,0.28);color:rgba(245,228,196,0.92);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:border-color 0.15s ease" onmouseover="this.style.borderColor='rgba(245,228,196,0.6)'" onmouseout="this.style.borderColor='rgba(245,228,196,0.28)'">×</button>
       </div>
     </div>
-    <div style="font-family:'EB Garamond',serif;font-size:16px;color:var(--text2);line-height:1.7">
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">YOUR DAILY FLOW</div>
-      <p style="margin-bottom:16px">Morning: open the Reading tab and begin your day with a Full Reading. Tap any card (Day, Moon, Kin, Life Path) for deeper Oracle insight. Scroll through priorities, shadow work, and the week ahead.</p>
-      <p style="margin-bottom:24px">Midday: the check-in bar slides up from the bottom. Tap "Reading" to re-anchor. Evening: scroll to the reflection section to close the day intentionally.</p>
+    <!-- Body, scrollable -->
+    <div style="flex:1;overflow-y:auto;padding:24px 28px 40px;font-family:Georgia,serif;font-size:15px;color:rgba(245,228,196,0.94);line-height:1.65">
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">THE TABS</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
-        <div><span style="color:var(--gold)">Reading</span> your full daily Oracle across all four frameworks</div>
-        <div><span style="color:var(--gold)">Daily Card</span> a single shareable card with today's synthesis</div>
-        <div><span style="color:var(--gold)">Calendar</span> monthly view showing Kin, moon phases, GAP portals and master number days. Tap any day to preview its energy and open a reading for it.</div>
-        <div><span style="color:var(--gold)">My Energy</span> your personal numerology, Life Path, Personal Year, and Chinese astrology profile</div>
-        <div><span style="color:var(--gold)">Compatibility</span> enter a second person's birth data for a relationship reading across all frameworks</div>
-        <div><span style="color:var(--gold)">Profile</span> save your birth details, time, location, and personal context</div>
-        <div><span style="color:var(--gold)">History</span> your past readings, tap any to reopen</div>
+      <!-- Two Telescopes orientation -->
+      <div style="margin-bottom:28px;padding:18px 20px;background:linear-gradient(135deg, rgba(201,160,80,0.10), rgba(129,205,198,0.07));border:1px solid rgba(201,160,80,0.28);border-radius:6px">
+        <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:400;font-size:24px;color:#c9a050;margin:0 0 8px;letter-spacing:.005em">Two ways of looking. One sky.</h2>
+        <p style="margin:0;font-style:italic;color:rgba(245,228,196,0.86);font-size:14px;line-height:1.55">Cosmic Daily Planner is a place where ancient frameworks and modern neuroscience meet. Pythagorean numerology, Western astrology, Mayan calendrics, lunar cycles, sitting alongside circadian cognition, predictive processing, attachment, default mode network research. They arrive at the same coordinates. CDP shows you both, in the language you prefer.</p>
       </div>
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">READING DEPTHS</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
-        <div><span style="color:var(--gold)">✦ Free</span> Universal Day, moon phase, Kin. Instant.</div>
-        <div><span style="color:var(--gold)">⚡ Full Reading</span> all four frameworks, priorities, shadow work, week ahead. ~15 seconds.</div>
-        <div><span style="color:var(--gold)">☽ Monthly Arc</span> full reading plus lunation map and wavespell arc. 2-4 minutes.</div>
-        <div><span style="color:var(--gold)">◉ Yearly Reading</span> natal chart integration, yearly arc, transit themes. 3-5 minutes.</div>
-        <div><span style="color:var(--gold)">◈ Oracle Deep Dive</span> maximum depth, all frameworks, Hellenistic lots. 5-10 minutes.</div>
+      <!-- Section 1: The morning compass -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">1. THE MORNING COMPASS</div>
+        <p style="margin:0 0 12px">Your daily 30-second check-in, before any full reading. Three tiles at the top of your day:</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;padding-left:8px">
+          <div><span style="color:#c9a050;font-weight:500">◊ Kin</span> <span style="color:rgba(245,228,196,0.78)">today's Dreamspell signature, with the ★ if it's a Galactic Activation Portal</span></div>
+          <div><span style="color:#c9a050;font-weight:500">☽ Moon</span> <span style="color:rgba(245,228,196,0.78)">today's lunar phase, with Black Moon and Shiva Moon flags when applicable</span></div>
+          <div><span style="color:#c9a050;font-weight:500">Personal Day</span> <span style="color:rgba(245,228,196,0.78)">your specific number for today, calculated from your birth date</span></div>
+        </div>
+        <p style="margin:0 0 8px"><strong style="color:#c9a050">Tap any tile</strong> to open a quick Oracle drawer with insight in your current voice. Each drawer offers three follow-up chips, including a cross-voice nudge so you can see the same insight through another lens.</p>
+        <p style="margin:0;font-style:italic;color:rgba(245,228,196,0.78);font-size:14px">Below the tiles is a single intention input. Type a focus for today, even one phrase. Tomorrow, your reading will reference it.</p>
       </div>
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">SPECIAL DAYS</div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:24px">
-        <div><span style="color:var(--gold)">★ GAP Portal</span> Galactic Activation Portal. The veil is thinner. Watch for synchronicities.</div>
-        <div><span style="color:var(--gold)">⚠ Black Moon</span> two days before the new moon. Do not initiate. Complete and release.</div>
-        <div><span style="color:var(--gold)">✨ Shiva Moon</span> two days after the new moon. Plant intentions. Generative energy.</div>
-        <div><span style="color:var(--gold)">11, 22, 33, 44</span> master number days. Heightened frequency. Tap the day number for its meaning.</div>
+      <!-- Section 2: Three voices -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">2. THREE VOICES</div>
+        <p style="margin:0 0 12px">Every reading section is written in three voices. Toggle between them at the top of any reading.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div style="padding:10px 14px;background:rgba(201,160,80,0.10);border-left:3px solid #c9a050;border-radius:4px">
+            <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;color:#c9a050;margin-bottom:4px;font-weight:500">☽ TRADITION</div>
+            <div style="font-size:14px;color:rgba(245,228,196,0.88)">Symbolic and archetypal. The language of millennia of human reflection. Numerology, archetypal astrology (Greene, Tarnas), Maya calendrics, lunar wisdom.</div>
+          </div>
+          <div style="padding:10px 14px;background:rgba(129,205,198,0.10);border-left:3px solid #81cdc6;border-radius:4px">
+            <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;color:#81cdc6;margin-bottom:4px;font-weight:500">⬡ SCIENCE</div>
+            <div style="font-size:14px;color:rgba(245,228,196,0.88)">Mechanistic and causal. Circadian cognition (Cajochen), default mode network (Raichle), interoception (Barrett), predictive processing (Clark), attachment (Bowlby), hippocampal consolidation (Walker).</div>
+          </div>
+          <div style="padding:10px 14px;background:rgba(155,184,158,0.10);border-left:3px solid #9bb89e;border-radius:4px">
+            <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.2em;color:#9bb89e;margin-bottom:4px;font-weight:500">◇ EVERYDAY</div>
+            <div style="font-size:14px;color:rgba(245,228,196,0.88)">Plain-spoken. No jargon from either tradition or science. The language of a smart friend who happens to know what your day is asking for.</div>
+          </div>
+        </div>
+        <p style="margin:0 0 8px;font-size:14px"><strong style="color:#c9a050">Below each section</strong>, you will see chips: <em style="color:#c9a050">More: Tradition ↗</em>, <em style="color:#81cdc6">More: Science ↗</em>, <em style="color:#9bb89e">More: Everyday ↗</em>. Tap one to reveal that voice for that section, inline. Multiple voices can be open at once. This is the magazine model: see the same insight through different lenses without losing your place.</p>
       </div>
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">READING LANGUAGE</div>
-      <p style="margin-bottom:24px">On the entry screen, choose <em>Tradition</em> for the traditional cosmic language of archetypes and energetic fields, or <em>Science</em> for the same insights translated into neuroscience: salience networks, circadian rhythms, interoception and neuroplasticity.</p>
+      <!-- Section 3: The tabs -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">3. THE TABS</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div><span style="color:#c9a050;font-weight:500">Reading</span> <span style="color:rgba(245,228,196,0.78)">your full daily Oracle across all four frameworks, in three voices</span></div>
+          <div><span style="color:#c9a050;font-weight:500">Daily Card</span> <span style="color:rgba(245,228,196,0.78)">a single shareable card with today's synthesis</span></div>
+          <div><span style="color:#c9a050;font-weight:500">Calendar</span> <span style="color:rgba(245,228,196,0.78)">monthly view with Kin, moon phases, GAP portals, master numbers, Black/Shiva moons. Tap any day to preview, or open a reading for it. The Best Day finder lives at the top.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">My Energy</span> <span style="color:rgba(245,228,196,0.78)">your personal numerology, Life Path, Personal Year, Birth Kin, Chinese astrology profile</span></div>
+          <div><span style="color:#c9a050;font-weight:500">Compatibility</span> <span style="color:rgba(245,228,196,0.78)">enter a second person's birth data for a relationship reading across all frameworks</span></div>
+          <div><span style="color:#c9a050;font-weight:500">Profile</span> <span style="color:rgba(245,228,196,0.78)">save your birth details, time, location, and personal context. The Oracle becomes more specific the more you tell it.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">History</span> <span style="color:rgba(245,228,196,0.78)">your past readings, tap any to reopen</span></div>
+        </div>
+      </div>
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">PROFILES</div>
-      <p style="margin-bottom:24px">Use the Profiles button (☿ in the top bar) to save multiple people, family, friends, colleagues. Select a profile before a reading to receive it for that person. Use Compatibility to read two profiles together.</p>
+      <!-- Section 4: Reading depths -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">4. READING DEPTHS</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div><span style="color:#c9a050;font-weight:500">✦ Free</span> <span style="color:rgba(245,228,196,0.78)">Universal Day, moon phase, Kin. Instant.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">⚡ Seeker</span> <span style="color:rgba(245,228,196,0.78)">all four frameworks, priorities, shadow work, week ahead. Roughly 15 seconds.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">☽ Initiate</span> <span style="color:rgba(245,228,196,0.78)">Seeker plus monthly arc, lunation map, wavespell sequence. 2-4 minutes.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">◉ Mystic</span> <span style="color:rgba(245,228,196,0.78)">natal chart integration, yearly arc, transit themes. 3-5 minutes.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">◈ Oracle</span> <span style="color:rgba(245,228,196,0.78)">maximum depth, all frameworks, Hellenistic lots, biorhythms, hormonal phase. 5-10 minutes.</span></div>
+        </div>
+      </div>
 
-      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.14em;color:var(--teal);margin-bottom:8px">GETTING MORE FROM THE ORACLE</div>
-      <p style="margin-bottom:8px">Tap any section heading or card to ask the Oracle a follow-up question. Pre-built chips appear for common questions, or type your own.</p>
-      <p style="margin-bottom:24px">The more personal context you add in your profile (what you are building, who matters to you, what you are navigating), the more specific the Oracle becomes. It speaks to your actual life, not a generic one.</p>
+      <!-- Section 5: Special days -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">5. SPECIAL DAYS</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div><span style="color:#c9a050;font-weight:500">★ GAP Portal</span> <span style="color:rgba(245,228,196,0.78)">Galactic Activation Portal. The Dreamspell tradition holds these as days when synchronicities amplify. 52 such Kins per 260-day cycle.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">⚠ Black Moon</span> <span style="color:rgba(245,228,196,0.78)">two days before the new moon. A liminal threshold. Symbolically, do not initiate. Complete and release. Useful for closing loops.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">✨ Shiva Moon</span> <span style="color:rgba(245,228,196,0.78)">two days after the new moon. Generative and fertile. Auspicious for new actions, new conversations, fresh starts.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">11, 22, 33, 44</span> <span style="color:rgba(245,228,196,0.78)">master number days. Heightened frequency. Tap the day in Calendar to read its specific meaning.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">9-day</span> <span style="color:rgba(245,228,196,0.78)">completion energy. Good for finishing rather than starting.</span></div>
+          <div><span style="color:#c9a050;font-weight:500">7-day</span> <span style="color:rgba(245,228,196,0.78)">contemplative, introspective. Slow down and reflect.</span></div>
+        </div>
+      </div>
+
+      <!-- Section 6: Memory and continuity -->
+      <div style="margin-bottom:28px;padding:16px 18px;background:rgba(108,138,114,0.08);border-left:3px solid #6c8a72;border-radius:4px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:#9bb89e;margin-bottom:10px;font-weight:500">6. MEMORY AND CONTINUITY</div>
+        <p style="margin:0 0 10px">CDP is built so it remembers. The Oracle is not a daily slot machine; today's reading is in conversation with yesterday and the day before.</p>
+        <p style="margin:0 0 10px"><strong style="color:#9bb89e">Yesterday's thread:</strong> when you write an intention into the Compass, tomorrow's reading references it. The "Yesterday's thread" panel appears at the top of the reading. The Oracle picks up where you left off.</p>
+        <p style="margin:0;font-style:italic;color:rgba(245,228,196,0.82);font-size:14px">When signed in, your intentions are saved to a private database scoped only to you. They survive across devices and sessions. Anonymous use keeps your data session-only.</p>
+      </div>
+
+      <!-- Section 7: Profiles -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">7. PROFILES</div>
+        <p style="margin:0 0 10px">The Profiles button (☿) in the topbar lets you save multiple people, family, friends, colleagues. Switch active profile before generating a reading to receive it for that person. Use Compatibility to read two profiles together.</p>
+        <p style="margin:0;font-size:14px;color:rgba(245,228,196,0.82)">The more personal context you add (what you are building, who matters to you, what you are navigating), the more specific the Oracle becomes. It speaks to your actual life, not a generic one.</p>
+      </div>
+
+      <!-- Section 8: Asking the Oracle -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">8. ASKING THE ORACLE</div>
+        <p style="margin:0 0 10px">Tap any section heading or card in a reading to open a follow-up drawer. Pre-built chips suggest common questions, or type your own.</p>
+        <p style="margin:0;font-size:14px;color:rgba(245,228,196,0.82)">The Oracle answers in your current voice and references your full reading context. Ask about the shadow side of a Kin, how a transit interacts with your natal chart, what to do practically with a Personal Day energy.</p>
+      </div>
+
+      <!-- Section 9: Pick a day -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">9. PICK A DAY</div>
+        <p style="margin:0 0 10px">Open the Calendar tab. Each day shows badges for Kin, moon phase, GAP portal, and master numbers. Tap any day to see its energy and open a full reading for it.</p>
+        <p style="margin:0;font-size:14px;color:rgba(245,228,196,0.82)"><strong style="color:#c9a050">Best Day finder</strong> at the top of Calendar: tell it what you are planning (a difficult conversation, a launch, a long flight, a creative session), and it returns the most favourable day in the next month, with reasons specific to your numerology and the cosmic weather.</p>
+      </div>
+
+      <!-- Section 10: Daily flow -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">10. A SUGGESTED DAILY FLOW</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+          <div><strong style="color:#c9a050">Morning</strong> <span style="color:rgba(245,228,196,0.82)">open the Compass. Tap a tile if anything calls. Type one line of intention. Then if you have time, generate a full reading.</span></div>
+          <div><strong style="color:#c9a050">Midday</strong> <span style="color:rgba(245,228,196,0.82)">return to the reading you generated. Read the afternoon pacing section. Toggle to a different voice if the morning one feels stale.</span></div>
+          <div><strong style="color:#c9a050">Evening</strong> <span style="color:rgba(245,228,196,0.82)">scroll to the reflection section. Close the day intentionally. The Oracle remembers what you wrote in the morning Compass.</span></div>
+        </div>
+      </div>
+
+      <!-- Section 11: Sources and integrity -->
+      <div style="margin-bottom:28px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">11. SOURCES AND INTEGRITY</div>
+        <p style="margin:0 0 10px;font-size:14px">Astronomical positions: Swiss Ephemeris (Koch and Treindl, Astrodienst AG) and JPL Horizons (NASA).</p>
+        <p style="margin:0 0 10px;font-size:14px">Maya scholarship: Šprajc, Inomata and Aveni (2023, Science Advances); Aldana (2022). Dreamspell is always labelled as Argüelles 1987, a 20th-century system distinct from ancient K'iche' Maya tradition.</p>
+        <p style="margin:0 0 10px;font-size:14px">Western astrology: Tarnas (2006), Greene (1976), Hand (2002), Brennan (2017).</p>
+        <p style="margin:0 0 10px;font-size:14px">Numerology: Drayer (2002), Kahn (2001).</p>
+        <p style="margin:0 0 10px;font-size:14px">Neuroscience: Cajochen and Schmidt (2024), Raichle (2015), Smallwood et al (2021), Barrett and Hoemann (2018), Walker (2017), Clark (2016).</p>
+        <p style="margin:0;font-style:italic;color:rgba(245,228,196,0.78);font-size:13px">Every factual claim in CDP traces to a named authority. Symbolic claims are explicitly labelled as symbolic.</p>
+      </div>
+
+      <!-- Section 12: What CDP is and is not -->
+      <div style="margin-bottom:24px;padding:16px 18px;background:rgba(245,228,196,0.05);border:1px solid rgba(201,160,80,0.22);border-radius:4px">
+        <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:rgba(201,160,80,0.95);margin-bottom:10px;font-weight:500">12. WHAT CDP IS AND IS NOT</div>
+        <p style="margin:0 0 8px;font-size:14px;color:rgba(245,228,196,0.92)"><strong style="color:#c9a050">It is</strong> a wellness and self-knowledge companion, integrating ancient frameworks with modern neuroscience to give you the texture of your day in the language you choose.</p>
+        <p style="margin:0;font-size:14px;color:rgba(245,228,196,0.82);font-style:italic">It is not a medical product, therapist, or doctor. Not a substitute for professional advice. If you are in crisis or need clinical support, please reach out to a qualified professional. UK: Samaritans 116 123 (free, 24/7) or NHS 111. US: 988 Suicide and Crisis Lifeline.</p>
+      </div>
+
+      <!-- Closing -->
+      <div style="text-align:center;padding:14px 0 4px;border-top:1px solid rgba(201,160,80,0.18)">
+        <p style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:16px;color:rgba(245,228,196,0.7)">Two ways of looking. One sky.</p>
+      </div>
+      <div style="text-align:center;margin-top:10px">
+        <a href="/privacy.html" target="_blank" style="font-size:11px;color:rgba(245,228,196,0.4);text-decoration:underline;text-underline-offset:2px">Privacy Policy</a>
+      </div>
 
     </div>
   </div>
