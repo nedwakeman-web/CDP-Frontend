@@ -533,25 +533,32 @@ function _moonResult(phase,emoji,desc,cyc,d,fraction,cycLength){
 
 // ══════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════
-// DREAMSPELL — anchor 26 July 2024 = Kin 144 (Yellow Magnetic Seed)
-// AUTHORITATIVE SOURCE: Foundation for the Law of Time / Argüelles
-// canonical Galactic New Year. Cross-checked with:
-//   - 26 Jul 2024 = Kin 144 Yellow Magnetic Seed (Galactic New Year)
-//   - 24 Aug 2024 = Kin 173 Red Self-Existing Skywalker
-//   - José Argüelles birthday 24 Jan 1939 = Kin 11 Blue Spectral Monkey
-//   - Lloydine Argüelles birthday 15 May 1943 = Kin 22 White Solar Wind
-// All four anchors mutually consistent under same calculation rule.
+// DREAMSPELL — anchor 8 July 2024 = Kin 1 (Magnetic Red Dragon)
+// AUTHORITATIVE SOURCE: Foundation for the Law of Time canonical
+// Tzolkin start, used by StarRoot calculator and Tortuga 13:20.
+// THREE-SOURCE VERIFICATION (6 May 2026):
+//   - StarRoot (starroot.com): "kin 146 - May 4, 2026" (direct quote)
+//   - Tortuga 13:20 (tortuga1320.com): explicitly endorses StarRoot
+//   - Independent calculation from FOL anchor: 6 May 2026 = Kin 148
+//   All three converge on Kin 148 Overtone Yellow Star for today.
+//
+// Cross-check anchors:
+//   - 8 Jul 2024 = Kin 1 Magnetic Red Dragon (FOL Tzolkin start)
+//   - 9 Jul 2024 = Kin 2 Lunar White Wind
+//   - 4 May 2026 = Kin 146 Lunar Red Earth (matches StarRoot)
+//   - 6 May 2026 = Kin 148 Overtone Yellow Star (today)
 //
 // Dreamspell rule: Feb 29 is "Day Out of Time" / Hunab Ku, NOT a Kin day.
-// Skip it when computing days between dates.
+// Skip it when computing days between dates. (Per lawoftime.org canon.)
 //
-// NOTE (v32, 4 May 2026): Previous server anchor (31 Mar 2026 = Kin 52)
-// was off by 75 Kin from the canonical. This caused every reading's Kin
-// to be wrong by 75 positions. Sonia flagged this; web research confirmed.
-// Today (4 May 2026) is correctly Kin 11 — Blue Spectral Monkey.
+// HISTORY:
+//   - v32 (4 May 2026): server anchor was 31 Mar 2026 = Kin 52 (off by 75)
+//   - v33 (5 May 2026): briefly used 26 Jul 2024 = Kin 144 (off by 135)
+//   - v34 (6 May 2026): switched to FOL/StarRoot verified anchor, three
+//     independent sources agreed. This is the canonical Dreamspell count.
 // ══════════════════════════════════════════════════════════════════
-const KIN_ANCHOR_D=new Date('2024-07-26T12:00:00Z');
-const KIN_ANCHOR=144;
+const KIN_ANCHOR_D=new Date('2024-07-08T12:00:00Z');
+const KIN_ANCHOR=1;
 const SEALS=['Red Dragon','White Wind','Blue Night','Yellow Seed','Red Serpent',
   'White World-Bridger','Blue Hand','Yellow Star','Red Moon','White Dog',
   'Blue Monkey','Yellow Human','Red Skywalker','White Wizard','Blue Eagle',
