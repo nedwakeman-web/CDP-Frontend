@@ -5822,11 +5822,39 @@ async function loadReading(dateStr, tier) {
         if (Date.now() - startedAt > maxWait) {
           clearInterval(pollingTimer); pollingTimer = null;
           sessionStorage.removeItem('cdp_active_job');
-          // If Phase 1 already rendered, finalise it as the reading rather than showing error
+          // If Phase 1 already rendered, finalise it as the reading rather than showing error.
+          // v22h: also update the status bar to a clear 'complete' message before fading,
+          // and explicitly clear the elapsed timer so the user does not see a stuck timer.
           if (window._phase1Rendered && currentReading) {
             clearInterval(stageTimer);
             const _sb = document.getElementById('skeletonStatusBar');
-            if (_sb) { _sb.style.transition='opacity .4s'; _sb.style.opacity='0'; setTimeout(()=>_sb.remove(),400); }
+            if (_sb) {
+              // Update status text to 'complete' before fading
+              const _skTxt = document.getElementById('skStatusText');
+              if (_skTxt) {
+                _skTxt.style.opacity = '0';
+                setTimeout(() => {
+                  if (_skTxt) {
+                    _skTxt.textContent = 'Reading complete · deep analysis timed out, refresh to retry';
+                    _skTxt.style.opacity = '1';
+                  }
+                }, 200);
+              }
+              // Clear the elapsed timer so it does not look like polling is still running
+              const _elt = document.getElementById('skElapsedTxt');
+              if (_elt) _elt.textContent = '';
+              // Stop the progress bar at 100%
+              const _pb = document.getElementById('skProgressBar');
+              if (_pb) _pb.style.width = '100%';
+              // Hold the new message visible briefly, then fade the whole bar out
+              setTimeout(() => {
+                if (_sb) {
+                  _sb.style.transition = 'opacity .6s ease';
+                  _sb.style.opacity = '0';
+                  setTimeout(() => { if (_sb) _sb.remove(); }, 600);
+                }
+              }, 2400);
+            }
             fillAISections(currentReading, dateStr);
             return;
           }
@@ -6789,6 +6817,45 @@ function renderSkeletonReading(dateStr, tier) {
 
   const _nextTier = {free:'seeker',seeker:'initiate',initiate:'mystic',mystic:'oracle'}[tier];
   const _nextLabel = {seeker:'Full Reading',initiate:'Monthly Arc',mystic:'Yearly Reading',oracle:'Oracle'}[_nextTier];
+
+  // v22h: compass + telescope glyph pair on the waiting/skeleton page,
+  // matching the same pattern used on the final reading. The user sees
+  // the brand glyphs while their reading composes, with both glyphs
+  // tappable to open their respective explainers.
+  html += `<div class="cdp-reading-glyph-header" style="
+    margin: 0 -32px 20px -32px;
+    padding: 18px 12px 16px;
+    border-top: 1px solid rgba(165,132,89,0.45);
+    border-bottom: 1px solid rgba(165,132,89,0.45);
+    background: linear-gradient(180deg, rgba(8,26,45,0.4), rgba(8,26,45,0.15));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  ">
+    <button type="button"
+      onclick="if(typeof openCompassIntro==='function')openCompassIntro()"
+      aria-label="What is the Compass?"
+      style="background:transparent;border:1px solid transparent;border-radius:6px;padding:6px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:inherit;transition:background .2s ease,border-color .2s ease"
+      onmouseover="this.style.background='rgba(165,132,89,0.06)';this.style.borderColor='rgba(165,132,89,0.3)'"
+      onmouseout="this.style.background='transparent';this.style.borderColor='transparent'">
+      <img src="${CDP_COMPASS_GLYPH_B64}" alt="" aria-hidden="true"
+        style="width:clamp(72px,12vw,98px);height:clamp(72px,12vw,98px);display:block;border-radius:50%;flex-shrink:0;object-fit:cover">
+      <div style="font-family:'Cinzel',Georgia,serif;font-size:clamp(10px,1.4vw,12px);font-weight:500;letter-spacing:0.20em;text-transform:uppercase;color:#D1B68B;line-height:1.2;margin-top:2px">Compass</div>
+      <div style="font-family:Georgia,serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(165,132,89,0.65);font-weight:500">Tap to enter</div>
+    </button>
+    <button type="button"
+      onclick="if(typeof openTwoTelescopesIntro==='function')openTwoTelescopesIntro()"
+      aria-label="What is Two Telescopes?"
+      style="background:transparent;border:1px solid transparent;border-radius:6px;padding:6px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:inherit;transition:background .2s ease,border-color .2s ease"
+      onmouseover="this.style.background='rgba(165,132,89,0.06)';this.style.borderColor='rgba(165,132,89,0.3)'"
+      onmouseout="this.style.background='transparent';this.style.borderColor='transparent'">
+      <img src="${CDP_TELESCOPE_GLYPH_B64}" alt="" aria-hidden="true"
+        style="width:clamp(72px,12vw,98px);height:clamp(72px,12vw,98px);display:block;border-radius:50%;flex-shrink:0;object-fit:cover">
+      <div style="font-family:'Cinzel',Georgia,serif;font-size:clamp(10px,1.4vw,12px);font-weight:500;letter-spacing:0.20em;text-transform:uppercase;color:#D1B68B;line-height:1.2;margin-top:2px">Two Telescopes</div>
+      <div style="font-family:Georgia,serif;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(165,132,89,0.65);font-weight:500">Tap to learn</div>
+    </button>
+  </div>`;
 
   html += `<div class="r-head">
     <div class="r-meta">Your Daily Reading</div>
