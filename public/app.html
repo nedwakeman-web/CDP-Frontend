@@ -2161,6 +2161,121 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 })();
 </script>
 
+<!-- ════════════════════════════════════════════════════════════════════
+     v22h: ANON DEMO MODE BOOTSTRAP
+     Detects ?demo=1 URL param. Seeds a synthetic profile in localStorage
+     so the reading is illustrative on first load. Marks welcome modal as
+     done so it does not appear. Adds a persistent ribbon at the top of
+     the page with a sign-up CTA. The ribbon stays through the whole
+     session, encouraging conversion to a real account.
+
+     Demo profile uses a fixed sample birthday (15 May 1985, London) so
+     the reading is reproducible across demo sessions and gives a fair
+     impression of what a real personalised reading looks like.
+
+     Real users (no ?demo=1 in URL) are completely unaffected by this
+     block.
+     ════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('demo') !== '1') return;
+
+    window.cdpDemoMode = true;
+
+    // Seed synthetic profile only if no real profile exists. This protects
+    // any user who might already be in a real session and clicks a demo
+    // link by accident.
+    var existing = '';
+    try { existing = localStorage.getItem('cdp_profile') || ''; } catch(e) {}
+    var existingObj = {};
+    try { existingObj = JSON.parse(existing || '{}'); } catch(e) {}
+    var hasRealProfile = existing && existing !== '{}' && existingObj.nickname && !existingObj._isDemo;
+
+    if (!hasRealProfile) {
+      var demoProfile = {
+        nickname: 'Friend',
+        name: 'Friend',
+        birthDay: 15,
+        birthMonth: 5,
+        birthYear: 1985,
+        birthLocation: 'London, UK',
+        birthTime: '14:30',
+        location: 'London, UK',
+        context: 'Curious about CDP. Exploring the platform for the first time.',
+        roles: ['curious'],
+        _isDemo: true
+      };
+      try {
+        localStorage.setItem('cdp_profile', JSON.stringify(demoProfile));
+        localStorage.setItem('cdp_v22_welcomed', 'demo');
+        // Mark these so we know they were seeded by demo mode
+        localStorage.setItem('cdp_demo_seeded', '1');
+      } catch(e) {}
+    }
+
+    // Suppress the welcome modal and the email capture popup for demo
+    // sessions. The ribbon already carries the conversion message.
+    try {
+      sessionStorage.setItem('cdp_ec_shown', '1');
+    } catch(e) {}
+
+    // Add the demo ribbon at the very top of the page when DOM is ready.
+    function addDemoRibbon() {
+      if (document.getElementById('cdp-demo-ribbon')) return;
+      var r = document.createElement('div');
+      r.id = 'cdp-demo-ribbon';
+      r.style.cssText = 'position:sticky;top:0;left:0;right:0;z-index:9997;'
+        + 'background:linear-gradient(90deg,rgba(201,160,80,0.20),rgba(129,205,198,0.18),rgba(201,160,80,0.20));'
+        + 'border-bottom:1px solid rgba(201,160,80,0.45);'
+        + 'padding:9px 18px;text-align:center;font-family:Georgia,serif;'
+        + 'color:rgba(245,228,196,0.92);font-size:13px;line-height:1.45;'
+        + 'box-shadow:0 1px 8px rgba(0,0,0,0.25)';
+      r.innerHTML = ''
+        + '<span style="font-family:\'Cinzel\',Georgia,serif;font-size:11px;'
+        + 'letter-spacing:.24em;text-transform:uppercase;color:#c9a050;font-weight:500">Demo mode</span>'
+        + '<span style="margin:0 12px;color:rgba(245,228,196,0.4)">·</span>'
+        + '<span style="font-style:italic;color:rgba(245,228,196,0.78)">Sample profile, real reading. Your data is not saved.</span>'
+        + '<a href="/#apply" style="margin-left:14px;color:#c9a050;'
+        + 'text-decoration:none;border-bottom:1px solid rgba(201,160,80,0.5);'
+        + 'font-weight:500;letter-spacing:.04em">Sign up to keep your readings &rarr;</a>';
+      if (document.body) {
+        document.body.insertBefore(r, document.body.firstChild);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', addDemoRibbon);
+    } else {
+      addDemoRibbon();
+    }
+
+    console.log('[CDP] Demo mode active. Synthetic profile seeded.');
+  } catch(err) {
+    console.warn('[CDP] Demo bootstrap failed:', err && err.message);
+  }
+})();
+</script>
+
+<!-- v22h: demo cleanup. If user returns without ?demo=1 but has demo
+     data still in localStorage, clear it so they get a fresh start. -->
+<script>
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === '1') return;
+    if (localStorage.getItem('cdp_demo_seeded') === '1') {
+      localStorage.removeItem('cdp_profile');
+      localStorage.removeItem('cdp_v22_welcomed');
+      localStorage.removeItem('cdp_demo_seeded');
+      console.log('[CDP] Cleared demo profile on real entry.');
+    }
+  } catch(e) {}
+})();
+</script>
+
+
 
 <!-- ── DISCLOSURE LAYER 1 (v18) ─────────────────────────────────────────────
      Shown once on first visit, before any signup or reading. Two stages:
