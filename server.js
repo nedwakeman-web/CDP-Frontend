@@ -765,6 +765,7 @@ function callAPI(model, maxTok, sys, user) {
       ...(sys ? {system: sys} : {})
     });
 
+    let resolved = false;
     const req = https.request({
       hostname: 'api.anthropic.com',
       port: 443,
@@ -779,7 +780,6 @@ function callAPI(model, maxTok, sys, user) {
     }, res => {
       let buffer = '';
       let fullText = '';
-      let resolved = false;
 
       // Check for non-200 HTTP status (overloaded, auth error etc)
       if (res.statusCode !== 200) {
@@ -829,9 +829,28 @@ function callAPI(model, maxTok, sys, user) {
     });
 
     req.on('error', err => reject(err));
-    req.setTimeout(240000, () => {
-      req.destroy(new Error('Socket timeout after 240s'));
+
+    // v22h: tighter inactivity timeout (was 240s).
+    // If no data arrives for 75 seconds the call is not coming back.
+    req.setTimeout(75000, () => {
+      req.destroy(new Error('Socket timeout after 75s'));
     });
+
+    // v22h: hard total-request ceiling. Even if data is trickling slowly
+    // enough to keep the inactivity timeout from firing, abort after 180s.
+    // This bounds worst-case wall time for a single LLM call and was the
+    // most likely cause of the multi-tens-of-minutes hangs that bypassed
+    // the inactivity timeout.
+    const _hardCap = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        try { req.destroy(new Error('Hard timeout after 180s, aborting slow stream')); } catch(e) {}
+        reject(new Error('hard_timeout_180s'));
+      }
+    }, 180000);
+    // Clear hardCap when the request resolves successfully or errors out
+    req.on('close', () => clearTimeout(_hardCap));
+
     req.write(body);
     req.end();
   });
@@ -1409,6 +1428,22 @@ app.post('/api/reading/start', async (req, res) => {
     error: null
   });
 
+  // v22h: per-tier hard job deadline. If the orchestration is still running
+  // when this fires, mark the job as errored so the client polling sees
+  // failure and can prompt the user to retry. Bounds the worst case end-to-end
+  // wall time and prevents 'still composing' phantom states.
+  const _jobDeadlineMs = {free: 90000, seeker: 90000, initiate: 180000,
+                          mystic: 240000, oracle: 360000}[activeTier] || 180000;
+  setTimeout(() => {
+    const _j = jobs.get(jobId);
+    if (_j && _j.status !== 'complete' && _j.status !== 'error') {
+      _j.status = 'error';
+      _j.error = `job_deadline_exceeded_${Math.round(_jobDeadlineMs/1000)}s`;
+      _j.completedAt = Date.now();
+      console.error(`Job ${jobId} forcibly errored after ${_jobDeadlineMs/1000}s deadline`);
+    }
+  }, _jobDeadlineMs);
+
   res.json({ jobId, status: 'pending' });
 
   // ── TWO-PHASE GENERATION ────────────────────────────────────────
@@ -1447,9 +1482,18 @@ app.post('/api/reading/start', async (req, res) => {
             qdRaw = await callAPI('claude-haiku-4-5-20251001', 1800, qdSys, qdUser);
             break;
           } catch(e) {
-            if (e.message.includes('overloaded') && attempt < 2) {
-              console.log(`Job ${jobId} overloaded, retry ${attempt+1}...`);
-              await new Promise(r => setTimeout(r, 4000 + attempt * 3000));
+            // v22h: retry on a wider set of transient failures, not just
+            // 'overloaded'. Socket timeouts, hard timeouts, and 5xx errors
+            // are all worth retrying with backoff.
+            const transient = e.message.includes('overloaded')
+              || e.message.includes('Socket timeout')
+              || e.message.includes('hard_timeout')
+              || e.message.includes('http_5')
+              || e.message.includes('ECONNRESET')
+              || e.message.includes('ETIMEDOUT');
+            if (transient && attempt < 2) {
+              console.log(`Job ${jobId} transient (${e.message.slice(0,60)}), retry ${attempt+1}...`);
+              await new Promise(r => setTimeout(r, 3000 + attempt * 2000));
             } else throw e;
           }
         }
