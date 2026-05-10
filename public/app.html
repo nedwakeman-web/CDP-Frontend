@@ -11838,9 +11838,9 @@ async function fetchRecentHistory() {
   if (!sb || !currentUser) return [];
   try {
     const { data } = await sb.from('readings')
-      .select('date, summary, synthesis, shadow_work, priority_1, moon_phase, kin, ud')
+      .select('date:reading_date, summary, synthesis, shadow_work, priority_1, moon_phase, kin, ud')
       .eq('user_id', currentUser.id)
-      .order('date', { ascending: false })
+      .order('reading_date', { ascending: false })
       .limit(5);
     return data || [];
   } catch(e) {
@@ -11870,9 +11870,13 @@ async function saveReadingToSupabase(dateStr, tier, reading) {
     // full display string. Display fields (kin_full, kin_seal, kin_tone) are
     // saved on the extended payload only, where their absence on minimal is
     // handled by the defensive fallback.
+    //
+    // v35 fix: schema column is "reading_date" (NOT NULL), not "date".
+    // Sending "date" left reading_date null and tripped the NOT NULL constraint
+    // on every insert. All SELECT/ORDER/onConflict references also updated.
     const minimalPayload = {
       user_id: currentUser.id,
-      date: dateStr,
+      reading_date: dateStr,
       tier: tier,
       synthesis: reading.synthesis?.slice(0, 500) || null,
       ud: currentReading?.num?.ud || null,
@@ -11889,10 +11893,10 @@ async function saveReadingToSupabase(dateStr, tier, reading) {
       kin_tone: currentReading?.kin?.tone || null
     });
 
-    let saveResult = await sb.from('readings').upsert(extendedPayload, { onConflict: 'user_id,date' });
+    let saveResult = await sb.from('readings').upsert(extendedPayload, { onConflict: 'user_id,reading_date' });
     if (saveResult.error) {
       console.warn('[readings] extended save failed, retrying minimal:', saveResult.error.message);
-      saveResult = await sb.from('readings').upsert(minimalPayload, { onConflict: 'user_id,date' });
+      saveResult = await sb.from('readings').upsert(minimalPayload, { onConflict: 'user_id,reading_date' });
       if (saveResult.error) {
         console.warn('[readings] minimal save also failed:', saveResult.error.message);
       } else {
@@ -11908,9 +11912,9 @@ async function loadReadingHistoryFromSupabase() {
   if (!sb || !currentUser) return;
   try {
     const { data, error } = await sb.from('readings')
-      .select('date,tier,synthesis,ud,kin,moon_phase,shadow_work,priority_1')
+      .select('date:reading_date,tier,synthesis,ud,kin,moon_phase,shadow_work,priority_1')
       .eq('user_id', currentUser.id)
-      .order('date', { ascending: false })
+      .order('reading_date', { ascending: false })
       .limit(30);
     if (error || !data) return;
     const local = JSON.parse(localStorage.getItem('cdp_history') || '{}');
