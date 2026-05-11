@@ -180,6 +180,549 @@ button img[aria-hidden="true"] {
    (i.e. some JS reparented them at runtime, breaking the .screen
    containment), force-hide them. They should only render inside #sc,
    which has its own display: none/block based on .on class. */
+
+
+/* iter11c: inline citation markers in chip drawers. Light visual treatment;
+   user can hover/tap to see the full reference (when the v11Cite tap handler
+   is wired in iter12). For now they render as low-emphasis academic-style
+   inline notes. */
+.v11-cite {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 0.78em;
+  letter-spacing: 0.06em;
+  color: rgba(201,160,80,0.78);
+  font-weight: 400;
+  cursor: help;
+  padding: 0 1px;
+  transition: color 0.18s ease;
+}
+.v11-cite:hover {
+  color: var(--gold);
+}
+.v11-cite::before { content: ""; }
+.v11-cite::after { content: ""; }
+/* In Science voice, cite markers use teal */
+[data-compass-voice="science"] .v11-cite { color: rgba(129,205,198,0.78); }
+[data-compass-voice="science"] .v11-cite:hover { color: var(--teal); }
+
+/* iter11b: hide the old compass-reply v2 "Go deeper" gold pill. The
+   iter11 threshold (Full Reading + Go deeper here) replaces this with the
+   confirmed two-button model. The "Reply" button still works for inline
+   conversation; only the duplicate go-deeper pill is hidden. */
+.cdp-cr-actions .cdp-cr-go-deeper { display: none !important; }
+
+/* iter11: Compass surface rebuild
+   Voice toggle, voice-aware cycling, four chips, threshold buttons, chip drawer.
+*/
+.v11-voice-toggle {
+  display: flex; gap: 0; margin: 12px auto 18px; max-width: 340px;
+  background: rgba(8,26,45,0.6); border: 1px solid rgba(165,132,89,0.30);
+  border-radius: 4px; padding: 3px;
+}
+.v11-voice-btn {
+  flex: 1; padding: 7px 12px; background: transparent; border: none;
+  border-radius: 3px; color: rgba(245,228,196,0.65);
+  font-family: 'Cinzel', Georgia, serif; font-size: 9.5px;
+  letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.v11-voice-btn:hover { color: var(--gold); }
+.v11-voice-btn.active { background: rgba(201,160,80,0.18); color: var(--gold); }
+.v11-voice-btn[data-voice="science"].active { background: rgba(129,205,198,0.16); color: var(--teal); }
+.v11-voice-btn[data-voice="everyday"].active { background: rgba(245,228,196,0.12); color: var(--text); }
+
+.v11-compass-chips {
+  /* iter11b default (mobile): horizontal row centered below compass image */
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin: 18px auto 14px; max-width: 560px; padding: 0 12px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   iter11e: boxed-card chip aesthetic matching the Reading-screen
+   KIN/MOON/PERSONAL DAY card design. Stacked vertically, equal width,
+   non-italic, non-bold body text. Visual continuity with Reading
+   reinforces "same coordinates, two depths" architecture.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Mobile-first: cards stack in a horizontal scroll OR wrap to a grid */
+#scompass .v11-compass-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: center !important;
+  padding: 16px 14px 14px !important;
+  background: rgba(16, 32, 52, 0.55) !important;
+  border: 1px solid rgba(165, 132, 89, 0.28) !important;
+  border-radius: 6px !important;
+  color: rgba(245, 228, 196, 0.94) !important;
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-size: 14px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: background 0.22s ease, border-color 0.22s ease, transform 0.18s ease !important;
+  min-height: 92px !important;
+  white-space: normal !important;
+}
+#scompass .v11-compass-card:hover {
+  background: rgba(28, 48, 72, 0.72) !important;
+  border-color: rgba(201, 160, 80, 0.58) !important;
+  transform: translateY(-1px) !important;
+}
+#scompass .v11-compass-card .v11-chip-icon {
+  font-size: 19px !important;
+  opacity: 0.95 !important;
+  color: rgba(201, 160, 80, 0.92) !important;
+  margin: 0 0 6px 0 !important;
+  line-height: 1 !important;
+}
+#scompass .v11-compass-card .v11-chip-eyebrow {
+  display: block !important;
+  font-family: 'Cinzel', Georgia, serif !important;
+  font-size: 9.5px !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  color: rgba(201, 160, 80, 0.75) !important;
+  margin: 0 0 5px 0 !important;
+  font-weight: 400 !important;
+}
+#scompass .v11-compass-card .v11-chip-label {
+  display: block !important;
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-size: 14.5px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  color: rgba(245, 228, 196, 0.96) !important;
+  line-height: 1.30 !important;
+  margin: 0 !important;
+}
+
+/* In Science voice, eyebrow + icon shift teal */
+[data-compass-voice="science"] #scompass .v11-compass-card .v11-chip-icon { color: rgba(129, 205, 198, 0.92) !important; }
+[data-compass-voice="science"] #scompass .v11-compass-card .v11-chip-eyebrow { color: rgba(129, 205, 198, 0.78) !important; }
+[data-compass-voice="science"] #scompass .v11-compass-card:hover {
+  border-color: rgba(129, 205, 198, 0.58) !important;
+}
+
+/* Mobile (<760px): horizontal scroll or 2x2 grid */
+@media (max-width: 759px) {
+  #scompass .v11-compass-chips {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    max-width: 480px !important;
+    margin: 18px auto 14px !important;
+    padding: 0 12px !important;
+  }
+  #scompass .v11-compass-card {
+    min-height: 76px !important;
+    padding: 12px 10px !important;
+  }
+  #scompass .v11-compass-card .v11-chip-label {
+    font-size: 13px !important;
+  }
+}
+
+/* Desktop (>=760px): override iter11d positioning to use card style.
+   iter11f: tightened with flex-start justify and small gap so cards group
+   compactly at compass center rather than spreading top-to-bottom. */
+@media (min-width: 760px) {
+  #scompass .v11-compass-chips {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    width: 196px !important;
+    max-width: 196px !important;
+  }
+  #scompass .v11-compass-card {
+    width: 196px !important;
+    min-width: 196px !important;
+    max-width: 196px !important;
+    box-sizing: border-box !important;
+    /* iter11f: tighter cards - reduced internal padding so the four-card
+       stack stays compact against the compass center. */
+    padding: 11px 12px 10px !important;
+    min-height: 72px !important;
+  }
+}
+@media (min-width: 1100px) {
+  #scompass .v11-compass-chips {
+    width: 216px !important;
+    max-width: 216px !important;
+  }
+  #scompass .v11-compass-card {
+    width: 216px !important;
+    min-width: 216px !important;
+    max-width: 216px !important;
+    padding: 12px 14px 11px !important;
+    min-height: 76px !important;
+  }
+}
+
+
+/* iter11f: nuke any italic on the compass surface helper text. */
+#scompass .v11-compass-question,
+#scompass .v6-compass-yesterday,
+#scompass #v19YesterdayHint,
+#scompass .v6-compass-helper {
+  font-style: normal !important;
+}
+
+
+
+/* ════════════════════════════════════════════════════════════════════
+   iter12b: remove the redundant voice-aware question line.
+   The four boxed cards now communicate voice register on their own.
+   The previous absolute-position desktop rule was causing visual
+   overlap with the intention input below the compass frame.
+   ════════════════════════════════════════════════════════════════════ */
+#scompass .v11-compass-question,
+.v6-compass-frame .v11-compass-question {
+  display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   iter12: live Oracle drawer + citation popover styles
+   ════════════════════════════════════════════════════════════════════ */
+.v12-drawer-loading {
+  font-style: italic;
+  color: rgba(245, 228, 196, 0.62);
+  text-align: center;
+  padding: 12px 0;
+}
+.v12-drawer-fallback-note {
+  font-size: 12px;
+  color: rgba(201, 160, 80, 0.55);
+  font-style: normal;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border-left: 2px solid rgba(201, 160, 80, 0.35);
+  background: rgba(201, 160, 80, 0.04);
+}
+.v11-cite-popover {
+  background: var(--bg2, #102034);
+  border: 1px solid rgba(201, 160, 80, 0.45);
+  border-radius: 4px;
+  padding: 14px 18px 14px 14px;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(245, 228, 196, 0.94);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  animation: v11CitePopIn 0.18s ease-out;
+}
+@keyframes v11CitePopIn {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.v11-cite-pop-authors {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(201, 160, 80, 0.85);
+  margin-bottom: 6px;
+}
+.v11-cite-pop-title {
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(245, 228, 196, 0.96);
+  margin-bottom: 5px;
+  line-height: 1.35;
+}
+.v11-cite-pop-journal {
+  font-size: 12px;
+  color: rgba(245, 228, 196, 0.72);
+  margin-bottom: 4px;
+}
+.v11-cite-pop-doi {
+  font-size: 11px;
+  color: rgba(245, 228, 196, 0.55);
+  font-family: 'Courier New', monospace;
+  margin-bottom: 4px;
+}
+.v11-cite-pop-link {
+  font-size: 12px;
+  margin-top: 6px;
+}
+.v11-cite-pop-link a {
+  color: rgba(129, 205, 198, 0.92);
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(129, 205, 198, 0.45);
+}
+.v11-cite-pop-link a:hover {
+  color: var(--teal, #81CDC6);
+  border-bottom-color: var(--teal, #81CDC6);
+}
+.v11-cite-pop-lineage {
+  font-size: 10px;
+  color: rgba(165, 132, 89, 0.55);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+.v11-cite-pop-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: rgba(245, 228, 196, 0.48);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 6px;
+}
+.v11-cite-pop-close:hover { color: var(--gold, #B8942A); }
+
+/* iter11g: prevent overlap of v6 compass prompt and iter11e voice-aware
+   question line. The iter11e question line replaces v6CompassPrompt's role
+   as the primary inviting text. Hide v6CompassPrompt entirely when the
+   iter11 voice-aware question is in the DOM (which is always now). */
+#scompass #v6CompassPrompt { display: none !important; }
+
+/* iter11e: voice-aware question line above the cards.
+   A single inviting question that changes with voice. Sits above the card
+   stack (or above the horizontal grid on mobile). */
+.v11-compass-question {
+  /* iter11f: italic removed for legibility. Regular weight, slightly larger
+     font, slightly higher opacity so the line reads cleanly. */
+  display: block;
+  text-align: center;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  color: rgba(245, 228, 196, 0.88);
+  margin: 4px auto 0;
+  max-width: 520px;
+  padding: 0 18px;
+  line-height: 1.5;
+}
+@media (min-width: 760px) {
+  #scompass .v11-compass-question {
+    position: absolute;
+    bottom: 4%;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 520px;
+    margin: 0;
+    z-index: 3;
+  }
+}
+
+/* iter11d: chord-parallel-to-compass chip layout.
+   Pills sit beside the compass image, tightly aligned with the compass's
+   vertical extent (top chip near compass top, bottom chip near compass
+   bottom). Equal width across all four. Selector specificity bumped via
+   #scompass prefix to win over any cascade conflicts in production. */
+@media (min-width: 760px) {
+  #scompass .v6-compass-frame {
+    position: relative;
+  }
+  #scompass .v11-compass-chips,
+  .v6-compass-frame .v11-compass-chips {
+    /* iter11f: tighten - center the card stack vertically with a small
+       fixed gap rather than stretching across the full compass height. */
+    position: absolute !important;
+    top: 50% !important;
+    bottom: auto !important;
+    right: 5% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 200px !important;
+    max-width: 200px !important;
+    transform: translateY(-50%) !important;
+    z-index: 4;
+    pointer-events: auto;
+  }
+  #scompass .v11-compass-chip,
+  .v6-compass-frame .v11-compass-chip {
+    /* Equal-width pills via fixed width + text-align left so the labels
+       line up. Padding tighter so the pills feel intentional, not floaty. */
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+    padding: 6px 12px !important;
+    font-size: 11.5px !important;
+    /* Slight glass effect so they recede visually behind the compass hero */
+    background: rgba(8, 26, 45, 0.62) !important;
+    backdrop-filter: blur(2px) !important;
+  }
+}
+@media (min-width: 1100px) {
+  #scompass .v11-compass-chips,
+  .v6-compass-frame .v11-compass-chips {
+    right: 8% !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+  }
+  #scompass .v11-compass-chip,
+  .v6-compass-frame .v11-compass-chip {
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+  }
+}
+.v11-compass-chip {
+  /* iter11b: tighter chips that fit on one line at desktop; un-italicized
+     for legibility per Ned feedback. */
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; background: rgba(8,26,45,0.5);
+  border: 1px solid rgba(165,132,89,0.32); border-radius: 16px;
+  color: rgba(245,228,196,0.88); font-family: 'EB Garamond', Georgia, serif;
+  font-size: 12px; font-style: normal; cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.v11-compass-chip:hover {
+  background: rgba(201,160,80,0.10); border-color: rgba(201,160,80,0.55); color: var(--gold);
+}
+.v11-chip-icon { font-size: 13px; opacity: 0.85; }
+
+.v11-compass-threshold {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin: 22px auto 14px;
+}
+/* iter11b: when the threshold is in row mode, sit it under the chips. */
+.v11-compass-threshold.v11-threshold-row {
+  flex-direction: row; flex-wrap: wrap; justify-content: center;
+  gap: 12px; margin: 14px auto 18px;
+}
+/* iter11b: confirmation-pending state - primary button label changes */
+.v11-cta-primary[data-confirm-state="1"] {
+  background: rgba(201,160,80,0.32);
+  letter-spacing: 0.18em;
+}
+.v11-cta-primary[data-confirm-state="1"]::before {
+  content: "Tap again to leave Compass: ";
+  font-size: 10px;
+  margin-right: 6px;
+  opacity: 0.80;
+  letter-spacing: 0.15em;
+}
+.v11-cta-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 11px 26px; background: rgba(201,160,80,0.16);
+  border: 1.5px solid var(--gold); border-radius: 3px; color: var(--gold);
+  font-family: 'Cinzel', Georgia, serif; font-size: 11px;
+  letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.v11-cta-primary:hover { background: rgba(201,160,80,0.28); transform: translateY(-1px); }
+.v11-arrow { font-size: 14px; }
+.v11-cta-secondary {
+  background: transparent; border: 1px solid rgba(165,132,89,0.25);
+  border-radius: 3px; padding: 8px 22px; color: rgba(245,228,196,0.75);
+  font-family: 'EB Garamond', Georgia, serif; font-size: 13px; font-style: italic;
+  cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+}
+.v11-cta-secondary:hover { border-color: rgba(201,160,80,0.55); color: var(--gold); }
+
+.v11-chip-drawer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 580;
+  display: none; align-items: flex-end; justify-content: center; padding: 20px;
+}
+.v11-chip-drawer-overlay.open { display: flex; }
+.v11-chip-drawer {
+  background: var(--bg2); border: 1px solid rgba(201,160,80,0.30);
+  border-radius: 8px 8px 4px 4px; max-width: 560px; width: 100%;
+  padding: 24px 26px 20px; position: relative;
+  animation: v11DrawerIn 0.30s ease-out;
+}
+@keyframes v11DrawerIn {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.v11-chip-drawer-close {
+  position: absolute; top: 10px; right: 14px; background: none;
+  border: none; color: rgba(245,228,196,0.55); font-size: 22px;
+  cursor: pointer; line-height: 1;
+}
+.v11-chip-drawer-close:hover { color: var(--gold); }
+.v11-chip-drawer-header {
+  font-family: 'Cinzel', Georgia, serif; font-size: 10px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(201,160,80,0.75); margin-bottom: 4px;
+}
+.v11-chip-drawer-title {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px;
+  color: var(--gold); font-weight: 300; margin-bottom: 12px; line-height: 1.25;
+}
+.v11-chip-drawer-body {
+  font-family: 'EB Garamond', Georgia, serif; font-size: 15px;
+  line-height: 1.65; color: rgba(245,228,196,0.92); margin-bottom: 14px;
+}
+.v11-chip-drawer-deeplink {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'EB Garamond', Georgia, serif; font-size: 13px; font-style: italic;
+  color: rgba(129,205,198,0.85); background: none; border: none;
+  padding: 6px 0; cursor: pointer;
+}
+.v11-chip-drawer-deeplink:hover { color: var(--teal); }
+
+.v11-help-pip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid rgba(165,132,89,0.45); background: transparent;
+  color: rgba(245,228,196,0.65); font-family: 'EB Garamond', Georgia, serif;
+  font-size: 11px; font-style: italic; margin-left: 8px; cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease; vertical-align: middle;
+}
+.v11-help-pip:hover { border-color: var(--gold); color: var(--gold); }
+
+.v6-compass-image-caption { display: none !important; }
+
+.v11-go-deeper-inline {
+  display: none; margin: 16px auto 0; max-width: 600px;
+  padding: 18px 20px; background: rgba(8,26,45,0.45);
+  border: 1px solid rgba(165,132,89,0.28); border-radius: 4px;
+}
+.v11-go-deeper-inline.open { display: block; }
+.v11-go-deeper-prompt {
+  font-family: 'EB Garamond', Georgia, serif; font-size: 14px;
+  font-style: italic; color: rgba(245,228,196,0.88); margin-bottom: 10px;
+}
+.v11-go-deeper-textarea {
+  width: 100%; min-height: 80px; background: rgba(8,26,45,0.55);
+  border: 1px solid rgba(165,132,89,0.30); border-radius: 3px;
+  padding: 10px 14px; color: var(--text);
+  font-family: 'EB Garamond', Georgia, serif; font-size: 14px;
+  resize: vertical; outline: none; box-sizing: border-box;
+}
+.v11-go-deeper-textarea:focus { border-color: var(--gold); }
+.v11-go-deeper-send {
+  margin-top: 10px; padding: 7px 18px; background: var(--gold);
+  border: 1px solid var(--gold); border-radius: 3px; color: var(--bg);
+  font-family: 'Cinzel', Georgia, serif; font-size: 10px;
+  letter-spacing: 0.20em; text-transform: uppercase; cursor: pointer;
+}
+.v11-go-deeper-response {
+  margin-top: 14px; padding: 14px 16px;
+  background: rgba(201,160,80,0.06); border-left: 2px solid var(--gold);
+  border-radius: 2px; font-family: 'EB Garamond', Georgia, serif;
+  font-size: 14.5px; line-height: 1.62; color: rgba(245,228,196,0.94);
+  white-space: pre-wrap;
+}
+.v11-go-deeper-response.empty { display: none; }
+
+@media (max-width: 580px) {
+  .v11-compass-chips { gap: 6px; }
+  .v11-compass-chip { font-size: 12px; padding: 6px 11px; }
+  .v11-chip-drawer { padding: 20px 18px 16px; }
+}
+
 /* iter10f: orphan guard refined. The previous version blocked Calendar
    entirely because the elements were reparented to body and the guard
    hid them even when #sc was the active screen. The :has() selector
@@ -3010,7 +3553,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 </style>
 
 <div class="topbar">
-  <div class="brand">Cosmic Daily Planner</div>
+  <div class="brand">Cosmic Daily Planner<button type="button" class="v11-help-pip" title="What is the Compass?" onclick="if(typeof openTwoTelescopesIntro===&apos;function&apos;)openTwoTelescopesIntro()" aria-label="What is the Compass?">?</button></div>
   <div class="nav">
     <button class="npill" onclick="window.location.href=&apos;/&apos;" title="The Two Telescopes landing page">Landing</button>
     <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)">Compass</button>
@@ -3101,8 +3644,6 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
       style="background:rgba(8,26,45,0.5);border:1px solid rgba(165,132,89,0.35);border-radius:3px;padding:7px 10px;color:rgba(245,228,196,0.96);font-family:Georgia,serif;font-size:13px;cursor:pointer;outline:none;width:100%">
       <option value="scompass">Compass (default)</option>
       <option value="sr">Reading</option>
-      <option value="sc">Calendar</option>
-      <option value="">App default (Reading)</option>
     </select>
   </div>
 
@@ -3111,7 +3652,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <button class="quiet-menu-item" onclick="closeQuietMenu();showScreen(&apos;sstreak&apos;,null)">Streak</button>
   <button class="quiet-menu-item" onclick="closeQuietMenu();if(typeof openShare===&apos;function&apos;)openShare()">Share &amp; Invite</button>
   <div style="height:1px;background:rgba(201,160,80,0.15);margin:8px 0"></div>
-  <button class="quiet-menu-item" onclick="closeQuietMenu();setTimeout(function(){if(typeof openAuth===&apos;function&apos;)openAuth();else console.warn(&apos;[iter10] openAuth not found&apos;);},40)" style="color:var(--gold)">Sign In</button>
+  <button id="cdpSignInMenuItem" class="quiet-menu-item" onclick="if(window.currentUser){if(confirm(&apos;Sign out?&apos;)){closeQuietMenu();if(typeof signOut===&apos;function&apos;)signOut();else if(typeof signOutUser===&apos;function&apos;)signOutUser();}}else{closeQuietMenu();setTimeout(function(){if(typeof openAuth===&apos;function&apos;)openAuth();else console.warn(&apos;[iter10] openAuth not found&apos;);},40);}" style="color:var(--gold)">Sign In</button>
 </aside>
 <script>
 (function(){
@@ -3602,6 +4143,11 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
       <div style="font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--teal);margin-bottom:5px">Current Phase</div>
       <div id="cyclePhaseName" style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text)"></div>
       <div id="cyclePhaseDesc" style="font-size:13px;color:var(--text3);margin-top:3px;line-height:1.55"></div>
+    </div>
+    <!-- iter12c: explicit clear-data link for users with stale cycle data -->
+    <div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.55">
+      <a onclick="if(confirm('Remove the cycle date and the cycle-awareness toggle from this device. The Oracle will stop using cycle data in your Readings. You can re-enter the date at any time.')) clearCycleData();"
+         style="color:var(--gold);text-decoration:underline;cursor:pointer">Clear cycle data from this device</a>
     </div>
   </div>
 
@@ -5519,15 +6065,32 @@ function saveCycleEnabled(enabled) {
   try { localStorage.setItem('cdp_cycle_enabled', enabled ? '1' : '0'); } catch(e) {}
 }
 function isCycleEnabled() {
-  // Default: true if cycle data exists, false otherwise.
-  var explicit = null;
-  try { explicit = localStorage.getItem('cdp_cycle_enabled'); } catch(e) {}
-  if (explicit === '1') return true;
-  if (explicit === '0') return false;
-  // If never set, default to "on if data exists"
+  // iter12c: EXPLICIT opt-in only. Cycle awareness is sensitive data and
+  // must never default to on. A user must tick the checkbox in Profile.
+  // Without explicit '1', cycle data does not flow to the Oracle, even
+  // if cdp_cycle_start happens to be in localStorage from a stale session
+  // or a previous user on a shared device.
   try {
-    return !!localStorage.getItem('cdp_cycle_start');
+    return localStorage.getItem('cdp_cycle_enabled') === '1';
   } catch(e) { return false; }
+}
+
+// iter12c: utility for clearing stale cycle data from the device. Used
+// by the "Clear cycle data" link in Profile.
+function clearCycleData() {
+  try {
+    localStorage.removeItem('cdp_cycle_enabled');
+    localStorage.removeItem('cdp_cycle_start');
+  } catch(e) {}
+  // Also clear the visible inputs and the phase preview
+  var cb = document.getElementById('pCycleEnabled');
+  if (cb) cb.checked = false;
+  var ds = document.getElementById('pCycleStart');
+  if (ds) ds.value = '';
+  var dl = document.getElementById('pCycleLen');
+  if (dl) dl.value = '';
+  var disp = document.getElementById('cyclePhaseDisplay');
+  if (disp) disp.style.display = 'none';
 }
 
 function getCycleContext() {
@@ -11239,6 +11802,96 @@ function closeModal(){document.getElementById('dayModal').classList.remove('open
 // SUPABASE  -  Auth, Profile Sync, Reading History
 // ══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://rbezcpwevlycslhnbtry.supabase.co';
+
+/* iter11g: bulletproof OAuth callback handler.
+   Supabase SDK detectSessionInUrl is timing-dependent and was failing for Ned's
+   sessions (token sat in URL hash unprocessed). This handler runs IMMEDIATELY
+   on script parse, BEFORE Supabase init, and manually:
+   1. Detects access_token=... in URL hash
+   2. Decodes the JWT to extract user details
+   3. Stores the full session object into localStorage under cdp_auth_v1
+      (the same storageKey Supabase expects, so when SDK later calls
+      getSession() it finds the stored session)
+   4. Strips the OAuth fragment from the URL so it cannot reappear or
+      confuse the SDK on re-init
+   5. Sets currentUser global immediately so the UI knows we're signed in
+*/
+(function _iter11gOAuthCallback() {
+  try {
+    var hash = window.location.hash || '';
+    if (hash.indexOf('access_token=') === -1) return;
+    
+    var params = {};
+    hash.replace(/^#/, '').split('&').forEach(function(kv) {
+      var p = kv.split('=');
+      if (p[0]) params[p[0]] = decodeURIComponent(p[1] || '');
+    });
+    
+    var accessToken = params.access_token;
+    if (!accessToken) return;
+    
+    // Decode JWT payload (the middle section between the two dots)
+    var jwtParts = accessToken.split('.');
+    if (jwtParts.length !== 3) return;
+    var payload = JSON.parse(atob(jwtParts[1].replace(/-/g,'+').replace(/_/g,'/')));
+    
+    var now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp <= now) {
+      console.warn('[iter11g OAuth] received token already expired - skipping');
+      return;
+    }
+    
+    // Build the Supabase session object shape expected in localStorage
+    var session = {
+      access_token: accessToken,
+      refresh_token: params.refresh_token || '',
+      provider_token: params.provider_token || '',
+      expires_in: parseInt(params.expires_in || '3600', 10),
+      expires_at: parseInt(params.expires_at || payload.exp || '0', 10),
+      token_type: params.token_type || 'bearer',
+      user: {
+        id: payload.sub,
+        aud: payload.aud,
+        role: payload.role,
+        email: payload.email,
+        email_confirmed_at: payload.email_confirmed_at,
+        phone: payload.phone || '',
+        user_metadata: payload.user_metadata || {},
+        app_metadata: payload.app_metadata || {},
+        is_anonymous: payload.is_anonymous || false
+      }
+    };
+    
+    // Store in the same key Supabase uses
+    try {
+      localStorage.setItem('cdp_auth_v1', JSON.stringify(session));
+      console.log('[iter11g OAuth] session stored for', session.user.email);
+    } catch(e) {
+      console.warn('[iter11g OAuth] localStorage write failed:', e.message);
+    }
+    
+    // Set the currentUser global immediately so the UI knows
+    window.currentUser = session.user;
+    
+    // Strip OAuth fragment from URL (prevent re-processing on next reload)
+    try {
+      var cleanUrl = window.location.pathname + window.location.search;
+      window.history.replaceState({}, document.title, cleanUrl);
+      console.log('[iter11g OAuth] URL fragment stripped');
+    } catch(e) {}
+    
+    // Update auth UI now if updateAuthUI is ready, else queue
+    if (typeof window.updateAuthUI === 'function') {
+      try { window.updateAuthUI(); } catch(e) {}
+    } else {
+      // Queue for when updateAuthUI becomes available (after script defines it)
+      window._iter11gPendingAuthUI = true;
+    }
+  } catch(e) {
+    console.warn('[iter11g OAuth callback handler] failed:', e.message);
+  }
+})();
+
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJiZXpjcHdldmx5Y3NsaG5idHJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzA1OTIsImV4cCI6MjA5MDgwNjU5Mn0.1ggwJt5Mr3Bvsk9eJEQulXeT8iAQiguosLI-pdseMC0';
 let sb = null;
 let currentUser = null;
@@ -11628,6 +12281,11 @@ function initSupabase() {
 
 // ── AUTH UI ──
 function updateAuthUI() {
+  /* iter11g: flush any queued auth UI from the early OAuth callback. */
+  if (window._iter11gPendingAuthUI) {
+    window._iter11gPendingAuthUI = false;
+    /* fall through to normal logic below */
+  }
   const area = document.getElementById('authBtnArea');
   if (!area) return;
   if (currentUser) {
@@ -17412,12 +18070,19 @@ document.addEventListener('cdp:reading-ready', function() {
   font-style: italic;
 }
 .v6-compass-yesterday {
-  margin-top: 8px;
+  /* iter11g: clean block layout, full width below the prompt input,
+     no italic per Ned, single line of returning-user context. */
+  display: block;
+  position: relative;
+  margin: 14px auto 0;
+  max-width: 560px;
+  padding: 0 18px;
   font-family: 'EB Garamond', Georgia, serif;
-  font-size: 12px;
-  font-style: italic;
-  color: rgba(201, 160, 80, 0.65);
+  font-size: 13px;
+  font-style: normal;
+  color: rgba(201, 160, 80, 0.72);
   text-align: center;
+  line-height: 1.5;
 }
 .v6-compass-cta {
   background: transparent;
@@ -17520,13 +18185,20 @@ document.addEventListener('cdp:reading-ready', function() {
     <!-- Today date, en-GB locale -->
     <p class="v6-compass-date" id="v6CompassDate"></p>
 
-    <!-- Cycling phrases that name the bridge -->
-    <div class="v6-cycling-words" aria-hidden="true">
+    <!-- iter11: voice-aware ambient layer -->
+    <div class="v6-cycling-words v6-cycling-voiceaware" aria-hidden="true" data-voice="tradition">
       <span class="v6-cycling-word">Ancient and modern</span>
       <span class="v6-cycling-word">Tradition and science</span>
       <span class="v6-cycling-word">Ritual and research</span>
       <span class="v6-cycling-word">Symbol and mechanism</span>
       <span class="v6-cycling-word">Pattern and process</span>
+    </div>
+
+    <!-- iter11: Compass voice toggle (master) -->
+    <div class="v11-voice-toggle" role="tablist" aria-label="Voice for Compass">
+      <button type="button" data-voice="tradition" class="v11-voice-btn active" onclick="v11SetCompassVoice(&apos;tradition&apos;)">Tradition</button>
+      <button type="button" data-voice="science" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;science&apos;)">Science</button>
+      <button type="button" data-voice="everyday" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;everyday&apos;)">Everyday</button>
     </div>
 
     <!-- Compass illustration with animated celestial body tracing the
@@ -17546,7 +18218,7 @@ document.addEventListener('cdp:reading-ready', function() {
            throughout the orbit, as if lit by a fixed off-screen sun. -->
       <svg class="v6-orbit-svg" viewBox="0 0 2048 1536" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <defs>
-          <path id="v6OrbitPath" d="M 76,749 A 475,461 0 1 1 1026,749 A 475,461 0 1 1 76,749"/>
+          <path id="v6OrbitPath" d="M 80,765 A 495,500 0 1 1 1070,765 A 495,500 0 1 1 80,765"/>
           <filter id="v6MoonGlow" x="-260%" y="-260%" width="520%" height="520%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
             <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.50 0" result="glow"/>
@@ -17583,13 +18255,47 @@ document.addEventListener('cdp:reading-ready', function() {
               <circle cx="-7.0" cy="-5.1" r="0.7" fill="#F0C879" opacity="0.28"/>
               <circle cx="-3.2" cy="3.0" r="0.6" fill="#D6A560" opacity="0.24"/>
             </g>
-            <animateMotion dur="22s" repeatCount="indefinite" rotate="0">
+            <animateMotion dur="15s" repeatCount="indefinite" rotate="0">
               <mpath xlink:href="#v6OrbitPath"/>
             </animateMotion>
           </g>
         </g>
       </svg>
       <div class="v6-compass-image-caption">Tap to learn how this works</div>
+    </div>
+
+    <!-- iter11e: voice-aware question line above the cards -->
+    <p class="v11-compass-question" id="v11CompassQuestion">What is the pattern asking of you today?</p>
+
+    <!-- iter11: four voice-aware coordinate chips (now boxed cards in iter11e) -->
+    <div class="v11-compass-chips" id="v11CompassChips">
+      <button type="button" class="v11-compass-chip v11-compass-card" data-chip="time" onclick="v11OpenChipDrawer(&apos;time&apos;)">
+        <span class="v11-chip-icon">&#9680;</span>
+        <span class="v11-chip-eyebrow">Time</span>
+        <span class="v11-chip-label" id="v11ChipTime">Personal Day</span>
+      </button>
+      <button type="button" class="v11-compass-chip v11-compass-card" data-chip="lunar" onclick="v11OpenChipDrawer(&apos;lunar&apos;)">
+        <span class="v11-chip-icon">&#9790;</span>
+        <span class="v11-chip-eyebrow">Lunar</span>
+        <span class="v11-chip-label" id="v11ChipLunar">Moon</span>
+      </button>
+      <button type="button" class="v11-compass-chip v11-compass-card" data-chip="symbol" onclick="v11OpenChipDrawer(&apos;symbol&apos;)">
+        <span class="v11-chip-icon">&#9672;</span>
+        <span class="v11-chip-eyebrow">Symbol</span>
+        <span class="v11-chip-label" id="v11ChipSymbol">Kin</span>
+      </button>
+      <button type="button" class="v11-compass-chip v11-compass-card" data-chip="body" onclick="v11OpenChipDrawer(&apos;body&apos;)">
+        <span class="v11-chip-icon">&#10022;</span>
+        <span class="v11-chip-eyebrow">Body</span>
+        <span class="v11-chip-label" id="v11ChipBody">Body</span>
+      </button>
+    </div>
+
+    <!-- iter11b: threshold buttons SIDE BY SIDE right under the chips per Ned spec.
+         "Full Reading" requires confirmation before navigating away. -->
+    <div class="v11-compass-threshold v11-threshold-row">
+      <button type="button" class="v11-cta-primary" id="v19CompassCta" onclick="v11ConfirmCrossToReading(this)" data-confirm-state="0">Full Reading <span class="v11-arrow">&rarr;</span></button>
+      <button type="button" class="v11-cta-secondary" onclick="v11GoDeeperHere()">Go deeper here</button>
     </div>
 
     <!-- The single inviting line. Returning users get a continuation prompt. -->
@@ -17601,8 +18307,7 @@ document.addEventListener('cdp:reading-ready', function() {
       <div class="v6-compass-yesterday" id="v19YesterdayHint" style="display:none"></div>
     </div>
 
-    <!-- Begin CTA. Same handler as before for full backwards compat. -->
-    <button class="v6-compass-cta" id="v19CompassCta" onclick="v6BeginToday()">Begin today</button>
+<!-- iter11b: threshold moved up under chips -->
 
     <!-- Helper line under CTA. Hidden once the user has visited the Two
          Telescopes drawer (localStorage flag cdp_seen_two_telescopes). -->
@@ -20005,6 +20710,597 @@ window.setCalView = function(view) {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(function() { setCalView('bestday'); /* iter10e: Calendar lands on Best Day For per Ned spec + mockup_v6 */ }, 100);
 });
+</script>
+
+
+<!-- iter11: chip drawer overlay -->
+<div class="v11-chip-drawer-overlay" id="v11ChipDrawerOverlay" onclick="if(event.target===this)v11CloseChipDrawer()">
+  <div class="v11-chip-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="v11-chip-drawer-close" onclick="v11CloseChipDrawer()" aria-label="Close">&times;</button>
+    <div class="v11-chip-drawer-header" id="v11DrawerHeader">Time</div>
+    <div class="v11-chip-drawer-title" id="v11DrawerTitle">Loading</div>
+    <div class="v11-chip-drawer-body" id="v11DrawerBody">Loading...</div>
+    <button type="button" class="v11-chip-drawer-deeplink" onclick="v11CloseChipDrawer();v11CrossToReading()">Full depth in your Reading <span class="v11-arrow">&rarr;</span></button>
+  </div>
+</div>
+
+<script id="iter11-compass-logic">
+(function() {
+  var VOICES = ['tradition', 'science', 'everyday'];
+
+  var CYCLING_PHRASES = {
+    tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
+    science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
+    everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits', 'Whichever helps you most']
+  };
+
+  function v11GetCoords() {
+    var r = (typeof currentReading !== 'undefined' && currentReading) ? currentReading : null;
+    /* iter12: pull cycle phase NAME (not the oracle context string) so it
+       flows cleanly to the coordinate-drawer endpoint. */
+    var cyclePhase = '';
+    try {
+      if (typeof isCycleEnabled === 'function' && isCycleEnabled()) {
+        var cycleStart = localStorage.getItem('cdp_cycle_start');
+        var cycleLen = (typeof profile !== 'undefined' && profile && profile.cycleLength) || 28;
+        if (cycleStart && typeof getCyclePhase === 'function') {
+          var phase = getCyclePhase(cycleStart, cycleLen);
+          if (phase && phase.name) cyclePhase = phase.name;
+        }
+      }
+    } catch(e) {}
+    return {
+      pd: r && r.num && r.num.pd ? r.num.pd : '7',
+      ud: r && r.num && r.num.ud ? r.num.ud : '8',
+      moonPhase: r && r.moon && r.moon.phase ? r.moon.phase : 'Waning Crescent',
+      moonAge: r && r.moon && r.moon.age ? r.moon.age : 22,
+      kinSeal: r && r.kin && r.kin.seal ? r.kin.seal : 'Red Skywalker',
+      kinTone: r && r.kin && r.kin.tone ? r.kin.tone : 'Crystal',
+      cyclePhase: cyclePhase
+    };
+  }
+
+  function v11ChipLabels(voice) {
+    var c = v11GetCoords();
+    if (voice === 'science') {
+      return {
+        time: 'PD ' + c.pd + ' \u00b7 reflective day',
+        lunar: 'Day ' + (c.moonAge || '?') + ' \u00b7 melatonin building',
+        symbol: 'Symbolic anchor \u00b7 see Tradition',
+        body: c.cyclePhase ? c.cyclePhase + ' \u00b7 hormonal phase' : 'Biorhythm \u00b7 mid-cycle'
+      };
+    }
+    if (voice === 'everyday') {
+      return {
+        time: 'PD ' + c.pd + ' \u00b7 a quiet day for thinking',
+        lunar: c.moonPhase + ' \u00b7 winding down',
+        symbol: c.kinTone + ' day \u00b7 ' + c.kinSeal,
+        body: c.cyclePhase ? c.cyclePhase : 'Energy check-in'
+      };
+    }
+    return {
+      time: 'PD ' + c.pd + ' \u00b7 inquiry',
+      lunar: c.moonPhase,
+      symbol: c.kinTone + ' ' + c.kinSeal,
+      body: c.cyclePhase ? c.cyclePhase : 'Body wisdom'
+    };
+  }
+
+  /* iter11d: chip drawer content with citation markers BAKED IN as inline
+     HTML. No helper function dependency, so partial-deploy scenarios cannot
+     strip the citation wrapping. Each citation is a span with data-ref
+     pointing to the CDP consolidated bibliography (217 entries, May 2026).
+     iter12 will wire tap-to-popover with full author/year/journal/DOI. */
+  function v11ChipDrawerContent(chipKey, voice) {
+    var c = v11GetCoords();
+    var CITE = function(ref, text) {
+      return '<span class="v11-cite" data-ref="' + ref + '">' + text + '</span>';
+    };
+    var T = {
+      time: {
+        tradition: {
+          title: 'Personal Day ' + c.pd + ' in the Pythagorean count',
+          body: 'In Pythagorean numerology today reduces to ' + c.pd + '. Each number carries a specific quality of attention. Today the day asks for a particular kind of engagement. Read it as a quality, not a script. ' +
+                CITE('drayer-2002', 'Drayer 2002') + ' offers the practitioner depth on the Pythagorean tradition; ' + CITE('goodwin-1994', 'Goodwin 1994') + ' the full numerology guide. The lineage itself traces to the school in Croton, 6th century BCE: ' + CITE('kahn-2001', 'Kahn 2001') + ', ' + CITE('riedweg-2005', 'Riedweg 2005') + '.'
+        },
+        science: {
+          title: 'Cognitive rhythm signature today',
+          body: 'Personal-day signatures correlate loosely with shifts in default-mode network activity versus salience-network engagement ' + CITE('bremer-2022', 'Bremer 2022') + '. Today\'s signature aligns with a reflective-versus-executive cognitive bias. Hippocampal consolidation favours reflective windows ' + CITE('walker-2017', 'Walker 2017') + '. One input among many; not deterministic. Treat numerology in this context as a contemplative anchor that may prime attention rather than as a causal mechanism.'
+        },
+        everyday: {
+          title: 'Today\'s quality',
+          body: 'Today has a specific feel. Easier to do some things, harder to do others. Notice what feels with the grain and what feels against. Work with the day rather than around it. The Compass surface gives you a quick read; the Reading goes deeper into what is shaping today across moon, body, and pattern.'
+        }
+      },
+      lunar: {
+        tradition: {
+          title: c.moonPhase + ' in the lunar count',
+          body: 'The moon is in ' + c.moonPhase + '. Lunar wisdom across traditions reads this phase as a specific turning point in the cycle of release, growth, culmination, or new intention. Honour the cycle rather than overriding it. CDP draws on astronomical foundations via ' + CITE('usno', 'USNO') + ' for phase timing, with the contemplative reading rooted in working with the cycle rather than predicting from it.'
+        },
+        science: {
+          title: 'Lunar position and sleep architecture',
+          body: 'Lunar phase has documented effects on melatonin secretion and sleep architecture ' + CITE('cajochen-2013', 'Cajochen et al 2013') + '. Effects are subtle but measurable in lab conditions; full-moon nights show reduced melatonin and lighter sleep. Use lunar timing as one input alongside circadian timing and your individual sleep history. The hippocampal consolidation literature ' + CITE('walker-2017', 'Walker 2017') + ' supports the broader claim that sleep quality shapes next-day cognition.'
+        },
+        everyday: {
+          title: c.moonPhase + ' tonight',
+          body: 'The moon is in ' + c.moonPhase + '. Energy patterns shift across the lunar cycle even if you do not track it consciously. Notice your sleep, your patience, your appetite this week. The moon does affect them, subtly, and noticing the pattern is half the use.'
+        }
+      },
+      symbol: {
+        tradition: {
+          title: c.kinTone + ' ' + c.kinSeal + ' in the Dreamspell count',
+          body: 'Today\'s Kin in the Dreamspell count is ' + c.kinTone + ' ' + c.kinSeal + '. The tone names developmental position in a 13-day wavespell. The seal carries archetypal quality. Symbolic, not predictive. The Dreamspell synthesis is ' + CITE('arguelles-1987', 'Arguelles 1987') + ', distinct from the living K\'iche\' tzolk\'in count documented by ' + CITE('tedlock-1992', 'Tedlock 1992') + '. The astronomical-archaeological literature on the Maya calendar tradition is anchored in ' + CITE('sprajc-2023', 'Sprajc et al 2023 Science Advances') + ' and ' + CITE('aldana-2022', 'Aldana 2022') + '.'
+        },
+        science: {
+          title: 'Symbolic anchor for today',
+          body: 'The Dreamspell Kin is a 260-day symbolic count used here as a contemplative anchor rather than an empirical claim. The mechanism, if any, is meaning-priming: a daily symbolic frame can shift attention and reduce decision fatigue. For the empirical layers of today, see the Time and Lunar chips. For full symbolic depth, switch to Tradition voice. CDP labels Dreamspell as ' + CITE('arguelles-1987', 'Arguelles 1987') + ' to distinguish it from ancient Maya doctrine ' + CITE('aveni-2001', 'Aveni 2001') + '.'
+        },
+        everyday: {
+          title: c.kinTone + ' ' + c.kinSeal,
+          body: 'CDP uses a 13-day symbolic count to name each day\'s flavour. Today is ' + c.kinTone + ' ' + c.kinSeal + '. Take it as a lens, not a prediction. Some people find it helpful for focus; others ignore it. Switch to Tradition voice for the full symbolic depth, or Science voice for what the empirical layers can and cannot tell you.'
+        }
+      },
+      body: {
+        tradition: {
+          title: c.cyclePhase || 'Body as compass',
+          body: c.cyclePhase ?
+            'Hormonal phase: ' + c.cyclePhase + '. Across contemplative traditions the menstrual cycle is read as a four-season inner calendar. Each phase carries its own quality of energy, attention, and relational sensitivity. Honour the season rather than overriding it.' :
+            'The body is the first signal. Today the rhythm of energy, breath, and posture is the first reading. Listen there before consulting the calendar. ' + CITE('porges-2011', 'Porges 2011') + ' on neuroception offers the contemplative bridge.'
+        },
+        science: {
+          title: c.cyclePhase ? c.cyclePhase + ' phase signature' : 'Interoception today',
+          body: c.cyclePhase ?
+            'Hormonal phase: ' + c.cyclePhase + '. Documented effects on executive function, mood regulation, and sleep ' + CITE('bower-kuhlman-2023', 'Bower and Kuhlman 2023') + '. Multi-omics PNI work ' + CITE('mengelkoch-2023', 'Mengelkoch et al 2023') + ' is consolidating the systems picture. Different phases shift cognitive load tolerance; plan demanding work for follicular peak, integration tasks for luteal.' :
+            'Biorhythms in their classical form are pseudoscientific. The genuine signal is interoception ' + CITE('craig-2002', 'Craig 2002') + ': noticing internal body state directly. Today, what is your body telling you about energy, hunger, tension, breath? That answer is more reliable than any calendar.'
+        },
+        everyday: {
+          title: c.cyclePhase || 'How is your body today?',
+          body: c.cyclePhase ?
+            'You are in your ' + c.cyclePhase + '. Some phases are for output, some for integration. If today feels harder than expected, that is phase-appropriate, not failure. Adjust the day.' :
+            'Take 30 seconds. Where in your body is energy? Where is tension? What does your body want from you today? The answer matters more than any calendar.'
+        }
+      }
+    };
+    return (T[chipKey] && T[chipKey][voice]) || T.time.tradition;
+  }
+
+  window.v11SetCompassVoice = function(voice) {
+    if (VOICES.indexOf(voice) === -1) return;
+    try { document.body.setAttribute('data-compass-voice', voice); } catch(e) {}
+    document.querySelectorAll('.v11-voice-btn').forEach(function(b) {
+      if (b.dataset.voice === voice) b.classList.add('active'); else b.classList.remove('active');
+    });
+    var phraseDiv = document.querySelector('.v6-cycling-words');
+    if (phraseDiv) {
+      var phrases = CYCLING_PHRASES[voice] || CYCLING_PHRASES.tradition;
+      phraseDiv.innerHTML = phrases.map(function(p) { return '<span class="v6-cycling-word">' + p + '</span>'; }).join('');
+      phraseDiv.dataset.voice = voice;
+    }
+    var labels = v11ChipLabels(voice);
+    var ids = { time: 'v11ChipTime', lunar: 'v11ChipLunar', symbol: 'v11ChipSymbol', body: 'v11ChipBody' };
+    Object.keys(ids).forEach(function(k) {
+      var el = document.getElementById(ids[k]);
+      if (el) el.textContent = labels[k];
+    });
+    /* iter11e: also update the voice-aware question line. */
+    var questionEl = document.getElementById('v11CompassQuestion');
+    if (questionEl) {
+      var QUESTIONS = {
+        tradition: 'What is the pattern asking of you today?',
+        science: 'What does today\'s signature suggest you optimise for?',
+        everyday: 'What is worth your attention right now?'
+      };
+      questionEl.textContent = QUESTIONS[voice] || QUESTIONS.tradition;
+    }
+    try { localStorage.setItem('cdp_compass_voice', voice); } catch(e) {}
+    try { if (typeof window.cdpSetVoice === 'function') window.cdpSetVoice(voice); } catch(e) {}
+    console.log('[iter11] Compass voice:', voice);
+  };
+
+  /* iter12: drawer now calls /api/compass/coordinate-drawer for live
+     Oracle-generated, citation-anchored content. Falls back to iter11d
+     static drawer content if the endpoint fails or is unreachable.
+     Also wires citation popover when user taps a v11-cite span. */
+  window.v11OpenChipDrawer = async function(chipKey) {
+    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var header = document.getElementById('v11DrawerHeader');
+    var title = document.getElementById('v11DrawerTitle');
+    var body = document.getElementById('v11DrawerBody');
+    var overlay = document.getElementById('v11ChipDrawerOverlay');
+    var headers = { time: 'Time', lunar: 'Lunar', symbol: 'Symbol', body: 'Body' };
+    
+    /* Show drawer immediately with loading state */
+    if (header) header.textContent = headers[chipKey] + ' \u00b7 ' + voice.toUpperCase();
+    if (title) title.textContent = 'Composing...';
+    if (body) body.innerHTML = '<p class="v12-drawer-loading">Reading the day across the four frameworks. A moment.</p>';
+    if (overlay) overlay.classList.add('open');
+    
+    /* Gather coordinates from currentReading or compass-render data */
+    var c = v11GetCoords();
+    var coordinates = {
+      pd: c.pd,
+      ud: c.ud || '',
+      personalYear: (typeof currentReading !== 'undefined' && currentReading && currentReading.num && currentReading.num.py) || '',
+      moonPhase: c.moonPhase,
+      moonAge: c.moonAge,
+      kinSeal: c.kinSeal,
+      kinTone: c.kinTone,
+      kinNumber: (typeof currentReading !== 'undefined' && currentReading && currentReading.kin && currentReading.kin.number) || null,
+      isGAP: (typeof currentReading !== 'undefined' && currentReading && currentReading.kin && currentReading.kin.isGAP) || false,
+      isMasterDay: (function() {
+        var pd = parseInt(c.pd, 10);
+        return pd === 11 || pd === 22 || pd === 33 || pd === 44;
+      })(),
+      cyclePhase: c.cyclePhase || ''
+    };
+    
+    /* User profile context for personalisation */
+    var userProfile = {};
+    try {
+      if (window.currentUser) {
+        var fullName = window.currentUser.user_metadata && (window.currentUser.user_metadata.full_name || window.currentUser.user_metadata.name) || '';
+        userProfile.firstName = (fullName || window.currentUser.email || '').split(/[\s@]/)[0];
+      }
+      if (typeof currentReading !== 'undefined' && currentReading && currentReading.profile) {
+        if (currentReading.profile.lifePath) userProfile.lifePath = currentReading.profile.lifePath;
+        if (currentReading.profile.birthKin) userProfile.birthKin = currentReading.profile.birthKin;
+      }
+      /* iter12c: explicit tracksCycle gate. Only true if user has
+         explicitly opted in via the Profile checkbox. The server will
+         strip cyclePhase if tracksCycle is false, as a defence in depth. */
+      userProfile.tracksCycle = (typeof isCycleEnabled === 'function') ? isCycleEnabled() : false;
+      userProfile.hasCycleData = !!coordinates.cyclePhase && userProfile.tracksCycle;
+      /* Strip cyclePhase from coordinates if user has not opted in.
+         This is the FIRST line of defence; the server has a SECOND. */
+      if (!userProfile.tracksCycle) {
+        coordinates.cyclePhase = '';
+      }
+      /* Tier */
+      try {
+        var tier = localStorage.getItem('cdp_tier') || 'free';
+        userProfile.tier = tier;
+      } catch(e) {}
+    } catch(e) {}
+    
+    /* Call the endpoint */
+    var apiBase = (typeof API_BASE !== 'undefined' ? API_BASE : '');
+    var endpoint = apiBase + '/api/compass/coordinate-drawer';
+    var didRender = false;
+    
+    try {
+      var ctrl = new AbortController();
+      var timeoutId = setTimeout(function() { ctrl.abort(); }, 12000);
+      
+      var resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chip: chipKey, voice: voice, coordinates: coordinates, userProfile: userProfile }),
+        signal: ctrl.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data && data.title && data.body_html) {
+          if (title) title.textContent = data.title;
+          if (body) {
+            body.innerHTML = data.body_html;
+            /* Store citations for popover lookup */
+            body.dataset.citations = JSON.stringify(data.citations || []);
+            /* Wire citation tap handlers */
+            v11WireCitations(body);
+          }
+          didRender = true;
+          console.log('[iter12 drawer]', chipKey, voice, 'rendered from', data.source || 'oracle', 'in', data.ms || '?', 'ms', data.cached ? '(cached)' : '');
+        }
+      } else {
+        console.warn('[iter12 drawer] endpoint returned', resp.status);
+      }
+    } catch (err) {
+      console.warn('[iter12 drawer] endpoint call failed:', err.message);
+    }
+    
+    /* Fall back to iter11d static content if endpoint failed */
+    if (!didRender) {
+      var fallback = v11ChipDrawerContent(chipKey, voice);
+      if (title) title.textContent = fallback.title;
+      if (body) {
+        body.innerHTML = '<p class="v12-drawer-fallback-note">The Oracle was not reachable; showing the cached reading.</p>' + fallback.body;
+        v11WireCitations(body);
+      }
+      console.log('[iter12 drawer]', chipKey, voice, 'fell back to static content');
+    }
+  };
+  
+  /* iter12: wire tap-popover for citation markers in the drawer */
+  window.v11WireCitations = function(container) {
+    if (!container) return;
+    var citationData = {};
+    try { citationData = JSON.parse(container.dataset.citations || '[]').reduce(function(acc, c) { acc[c.ref] = c; return acc; }, {}); } catch(e) {}
+    var spans = container.querySelectorAll('.v11-cite');
+    spans.forEach(function(span) {
+      span.style.cursor = 'pointer';
+      span.title = 'Tap for full reference';
+      span.onclick = function(e) {
+        e.stopPropagation();
+        v11ShowCitationPopover(span, citationData[span.dataset.ref] || null);
+      };
+    });
+  };
+  
+  /* iter12: render a small popover with full citation details on tap */
+  window.v11ShowCitationPopover = function(anchor, citation) {
+    var existing = document.getElementById('v11CitationPopover');
+    if (existing) existing.remove();
+    
+    var pop = document.createElement('div');
+    pop.id = 'v11CitationPopover';
+    pop.className = 'v11-cite-popover';
+    
+    var content;
+    if (citation) {
+      var lines = [];
+      lines.push('<div class="v11-cite-pop-authors">' + (citation.authors || '?') + ' (' + (citation.year || '?') + ')</div>');
+      lines.push('<div class="v11-cite-pop-title">' + (citation.title || '') + '</div>');
+      if (citation.journal) lines.push('<div class="v11-cite-pop-journal">' + citation.journal + '</div>');
+      else if (citation.publisher) lines.push('<div class="v11-cite-pop-journal">' + citation.publisher + '</div>');
+      if (citation.doi) lines.push('<div class="v11-cite-pop-doi">DOI: ' + citation.doi + '</div>');
+      if (citation.url) lines.push('<div class="v11-cite-pop-link"><a href="' + citation.url + '" target="_blank" rel="noopener">View source</a></div>');
+      if (citation.lineage) lines.push('<div class="v11-cite-pop-lineage">' + citation.lineage + '</div>');
+      content = lines.join('');
+    } else {
+      /* Fall back to data-ref attribute if no citation data was attached */
+      var ref = anchor.dataset.ref || '';
+      content = '<div class="v11-cite-pop-title">Reference: ' + ref + '</div><div class="v11-cite-pop-journal">Full details unavailable in this view. The full bibliography is at cosmicdailyplanner.com/bibliography.</div>';
+    }
+    
+    pop.innerHTML = content + '<button class="v11-cite-pop-close" onclick="v11ClosePopover()" aria-label="Close">&times;</button>';
+    document.body.appendChild(pop);
+    
+    /* Position near the anchor */
+    var rect = anchor.getBoundingClientRect();
+    var popW = 320, popH = 180;
+    var top = rect.bottom + 8;
+    var left = rect.left + (rect.width / 2) - (popW / 2);
+    if (left < 12) left = 12;
+    if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+    if (top + popH > window.innerHeight - 12) top = rect.top - popH - 8;
+    pop.style.position = 'fixed';
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+    pop.style.width = popW + 'px';
+    pop.style.zIndex = '600';
+    
+    /* Click outside to close */
+    setTimeout(function() {
+      document.addEventListener('click', v11ClosePopoverOnOutside, { once: true });
+    }, 50);
+  };
+  
+  window.v11ClosePopover = function() {
+    var p = document.getElementById('v11CitationPopover');
+    if (p) p.remove();
+  };
+  window.v11ClosePopoverOnOutside = function(e) {
+    var p = document.getElementById('v11CitationPopover');
+    if (!p) return;
+    if (!p.contains(e.target) && !e.target.classList.contains('v11-cite')) {
+      p.remove();
+    }
+  };
+  window.v11CloseChipDrawer = function() {
+    var overlay = document.getElementById('v11ChipDrawerOverlay');
+    if (overlay) overlay.classList.remove('open');
+  };
+
+  window.v11CrossToReading = function() {
+    console.log('[iter11] crossing to Reading');
+    if (typeof window.showScreen === 'function') {
+      window.showScreen('sr', null);
+      try {
+        if (window.cdpPreloadedReading && (typeof currentReading === 'undefined' || !currentReading)) {
+          currentReading = window.cdpPreloadedReading;
+          if (typeof renderReading === 'function') renderReading();
+        } else if (typeof currentReading === 'undefined' || !currentReading) {
+          if (typeof showModeSelector === 'function') showModeSelector();
+        }
+      } catch(e) { console.warn('[iter11] cross failed', e); }
+    }
+  };
+
+  /* iter11b: Full Reading requires two-tap confirmation before navigation.
+     First tap puts the button into "Tap again to leave Compass" state.
+     Second tap (within 4 seconds) actually navigates. */
+  window.v11ConfirmCrossToReading = function(btn) {
+    if (!btn) return;
+    var state = btn.getAttribute('data-confirm-state') || '0';
+    if (state === '0') {
+      btn.setAttribute('data-confirm-state', '1');
+      btn.dataset.originalLabel = btn.innerHTML;
+      btn.innerHTML = 'Yes, open Full Reading <span class="v11-arrow">&rarr;</span>';
+      // Auto-reset after 4 seconds
+      setTimeout(function() {
+        if (btn.getAttribute('data-confirm-state') === '1') {
+          btn.setAttribute('data-confirm-state', '0');
+          if (btn.dataset.originalLabel) btn.innerHTML = btn.dataset.originalLabel;
+        }
+      }, 4000);
+      return;
+    }
+    // Confirmed - reset state and cross
+    btn.setAttribute('data-confirm-state', '0');
+    if (btn.dataset.originalLabel) btn.innerHTML = btn.dataset.originalLabel;
+    window.v11CrossToReading();
+  };
+
+  window.v11GoDeeperHere = function() {
+    var existing = document.getElementById('v11GoDeeperInline');
+    if (existing) {
+      existing.classList.toggle('open');
+      if (existing.classList.contains('open')) {
+        var ta = existing.querySelector('.v11-go-deeper-textarea');
+        if (ta) ta.focus();
+      }
+      return;
+    }
+    var threshold = document.querySelector('.v11-compass-threshold');
+    if (!threshold) return;
+    var div = document.createElement('div');
+    div.id = 'v11GoDeeperInline';
+    div.className = 'v11-go-deeper-inline open';
+    div.innerHTML = '<div class="v11-go-deeper-prompt">Take a moment. What is on your mind right now?</div>' +
+      '<textarea class="v11-go-deeper-textarea" id="v11GoDeeperText" placeholder="Type what is alive. The Oracle responds in your voice."></textarea>' +
+      '<button type="button" class="v11-go-deeper-send" onclick="v11SendGoDeeper()">Send</button>' +
+      '<div class="v11-go-deeper-response empty" id="v11GoDeeperResponse"></div>';
+    threshold.parentNode.insertBefore(div, threshold.nextSibling);
+    var ta = div.querySelector('.v11-go-deeper-textarea');
+    if (ta) setTimeout(function(){ ta.focus(); }, 60);
+  };
+
+  window.v11SendGoDeeper = function() {
+    var ta = document.getElementById('v11GoDeeperText');
+    var respDiv = document.getElementById('v11GoDeeperResponse');
+    if (!ta || !respDiv) return;
+    var text = (ta.value || '').trim();
+    if (!text) return;
+    respDiv.classList.remove('empty');
+    respDiv.textContent = 'Thinking...';
+    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var coords = v11GetCoords();
+    try {
+      var apiBase = (typeof API_BASE !== 'undefined' ? API_BASE : '');
+      fetch(apiBase + '/api/ask', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          question: text,
+          context: 'Compass surface. Voice: ' + voice + '. Today: PD ' + coords.pd + ', Moon ' + coords.moonPhase + ', Kin ' + coords.kinTone + ' ' + coords.kinSeal,
+          voice: voice,
+          source: 'compass-go-deeper'
+        })
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        respDiv.textContent = d.answer || d.text || d.reply || 'No response. Try Full Reading for depth.';
+      }).catch(function(err) {
+        respDiv.textContent = 'Could not reach the Oracle. Try Full Reading.';
+        console.warn('[iter11] go-deeper failed', err);
+      });
+    } catch(e) {
+      respDiv.textContent = 'Error: ' + e.message;
+    }
+  };
+
+  window.v11PreloadReading = function() {
+    if (typeof currentReading !== 'undefined' && currentReading) {
+      console.log('[iter11] preload skipped, reading already loaded');
+      return;
+    }
+    if (window.cdpPreloadedReading || window.cdpPreloadInFlight) return;
+    window.cdpPreloadInFlight = true;
+    console.log('[iter11] background preload start');
+    try {
+      if (typeof loadReading === 'function' && typeof TODAY !== 'undefined') {
+        var p = loadReading(TODAY);
+        if (p && p.then) {
+          p.then(function() {
+            window.cdpPreloadInFlight = false;
+            window.cdpPreloadedReading = (typeof currentReading !== 'undefined') ? currentReading : true;
+            console.log('[iter11] preload complete');
+          }).catch(function(e) {
+            window.cdpPreloadInFlight = false;
+            console.warn('[iter11] preload failed', e);
+          });
+        } else {
+          window.cdpPreloadInFlight = false;
+        }
+      }
+    } catch(e) {
+      window.cdpPreloadInFlight = false;
+      console.warn('[iter11] preload start failed', e);
+    }
+  };
+
+  function v11InitCompass() {
+    var savedVoice = 'tradition';
+    try {
+      savedVoice = localStorage.getItem('cdp_compass_voice') ||
+                   (typeof window.cdpGetVoice === 'function' ? window.cdpGetVoice() : '') ||
+                   'tradition';
+    } catch(e) {}
+    v11SetCompassVoice(savedVoice);
+    setTimeout(function() {
+      try { v11PreloadReading(); } catch(e) {}
+    }, 600);
+  }
+
+  if (document.readyState !== 'loading') {
+    setTimeout(v11InitCompass, 200);
+  } else {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(v11InitCompass, 200); });
+  }
+
+  var _origShowScreen = window.showScreen;
+  if (typeof _origShowScreen === 'function') {
+    window.showScreen = function(id, btn) {
+      var r = _origShowScreen.apply(this, arguments);
+      if (id === 'scompass') {
+        setTimeout(v11InitCompass, 80);
+      }
+      return r;
+    };
+  }
+})();
+</script>
+
+
+<script id="iter11g-menu-updater">
+
+/* iter11g: dynamic Sign In menu label based on auth state. Reflects
+   "Signed in as [name]" when currentUser is present. */
+window._iter11gUpdateSignInMenu = function() {
+  var item = document.getElementById('cdpSignInMenuItem');
+  if (!item) return;
+  if (window.currentUser) {
+    var name = window.currentUser.user_metadata?.full_name ||
+               window.currentUser.user_metadata?.name ||
+               window.currentUser.email ||
+               'Signed in';
+    var firstName = String(name).split(' ')[0].split('@')[0];
+    item.textContent = 'Signed in as ' + firstName;
+  } else {
+    item.textContent = 'Sign In';
+  }
+};
+/* Wire to auth state changes - this is set up in the closure that already runs */
+(function() {
+  var origUpdate = window.updateAuthUI;
+  if (typeof origUpdate === 'function') {
+    window.updateAuthUI = function() {
+      var r = origUpdate.apply(this, arguments);
+      try { window._iter11gUpdateSignInMenu(); } catch(e) {}
+      return r;
+    };
+  } else {
+    /* updateAuthUI not defined yet at this script position - hook later */
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof window.updateAuthUI === 'function') {
+        var origUpdate2 = window.updateAuthUI;
+        window.updateAuthUI = function() {
+          var r = origUpdate2.apply(this, arguments);
+          try { window._iter11gUpdateSignInMenu(); } catch(e) {}
+          return r;
+        };
+      }
+    });
+  }
+  /* Initial call after a short delay to catch the post-OAuth state */
+  setTimeout(function() {
+    try { window._iter11gUpdateSignInMenu(); } catch(e) {}
+  }, 500);
+  setTimeout(function() {
+    try { window._iter11gUpdateSignInMenu(); } catch(e) {}
+  }, 1800);
+})();
+
 </script>
 </body>
 </html>
