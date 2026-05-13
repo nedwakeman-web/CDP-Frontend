@@ -26,6 +26,198 @@ try {
   console.warn('[coordinate-drawer] expected at', path.join(__dirname, 'bibliography.json'));
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// iter12f: CITATION POST-PROCESSOR
+//
+// After Sonnet returns Reading JSON, scan every prose field for author-year
+// patterns ("Bremer 2022", "Pope and Wurlitzer 2017") and wrap them with
+// <span class="v11-cite" data-ref="REF_ID">...</span> markers.
+//
+// This guarantees citations appear regardless of whether the model followed
+// the explicit citation-format instruction. Prompt-engineering proved
+// unreliable in iter12d/e; post-processing is the deterministic path.
+//
+// Build the lookup index ONCE at server boot from bibliography.json so the
+// post-processor is fast (single regex pass per prose field).
+// ══════════════════════════════════════════════════════════════════════════
+const CITATION_INDEX = (function buildCitationIndex() {
+  if (!CDP_BIBLIOGRAPHY || !CDP_BIBLIOGRAPHY.entries) return null;
+  
+  const patterns = [];
+  
+  for (const [refId, entry] of Object.entries(CDP_BIBLIOGRAPHY.entries)) {
+    if (!entry || !entry.year) continue;
+    const year = String(entry.year);
+    
+    // Get authors as array of surnames
+    let surnames = [];
+    if (Array.isArray(entry.authors)) {
+      surnames = entry.authors.map(a => {
+        // Convention: bibliography.json uses "Surname, Firstname" format.
+        // Surname can be compound (e.g., "Hugo Wurlitzer, Sjanie" or
+        // "Van Dam, N.").
+        // Strategy: take everything before the comma as the surname phrase,
+        // then take the last word of that phrase as the regex matcher.
+        // This handles compound surnames correctly.
+        const s = a.trim();
+        let surnamePart;
+        if (s.indexOf(',') > -1) {
+          surnamePart = s.split(',')[0].trim();
+        } else {
+          // Format like "First Last" - take last word
+          const parts = s.split(/\s+/);
+          surnamePart = parts[parts.length - 1];
+        }
+        // Take the last word of the surname phrase (handles "Hugo Wurlitzer" -> "Wurlitzer")
+        const surWords = surnamePart.split(/\s+/);
+        const finalSurname = surWords[surWords.length - 1];
+        return finalSurname;
+      }).filter(s => s && s.length >= 3 && /^[A-Z]/.test(s));
+    } else if (typeof entry.authors === 'string') {
+      surnames = [entry.authors.split(/[\s,]+/)[0]];
+    }
+    
+    if (surnames.length === 0) continue;
+    
+    // Build all citation patterns this entry matches:
+    //  - "Surname YEAR"                  → single author or "et al"
+    //  - "Surname1 and Surname2 YEAR"    → two authors
+    //  - "Surname1 et al YEAR"           → many authors
+    //  - "Surname1 et al. YEAR"          → with period
+    //  - "Surname, YEAR"                 → comma-style
+    
+    const s1 = surnames[0];
+    const escS1 = s1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    if (surnames.length === 1) {
+      // Single author: "Smith 2022" or "Smith, 2022" or "Smith (2022)"
+      patterns.push({
+        regex: new RegExp('\\b(' + escS1 + ')(\\s+and\\s+\\w+)?(\\s*,?\\s*\\(?\\s*' + year + '\\)?)\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    } else if (surnames.length === 2) {
+      // Two authors: "Pope and Wurlitzer 2017"
+      const s2 = surnames[1];
+      const escS2 = s2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s+and\\s+' + escS2 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' and ' + s2 + ' ' + year,
+        priority: 2
+      });
+      // Also catch just first author with year (e.g., "Pope 2017")
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    } else {
+      // 3+ authors: "Klusmann et al 2023" or just "Klusmann 2023"
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s+et\\s+al\\.?\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' et al ' + year,
+        priority: 2
+      });
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    }
+  }
+  
+  // Sort by priority DESC so longer multi-author patterns match before single-author
+  patterns.sort((a, b) => b.priority - a.priority);
+  
+  console.log('[citation-postprocessor] index built:', patterns.length, 'patterns for',
+    Object.keys(CDP_BIBLIOGRAPHY.entries).length, 'entries');
+  return patterns;
+})();
+
+/**
+ * Wrap "Author Year" mentions with <span class="v11-cite" data-ref="REF_ID">
+ * Skip text already inside an existing v11-cite span.
+ */
+function wrapCitations(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (!CITATION_INDEX || CITATION_INDEX.length === 0) return text;
+  
+  // To avoid wrapping inside already-wrapped citations, we mask existing
+  // v11-cite spans, do the replacement, then restore.
+  const existingSpans = [];
+  let masked = text.replace(/<span\s+class="v11-cite"[^>]*>[^<]*<\/span>/g, function(m) {
+    existingSpans.push(m);
+    return '\u0001CITE_PLACEHOLDER_' + (existingSpans.length - 1) + '\u0001';
+  });
+  
+  // Apply each pattern. Highest priority (multi-author) first to prevent
+  // single-author patterns matching part of a multi-author string.
+  for (const pattern of CITATION_INDEX) {
+    masked = masked.replace(pattern.regex, function(match) {
+      // Skip if match is inside our placeholder
+      if (match.indexOf('\u0001') >= 0) return match;
+      return '<span class="v11-cite" data-ref="' + pattern.refId + '">' + match + '</span>';
+    });
+  }
+  
+  // Restore existing spans
+  masked = masked.replace(/\u0001CITE_PLACEHOLDER_(\d+)\u0001/g, function(_, idx) {
+    return existingSpans[parseInt(idx, 10)] || '';
+  });
+  
+  return masked;
+}
+
+/**
+ * Walk a Reading JSON object and apply wrapCitations to every string value.
+ * Returns count of citations wrapped for logging.
+ */
+function postProcessCitations(obj) {
+  let wrapped = 0;
+  const visited = new WeakSet();
+  
+  function walk(node) {
+    if (node === null || node === undefined) return;
+    if (typeof node === 'string') return; // handled in parent
+    if (typeof node !== 'object') return;
+    if (visited.has(node)) return;
+    visited.add(node);
+    
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        if (typeof node[i] === 'string') {
+          const before = (node[i].match(/v11-cite/g) || []).length;
+          node[i] = wrapCitations(node[i]);
+          const after = (node[i].match(/v11-cite/g) || []).length;
+          wrapped += (after - before);
+        } else {
+          walk(node[i]);
+        }
+      }
+    } else {
+      for (const key of Object.keys(node)) {
+        if (typeof node[key] === 'string') {
+          const before = (node[key].match(/v11-cite/g) || []).length;
+          node[key] = wrapCitations(node[key]);
+          const after = (node[key].match(/v11-cite/g) || []).length;
+          wrapped += (after - before);
+        } else {
+          walk(node[key]);
+        }
+      }
+    }
+  }
+  
+  walk(obj);
+  return wrapped;
+}
+
+
 // ── CORS, accept all origins (frontend is public; auth handled by tier logic) ──
 app.use((req, res, next) => {
   const origin = req.headers.origin || '*';
@@ -1078,6 +1270,140 @@ Do NOT truncate any field. Every field in the JSON schema populated to maximum d
   // chips never appeared in quick or free readings, the very tiers where the
   // engagement loop matters most. Now generates three voices for everyone.
   const voiceInstruction = THREE_VOICE_INSTRUCTION;
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // iter12d: bibliography integration into the Reading prompt.
+  // 
+  // Until iter12d, the Reading flow had a textual "sources" line at the end
+  // of the JSON schema but no structured reference plumbing. Citations were
+  // present in the chip-tap drawer (iter12) but missing from the main Reading,
+  // which is the substantive output users pay for.
+  // 
+  // iter12d wires bibliography.json into the Reading prompt with a tier-scaled
+  // reference catalogue. Higher tiers get more references; the Oracle tier
+  // gets the full set. The model is instructed to wrap inline citations using
+  // the same <span class="v11-cite" data-ref="..."> markers as the drawer,
+  // so the frontend renders citation popovers in the Reading the same way it
+  // does in the drawer.
+  // ═══════════════════════════════════════════════════════════════════════════
+  let cdpReferencesBlock = '';
+  let cdpCitationInstruction = '';
+  if (CDP_BIBLIOGRAPHY && CDP_BIBLIOGRAPHY.entries && tier !== 'free') {
+    const refLimit = {seeker: 12, initiate: 18, mystic: 24, oracle: 39}[tier] || 18;
+    const tracksCycle = !!(p && p.tracksCycle === true && p.cycleContext);
+    
+    // Core references always included: peer-reviewed neuroscience, scholarly
+    // astrology and Maya literature, numerology lineage, PNI synthesis, and
+    // sceptical counterweights. Order matters for tier-limited slicing.
+    const coreRefIds = [
+      // Foundation
+      'craig-2002',       // Interoception
+      'porges-2011',      // Polyvagal
+      'walker-2017',      // Sleep
+      'barrett-2017',     // Constructed emotion
+      'bremer-2022',      // DMN/salience
+      'clark-2016',       // Predictive processing
+      // Circadian
+      'cajochen-2013',
+      'cajochen-schmidt-2024',
+      // Astrology scholarship
+      'tarnas-2006',
+      'greene-1976',
+      // Maya scholarship (peer-reviewed)
+      'sprajc-2023',
+      'aldana-2022',
+      'aveni-2001',
+      // Dreamspell
+      'arguelles-1987',
+      'tedlock-1992',
+      // Numerology lineage
+      'drayer-2002',
+      'kahn-2001',
+      'riedweg-2005',
+      // PNI
+      'bower-kuhlman-2023',
+      'mengelkoch-2023',
+      // Sceptical balance, intellectual honesty
+      'carlson-1985',
+      'hartmann-2006',
+      'van-dam-2018',
+      // Authoritative data
+      'usno',
+      'law-of-time'
+    ];
+    
+    // Add cycle-specific refs when user has opted in
+    const cycleRefIds = [
+      'hill-2019',
+      'pope-wurlitzer-2017',
+      'klusmann-2023',
+      'baker-lee-2023',
+      'riley-1999',
+      'lange-2024',
+      'jang-2025'  // The bounded null - critical for honest cycle commentary
+    ];
+    
+    let candidateRefs = coreRefIds.slice();
+    if (tracksCycle) {
+      candidateRefs = candidateRefs.concat(cycleRefIds);
+    }
+    
+    // Filter to refs that actually exist in bibliography.json (defensive)
+    const validRefs = candidateRefs.filter(r => CDP_BIBLIOGRAPHY.entries[r]);
+    const finalRefs = validRefs.slice(0, refLimit);
+    
+    const entryLines = finalRefs.map(refId => {
+      const e = CDP_BIBLIOGRAPHY.entries[refId];
+      const authors = Array.isArray(e.authors)
+        ? e.authors.slice(0, 2).join(' and ') + (e.authors.length > 2 ? ' et al' : '')
+        : (e.authors || 'Unknown');
+      const where = e.journal || e.publisher || e.source || '';
+      const title = (e.title || '').slice(0, 90);
+      return '  ' + refId + ': ' + authors + ' (' + e.year + '). ' + title + (where ? '. ' + where : '');
+    });
+    
+    cdpReferencesBlock = '\n\nAVAILABLE REFERENCES for inline citation:\n' + entryLines.join('\n') + '\n';
+    
+    const minCites = {seeker: 4, initiate: 6, mystic: 8, oracle: 10}[tier] || 6;
+    const maxCites = {seeker: 8, initiate: 12, mystic: 16, oracle: 20}[tier] || 12;
+    
+    cdpCitationInstruction = '\n\n═══ AUTHOR ATTRIBUTION REQUIREMENT ═══\n' +
+      'Your prose MUST explicitly mention the following authors and years inline, by name, ' +
+      'where their work supports a claim you make. This is required for scholarly integrity ' +
+      'and is a HARD requirement, not a guideline.\n\n' +
+      'You must include between ' + minCites + ' and ' + maxCites + ' inline author-year mentions ' +
+      'distributed across the Reading sections, drawn from the AVAILABLE REFERENCES list above.\n\n' +
+      'EXAMPLES of correct inline format (any of these patterns work):\n' +
+      '  - "as Bremer 2022 describes, the default mode network..."\n' +
+      '  - "the practitioner framework (Hill 2019) calls this inner winter"\n' +
+      '  - "per Walker 2017, sleep consolidates..."\n' +
+      '  - "Tarnas 2006 explored Saturn-Neptune cycles"\n' +
+      '  - "Klusmann et al 2023 documented HPA reactivity"\n' +
+      '  - "Pope and Wurlitzer 2017 frame this as..."\n\n' +
+      'WRITE THE AUTHORS DIRECTLY INTO YOUR PROSE. The server-side post-processor will ' +
+      'wrap each author-year mention as a tappable citation marker automatically. ' +
+      'You do not need to add HTML span tags yourself, just write the author and year as ' +
+      'natural inline text.\n\n' +
+      'WHICH AUTHORS TO CITE:\n' +
+      '- Neuroscience claims (DMN, sleep, emotion, predictive processing): Bremer 2022, Walker 2017, Barrett 2017, Craig 2002, Clark 2016\n' +
+      '- Circadian or lunar physiology: Cajochen 2013, Cajochen and Schmidt 2024\n' +
+      '- Astrology (symbolic): Tarnas 2006, Greene 1976\n' +
+      '- Astrology empirical limits (when Science voice or sceptic context): Carlson 1985, Hartmann 2006\n' +
+      '- Maya astronomy (peer-reviewed): Sprajc 2023, Aldana 2022, Aveni 2001\n' +
+      '- Dreamspell (modern symbolic system): Arguelles 1987\n' +
+      '- Living Maya tradition: Tedlock 1992\n' +
+      '- Numerology lineage: Drayer 2002, Kahn 2001, Riedweg 2005\n' +
+      '- Psychoneuroimmunology: Bower and Kuhlman 2023, Mengelkoch 2023\n' +
+      '- Polyvagal/autonomic: Porges 2011\n';
+    if (tracksCycle) {
+      cdpCitationInstruction += '- Menstrual cycle (with explicit user opt-in): Hill 2019, Pope and Wurlitzer 2017 (practitioner literature), Klusmann 2023 (HPA reactivity), Baker and Lee 2023 (sleep architecture), Riley 1999 (pain), Lange 2024 (PMDD), Jang 2025 (BOUNDED NULL on cognitive performance, always cite alongside positive findings for intellectual honesty)\n';
+    }
+    cdpCitationInstruction += '\n' +
+      'BEFORE COMPLETING the JSON, verify that your prose contains ' + minCites + ' to ' + maxCites + ' ' +
+      'inline author-year mentions. Count them. If fewer, add more where claims warrant.\n' +
+      '═══════════════════════════════════════════════\n';
+  }
+
   const scope = tierScope[tier] || tierScope.oracle;
 
   const sys = `You are the Oracle at Cosmic Daily Planner (cosmicdailyplanner.com), a rigorous, personalised daily cosmic planner synthesising Swiss Ephemeris astronomy, Pythagorean numerology, Western psychological astrology, and Dreamspell/Law of Time.${_langNote}
@@ -1141,8 +1467,12 @@ Miller & Clark (2018) Synthese, predictive processing and emotion
 Bortolotti et al. (2025) Frontiers in Neuroscience, supercomplexity: aesthetics and cognition
 Foster & Roenneberg (2008) Current Biology, human responses to geophysical daily, annual, lunar cycles
 
-WHERE RELEVANT: cite specific sources in readings to substantiate claims. Every factual claim traceable to a named authority. Symbolic claims explicitly labelled as symbolic.
-${voiceInstruction}`;
+SCHOLARLY CITATIONS:
+Where the Reading makes a factual, scientific, or scholarly claim, mention the source author and year inline in the prose: "Bremer 2022", "Tarnas 2006", "Hill 2019", etc. The server-side post-processor will automatically wrap these mentions as tappable citation markers. You do not need to add HTML span tags yourself. Just write the author-year as natural inline text. Symbolic claims must be labelled as symbolic.
+
+See the AVAILABLE REFERENCES list and AUTHOR ATTRIBUTION REQUIREMENT below for specifics.
+
+${voiceInstruction}${cdpReferencesBlock}${cdpCitationInstruction}`;
 
   const user = `PROFILE:
 ${profileBlock}
@@ -1245,7 +1575,18 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
   const maxTok = {free:800, seeker:3000, initiate:5000, mystic:8000, oracle:16000}[tier] || 8192;
   // Use Haiku for lighter tiers, much faster, still quality
   const genModel = (tier === 'seeker' || tier === 'initiate') ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6';
+  
+  // iter12d: structured timing logs for diagnosing slow Readings.
+  // Each line lands in Railway logs and lets us see exactly where time went.
+  const _genStart = Date.now();
+  const _sysLen = sys.length;
+  const _userLen = user.length;
+  console.log('[reading-gen] tier=' + tier + ' model=' + genModel + ' maxTok=' + maxTok + ' sysLen=' + _sysLen + ' userLen=' + _userLen + ' jobId=' + (jobId || 'sync'));
+  
   const raw = await callAPI(genModel, maxTok, sys, user);
+  
+  const _apiMs = Date.now() - _genStart;
+  console.log('[reading-gen DONE] tier=' + tier + ' apiMs=' + _apiMs + ' rawLen=' + (raw ? raw.length : 0) + ' jobId=' + (jobId || 'sync'));
 
   let reading;
   try {
@@ -1301,6 +1642,22 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
     }
   }
 
+  // iter12f: post-process citations into v11-cite spans
+  // This wraps any "Author Year" pattern in prose fields with the
+  // structured citation marker so the frontend can render popovers,
+  // regardless of whether the model followed the inline-citation
+  // instruction in the prompt.
+  try {
+    const citesWrapped = postProcessCitations(reading);
+    if (citesWrapped > 0) {
+      console.log('[reading-gen citations] wrapped', citesWrapped, 'inline citations from bibliography');
+    } else {
+      console.log('[reading-gen citations] no author-year patterns found in prose');
+    }
+  } catch (e) {
+    console.warn('[reading-gen citations] post-processor failed:', e.message);
+  }
+  
   return {reading, planets, moon, kin, num, aspects, weekAhead};
 }
 
