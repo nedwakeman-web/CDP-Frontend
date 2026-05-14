@@ -239,7 +239,14 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+// iter13d/13f: raise JSON body-parser limit. Default 100kb is too small for
+// follow-up Q&A calls (/api/ask, /api/cosmic, etc) which bundle the full
+// reading payload as context. Oracle-tier readings now include 10 sections
+// with three voices each plus citation metadata plus the legacy projection
+// bridge plus history, which can exceed 4mb in practice. 16mb covers
+// realistic worst case with headroom; the frontend has been updated to
+// trim readingData before send so this should be defensive only.
+app.use(express.json({ limit: '16mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── SECURITY HEADERS ─────────────────────────────────────────────
@@ -1846,7 +1853,7 @@ function isJobStillValid(jobId) {
 
 // ── START BACKGROUND READING ──
 app.post('/api/reading/start', async (req, res) => {
-  const {date, profile, tier, user_id, recentHistory} = req.body;
+  const {date, profile, tier, user_id, recentHistory, threads} = req.body;
   const ds = date || new Date().toISOString().slice(0, 10);
   const jobId = newJobId();
   const activeTier = tier || 'oracle';
@@ -1932,6 +1939,13 @@ app.post('/api/reading/start', async (req, res) => {
 
       // Build the shared context that threads through every section.
       // This is what makes the reading bespoke rather than generic.
+      // Build B: named threads (from request body) are read as structured
+      // context. The synthesis section weaves them through the day's
+      // convergence; other sections may reference them where genuinely apt.
+      // Falls back to profile.active_threads if no explicit threads sent.
+      const buildBthreads = (Array.isArray(threads) && threads.length > 0)
+                            ? threads
+                            : (profile && profile.active_threads ? profile.active_threads : null);
       const sharedContext = orchestrator.buildSharedContext({
         profile: profile || {},
         dateStr: ds,
@@ -1939,7 +1953,8 @@ app.post('/api/reading/start', async (req, res) => {
         weekAhead,
         recentHistory: recentHistory || [],
         yesterdayIntention,
-        natalPlanets
+        natalPlanets,
+        threads: buildBthreads
       });
 
       // Model map: orchestrator names models abstractly ("haiku", "sonnet"),
