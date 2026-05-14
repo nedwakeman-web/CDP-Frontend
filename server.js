@@ -8,6 +8,225 @@ const bestDay = require('./best-day');
 const threeVoice = require('./oracle-three-voice-prompt');
 const { THREE_VOICE_INSTRUCTION, THREE_VOICE_SCHEMA, validateThreeVoiceReading, renderSectionThreeVoice, scrubHouseStyle } = threeVoice;
 
+// ══════════════════════════════════════════════════════════════════
+// Reading Orchestrator (per-section parallel composition)
+// Replaces the single-shot 16k-token Oracle call that exceeded
+// callAPI hard caps and routinely failed. Sections run in parallel,
+// model selected per section, structured citations from bibliography,
+// three voices per section, progressive phase-1 render.
+// ══════════════════════════════════════════════════════════════════
+const orchestrator = require('./reading-orchestrator');
+
+// ══════════════════════════════════════════════════════════════════
+// iter12: Compass Coordinate Drawer
+// Loads structured bibliography for chip-tap Oracle drawers and
+// exposes POST /api/compass/coordinate-drawer further down.
+// ══════════════════════════════════════════════════════════════════
+const fs = require('fs');
+let CDP_BIBLIOGRAPHY = null;
+try {
+  const bibPath = path.join(__dirname, 'bibliography.json');
+  const raw = fs.readFileSync(bibPath, 'utf8');
+  CDP_BIBLIOGRAPHY = JSON.parse(raw);
+  console.log('[coordinate-drawer] bibliography loaded:',
+    Object.keys(CDP_BIBLIOGRAPHY.entries || {}).length, 'entries');
+} catch (e) {
+  console.warn('[coordinate-drawer] bibliography NOT loaded:', e.message);
+  console.warn('[coordinate-drawer] expected at', path.join(__dirname, 'bibliography.json'));
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// iter12f: CITATION POST-PROCESSOR
+//
+// After Sonnet returns Reading JSON, scan every prose field for author-year
+// patterns ("Bremer 2022", "Pope and Wurlitzer 2017") and wrap them with
+// <span class="v11-cite" data-ref="REF_ID">...</span> markers.
+//
+// This guarantees citations appear regardless of whether the model followed
+// the explicit citation-format instruction. Prompt-engineering proved
+// unreliable in iter12d/e; post-processing is the deterministic path.
+//
+// Build the lookup index ONCE at server boot from bibliography.json so the
+// post-processor is fast (single regex pass per prose field).
+// ══════════════════════════════════════════════════════════════════════════
+const CITATION_INDEX = (function buildCitationIndex() {
+  if (!CDP_BIBLIOGRAPHY || !CDP_BIBLIOGRAPHY.entries) return null;
+  
+  const patterns = [];
+  
+  for (const [refId, entry] of Object.entries(CDP_BIBLIOGRAPHY.entries)) {
+    if (!entry || !entry.year) continue;
+    const year = String(entry.year);
+    
+    // Get authors as array of surnames
+    let surnames = [];
+    if (Array.isArray(entry.authors)) {
+      surnames = entry.authors.map(a => {
+        // Convention: bibliography.json uses "Surname, Firstname" format.
+        // Surname can be compound (e.g., "Hugo Wurlitzer, Sjanie" or
+        // "Van Dam, N.").
+        // Strategy: take everything before the comma as the surname phrase,
+        // then take the last word of that phrase as the regex matcher.
+        // This handles compound surnames correctly.
+        const s = a.trim();
+        let surnamePart;
+        if (s.indexOf(',') > -1) {
+          surnamePart = s.split(',')[0].trim();
+        } else {
+          // Format like "First Last" - take last word
+          const parts = s.split(/\s+/);
+          surnamePart = parts[parts.length - 1];
+        }
+        // Take the last word of the surname phrase (handles "Hugo Wurlitzer" -> "Wurlitzer")
+        const surWords = surnamePart.split(/\s+/);
+        const finalSurname = surWords[surWords.length - 1];
+        return finalSurname;
+      }).filter(s => s && s.length >= 3 && /^[A-Z]/.test(s));
+    } else if (typeof entry.authors === 'string') {
+      surnames = [entry.authors.split(/[\s,]+/)[0]];
+    }
+    
+    if (surnames.length === 0) continue;
+    
+    // Build all citation patterns this entry matches:
+    //  - "Surname YEAR"                  → single author or "et al"
+    //  - "Surname1 and Surname2 YEAR"    → two authors
+    //  - "Surname1 et al YEAR"           → many authors
+    //  - "Surname1 et al. YEAR"          → with period
+    //  - "Surname, YEAR"                 → comma-style
+    
+    const s1 = surnames[0];
+    const escS1 = s1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    if (surnames.length === 1) {
+      // Single author: "Smith 2022" or "Smith, 2022" or "Smith (2022)"
+      patterns.push({
+        regex: new RegExp('\\b(' + escS1 + ')(\\s+and\\s+\\w+)?(\\s*,?\\s*\\(?\\s*' + year + '\\)?)\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    } else if (surnames.length === 2) {
+      // Two authors: "Pope and Wurlitzer 2017"
+      const s2 = surnames[1];
+      const escS2 = s2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s+and\\s+' + escS2 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' and ' + s2 + ' ' + year,
+        priority: 2
+      });
+      // Also catch just first author with year (e.g., "Pope 2017")
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    } else {
+      // 3+ authors: "Klusmann et al 2023" or just "Klusmann 2023"
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s+et\\s+al\\.?\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' et al ' + year,
+        priority: 2
+      });
+      patterns.push({
+        regex: new RegExp('\\b' + escS1 + '\\s*,?\\s*\\(?\\s*' + year + '\\)?\\b', 'g'),
+        refId: refId,
+        display: s1 + ' ' + year,
+        priority: 1
+      });
+    }
+  }
+  
+  // Sort by priority DESC so longer multi-author patterns match before single-author
+  patterns.sort((a, b) => b.priority - a.priority);
+  
+  console.log('[citation-postprocessor] index built:', patterns.length, 'patterns for',
+    Object.keys(CDP_BIBLIOGRAPHY.entries).length, 'entries');
+  return patterns;
+})();
+
+/**
+ * Wrap "Author Year" mentions with <span class="v11-cite" data-ref="REF_ID">
+ * Skip text already inside an existing v11-cite span.
+ */
+function wrapCitations(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (!CITATION_INDEX || CITATION_INDEX.length === 0) return text;
+  
+  // To avoid wrapping inside already-wrapped citations, we mask existing
+  // v11-cite spans, do the replacement, then restore.
+  const existingSpans = [];
+  let masked = text.replace(/<span\s+class="v11-cite"[^>]*>[^<]*<\/span>/g, function(m) {
+    existingSpans.push(m);
+    return '\u0001CITE_PLACEHOLDER_' + (existingSpans.length - 1) + '\u0001';
+  });
+  
+  // Apply each pattern. Highest priority (multi-author) first to prevent
+  // single-author patterns matching part of a multi-author string.
+  for (const pattern of CITATION_INDEX) {
+    masked = masked.replace(pattern.regex, function(match) {
+      // Skip if match is inside our placeholder
+      if (match.indexOf('\u0001') >= 0) return match;
+      return '<span class="v11-cite" data-ref="' + pattern.refId + '">' + match + '</span>';
+    });
+  }
+  
+  // Restore existing spans
+  masked = masked.replace(/\u0001CITE_PLACEHOLDER_(\d+)\u0001/g, function(_, idx) {
+    return existingSpans[parseInt(idx, 10)] || '';
+  });
+  
+  return masked;
+}
+
+/**
+ * Walk a Reading JSON object and apply wrapCitations to every string value.
+ * Returns count of citations wrapped for logging.
+ */
+function postProcessCitations(obj) {
+  let wrapped = 0;
+  const visited = new WeakSet();
+  
+  function walk(node) {
+    if (node === null || node === undefined) return;
+    if (typeof node === 'string') return; // handled in parent
+    if (typeof node !== 'object') return;
+    if (visited.has(node)) return;
+    visited.add(node);
+    
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        if (typeof node[i] === 'string') {
+          const before = (node[i].match(/v11-cite/g) || []).length;
+          node[i] = wrapCitations(node[i]);
+          const after = (node[i].match(/v11-cite/g) || []).length;
+          wrapped += (after - before);
+        } else {
+          walk(node[i]);
+        }
+      }
+    } else {
+      for (const key of Object.keys(node)) {
+        if (typeof node[key] === 'string') {
+          const before = (node[key].match(/v11-cite/g) || []).length;
+          node[key] = wrapCitations(node[key]);
+          const after = (node[key].match(/v11-cite/g) || []).length;
+          wrapped += (after - before);
+        } else {
+          walk(node[key]);
+        }
+      }
+    }
+  }
+  
+  walk(obj);
+  return wrapped;
+}
+
+
 // ── CORS, accept all origins (frontend is public; auth handled by tier logic) ──
 app.use((req, res, next) => {
   const origin = req.headers.origin || '*';
@@ -591,8 +810,11 @@ function getKin(dateStr){
   const si=(kin-1)%20;
   const ti=(kin-1)%13;
   const col=KIN_COLORS[si];
+  // v34 fix: SEALS[si] already begins with the colour (e.g. "Blue Monkey"),
+  // so prefixing ${col} caused duplication ("Kin 151 Blue Galactic Blue Monkey").
+  // Correct format: "Kin {N} {Tone} {Color Seal}".
   return{kin,tone:TONES[ti],toneNum:ti+1,seal:SEALS[si],color:col,isGAP:GAP.has(kin),
-    full:`Kin ${kin} ${col} ${TONES[ti]} ${SEALS[si]}`};
+    full:`Kin ${kin} ${TONES[ti]} ${SEALS[si]}`};
 }
 
 // Week-ahead helper
@@ -755,7 +977,12 @@ function getAspects(planets){
 // ══════════════════════════════════════════════════════════════════
 // THE FIX: STREAMING API CALL
 // ══════════════════════════════════════════════════════════════════
-function callAPI(model, maxTok, sys, user) {
+function callAPI(model, maxTok, sys, user, hardCapMs) {
+  // hardCapMs (optional): per-call ceiling for total stream time.
+  // Defaults to 180000 (matches v22h behaviour). Orchestrator passes 90000
+  // for individual section calls. Inactivity socket timeout stays at 75s.
+  const _hardCapValue = (typeof hardCapMs === 'number' && hardCapMs > 0)
+                        ? hardCapMs : 180000;
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model,
@@ -837,17 +1064,18 @@ function callAPI(model, maxTok, sys, user) {
     });
 
     // v22h: hard total-request ceiling. Even if data is trickling slowly
-    // enough to keep the inactivity timeout from firing, abort after 180s.
+    // enough to keep the inactivity timeout from firing, abort after the
+    // configured hardCapMs (default 180s, 90s for orchestrator sections).
     // This bounds worst-case wall time for a single LLM call and was the
     // most likely cause of the multi-tens-of-minutes hangs that bypassed
     // the inactivity timeout.
     const _hardCap = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        try { req.destroy(new Error('Hard timeout after 180s, aborting slow stream')); } catch(e) {}
-        reject(new Error('hard_timeout_180s'));
+        try { req.destroy(new Error('Hard timeout after ' + Math.round(_hardCapValue/1000) + 's, aborting slow stream')); } catch(e) {}
+        reject(new Error('hard_timeout_' + Math.round(_hardCapValue/1000) + 's'));
       }
-    }, 180000);
+    }, _hardCapValue);
     // Clear hardCap when the request resolves successfully or errors out
     req.on('close', () => clearTimeout(_hardCap));
 
@@ -1029,14 +1257,20 @@ async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHis
   // ── TIER-SPECIFIC SCOPE ──
   const tierScope = {
     free: `TIER: Free. Generate ONLY: synthesis (1 sentence), Universal Day number + name + one sentence meaning, moon phase + sign, today's Kin, one "For Today" action. JSON must have: synthesis, numerology:{headline, body(1 paragraph)}, moon_section:{headline, body(1 paragraph)}, dreamspell:{headline}, closing_line. Nothing else. Keep total output under 500 tokens.`,
-    seeker: `TIER: Seeker. Generate a focused reading. Required JSON fields ONLY: synthesis (3 sentences), numerology:{headline,body(2 sentences),three_energies:{morning,afternoon,evening each with num+name+guidance}}, moon_section:{headline,body(2 sentences)}, astrology:{main_transit_headline,main_transit_body(2 sentences)}, dreamspell:{headline,body(2 sentences)}, priorities:[3 items with title+rationale(2 sentences)+action], shadow_work(2 sentences), focus_on:[4 items], ease_off:[4 items], time_windows:{morning,afternoon,evening each 1 sentence}, closing_line, sources. NO week_ahead. NO daily_gift. Total output under 1800 tokens.`,
-    initiate: `TIER: Initiate. Generate full reading with all fields except: omit daily_gift.meditation and deep saturn_neptune historical analysis. Keep prose fields to 3 sentences each. Include week_ahead.`,
-    mystic: `TIER: Mystic. Generate complete reading with all fields. Include natal chart context. Keep prose fields to 3-4 sentences. Full week_ahead. Full daily_gift.`,
+    seeker: `TIER: Seeker. Generate a focused reading. Required JSON fields: synthesis (3 sentences), numerology:{headline,body(2 sentences),three_energies:{morning,afternoon,evening each with num+name+guidance}}, moon_section:{headline,body(2 sentences)}, astrology:{main_transit_headline,main_transit_body(2 sentences)}, dreamspell:{headline,body(2 sentences)}, priorities:[3 items with title+rationale(2 sentences)+action], shadow_work(2 sentences), focus_on:[4 items], ease_off:[4 items], time_windows:{morning,afternoon,evening each 1 sentence}, closing_line, sources. NO week_ahead. NO daily_gift. Total output under 1800 tokens.
+
+CITATION REQUIREMENT (mandatory): Mention author-year in prose for 4 to 6 specific claims across the reading. Examples that you MUST use where the topic arises: numerology body should cite Drayer 2002 or Kahn 2001; moon section circadian claims cite Cajochen 2013; astrology body cite Tarnas 2006 or Greene 1976 for symbolic claims; dreamspell body cite Argüelles 1987 for the modern Dreamspell system; shadow_work neuroscience cite Barrett 2017 or Bremer 2022; default mode network cite Bremer 2022; sleep cite Walker 2017; interoception cite Craig 2002. Write authors directly inline in the prose, like: "as Tarnas 2006 explored..." or "Drayer 2002 names this..." or "(Bremer 2022)". The server wraps these as tappable citations automatically.`,
+    initiate: `TIER: Initiate. Generate full reading with all fields except: omit daily_gift.meditation and deep saturn_neptune historical analysis. Keep prose fields to 3 sentences each. Include week_ahead.
+
+CITATION REQUIREMENT (mandatory): Mention author-year in prose for 6 to 10 specific claims across the reading. Numerology body cite Drayer 2002 or Kahn 2001; moon and circadian claims cite Cajochen 2013 or Cajochen and Schmidt 2024; astrology body cite Tarnas 2006 or Greene 1976 or Hand 2002; dreamspell body cite Argüelles 1987 (modern Dreamspell system, distinct from ancient Maya per Tedlock 1992); shadow_work and emotional claims cite Barrett 2017 or Bremer 2022; sleep cite Walker 2017; interoception cite Craig 2002; polyvagal autonomic cite Porges 2011. Write authors directly inline: "Tarnas 2006 explored..." or "(Drayer 2002)". The server wraps these as tappable citations automatically.`,
+    mystic: `TIER: Mystic. Generate complete reading with all fields. Include natal chart context. Keep prose fields to 3-4 sentences. Full week_ahead. Full daily_gift.
+
+CITATION REQUIREMENT (mandatory): Mention author-year in prose for 8 to 14 specific claims across the reading, distributed across sections. Required citations by section: numerology body must cite Drayer 2002 or Kahn 2001 or Riedweg 2005; moon and circadian must cite Cajochen 2013 and Cajochen and Schmidt 2024; astrology body must cite Tarnas 2006 and Greene 1976 and Hand 2002; dreamspell body must cite Argüelles 1987 (label as modern Dreamspell, distinct from ancient Maya per Tedlock 1992); peer-reviewed Maya astronomy cite Sprajc 2023 or Aldana 2022 or Aveni 2001; shadow_work cite Barrett 2017 and Bremer 2022; sleep cite Walker 2017; interoception cite Craig 2002; polyvagal cite Porges 2011; psychoneuroimmunology cite Bower and Kuhlman 2023 or Mengelkoch 2023; predictive processing cite Clark 2016; sceptical balance for astrology cite Carlson 1985. Write authors directly inline: "as Tarnas 2006 explored..." or "the default mode network (Bremer 2022) is most active..." The server wraps these as tappable citations automatically.`,
     oracle: `TIER: Oracle. This is the bespoke Oracle experience. The benchmark is a 25-30 page printed document. Every prose field must be FULL and RICH with multiple paragraphs. Minimum depth requirements:
 - synthesis: 3-4 sentences, all four frameworks named
 - numerology body: 4 full paragraphs. Universal Day, Life Path resonance, Personal Day shadow, Personal Month pressure
 - moon body: 3 full paragraphs, phase quality, sign placement, exact aspects involving Moon, lunation cycle context
-- main transit body: 4 full paragraphs, exact orb, peak timing, historical parallel (cite Tarnas 2006 or Hand 2002), personal application
+- main transit body: 4 full paragraphs, exact orb, peak timing, historical parallel cite Tarnas 2006 or Hand 2002 (write inline as "Tarnas 2006 explored..."), personal application
 - saturn_neptune: 3 full paragraphs, civilisational context, sectoral impact, personal demand (cite Tarnas 2006)
 - dreamspell body: 3 full paragraphs. Tone quality, Seal gifts, GAP amplification if applicable, wavespell position (label as Argüelles 1987 modern system)
 - Each aspect: 4-5 sentences with orb, timing, personal application
@@ -1045,7 +1279,9 @@ async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHis
 - time windows: 4-5 sentences each, numerology + astrology + Kin converging
 - week_ahead: 7 days, 3-sentence personalised notes per day
 - daily_gift: meditation + quote + attribution
-Do NOT truncate any field. Every field in the JSON schema populated to maximum depth.`
+Do NOT truncate any field. Every field in the JSON schema populated to maximum depth.
+
+CITATION REQUIREMENT (mandatory for Oracle tier): 10 to 18 author-year citations across the reading. Required: numerology cite Drayer 2002, Kahn 2001, Riedweg 2005; moon Cajochen 2013, Cajochen and Schmidt 2024; astrology Tarnas 2006, Greene 1976, Hand 2002, Brennan 2017, Campion 2008; Maya peer-reviewed Sprajc 2023, Aldana 2022, Aveni 2001; dreamspell Argüelles 1987 (modern system), Tedlock 1992 (distinct living count); neuroscience Bremer 2022, Barrett 2017, Walker 2017, Craig 2002, Porges 2011, Clark 2016; PNI Bower and Kuhlman 2023, Mengelkoch 2023; sceptical balance Carlson 1985 and Hartmann 2006 where astrology mechanism is discussed. Write each author-year inline in the prose naturally. The server wraps these as tappable citations automatically.`
   };
   // standard mode in frontend maps to 'oracle' tier for full depth
   // Three-voice architecture: append to system prompt for oracle tier
@@ -1057,6 +1293,140 @@ Do NOT truncate any field. Every field in the JSON schema populated to maximum d
   // chips never appeared in quick or free readings, the very tiers where the
   // engagement loop matters most. Now generates three voices for everyone.
   const voiceInstruction = THREE_VOICE_INSTRUCTION;
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // iter12d: bibliography integration into the Reading prompt.
+  // 
+  // Until iter12d, the Reading flow had a textual "sources" line at the end
+  // of the JSON schema but no structured reference plumbing. Citations were
+  // present in the chip-tap drawer (iter12) but missing from the main Reading,
+  // which is the substantive output users pay for.
+  // 
+  // iter12d wires bibliography.json into the Reading prompt with a tier-scaled
+  // reference catalogue. Higher tiers get more references; the Oracle tier
+  // gets the full set. The model is instructed to wrap inline citations using
+  // the same <span class="v11-cite" data-ref="..."> markers as the drawer,
+  // so the frontend renders citation popovers in the Reading the same way it
+  // does in the drawer.
+  // ═══════════════════════════════════════════════════════════════════════════
+  let cdpReferencesBlock = '';
+  let cdpCitationInstruction = '';
+  if (CDP_BIBLIOGRAPHY && CDP_BIBLIOGRAPHY.entries && tier !== 'free') {
+    const refLimit = {seeker: 12, initiate: 18, mystic: 24, oracle: 39}[tier] || 18;
+    const tracksCycle = !!(p && p.tracksCycle === true && p.cycleContext);
+    
+    // Core references always included: peer-reviewed neuroscience, scholarly
+    // astrology and Maya literature, numerology lineage, PNI synthesis, and
+    // sceptical counterweights. Order matters for tier-limited slicing.
+    const coreRefIds = [
+      // Foundation
+      'craig-2002',       // Interoception
+      'porges-2011',      // Polyvagal
+      'walker-2017',      // Sleep
+      'barrett-2017',     // Constructed emotion
+      'bremer-2022',      // DMN/salience
+      'clark-2016',       // Predictive processing
+      // Circadian
+      'cajochen-2013',
+      'cajochen-schmidt-2024',
+      // Astrology scholarship
+      'tarnas-2006',
+      'greene-1976',
+      // Maya scholarship (peer-reviewed)
+      'sprajc-2023',
+      'aldana-2022',
+      'aveni-2001',
+      // Dreamspell
+      'arguelles-1987',
+      'tedlock-1992',
+      // Numerology lineage
+      'drayer-2002',
+      'kahn-2001',
+      'riedweg-2005',
+      // PNI
+      'bower-kuhlman-2023',
+      'mengelkoch-2023',
+      // Sceptical balance, intellectual honesty
+      'carlson-1985',
+      'hartmann-2006',
+      'van-dam-2018',
+      // Authoritative data
+      'usno',
+      'law-of-time'
+    ];
+    
+    // Add cycle-specific refs when user has opted in
+    const cycleRefIds = [
+      'hill-2019',
+      'pope-wurlitzer-2017',
+      'klusmann-2023',
+      'baker-lee-2023',
+      'riley-1999',
+      'lange-2024',
+      'jang-2025'  // The bounded null - critical for honest cycle commentary
+    ];
+    
+    let candidateRefs = coreRefIds.slice();
+    if (tracksCycle) {
+      candidateRefs = candidateRefs.concat(cycleRefIds);
+    }
+    
+    // Filter to refs that actually exist in bibliography.json (defensive)
+    const validRefs = candidateRefs.filter(r => CDP_BIBLIOGRAPHY.entries[r]);
+    const finalRefs = validRefs.slice(0, refLimit);
+    
+    const entryLines = finalRefs.map(refId => {
+      const e = CDP_BIBLIOGRAPHY.entries[refId];
+      const authors = Array.isArray(e.authors)
+        ? e.authors.slice(0, 2).join(' and ') + (e.authors.length > 2 ? ' et al' : '')
+        : (e.authors || 'Unknown');
+      const where = e.journal || e.publisher || e.source || '';
+      const title = (e.title || '').slice(0, 90);
+      return '  ' + refId + ': ' + authors + ' (' + e.year + '). ' + title + (where ? '. ' + where : '');
+    });
+    
+    cdpReferencesBlock = '\n\nAVAILABLE REFERENCES for inline citation:\n' + entryLines.join('\n') + '\n';
+    
+    const minCites = {seeker: 4, initiate: 6, mystic: 8, oracle: 10}[tier] || 6;
+    const maxCites = {seeker: 8, initiate: 12, mystic: 16, oracle: 20}[tier] || 12;
+    
+    cdpCitationInstruction = '\n\n═══ AUTHOR ATTRIBUTION REQUIREMENT ═══\n' +
+      'Your prose MUST explicitly mention the following authors and years inline, by name, ' +
+      'where their work supports a claim you make. This is required for scholarly integrity ' +
+      'and is a HARD requirement, not a guideline.\n\n' +
+      'You must include between ' + minCites + ' and ' + maxCites + ' inline author-year mentions ' +
+      'distributed across the Reading sections, drawn from the AVAILABLE REFERENCES list above.\n\n' +
+      'EXAMPLES of correct inline format (any of these patterns work):\n' +
+      '  - "as Bremer 2022 describes, the default mode network..."\n' +
+      '  - "the practitioner framework (Hill 2019) calls this inner winter"\n' +
+      '  - "per Walker 2017, sleep consolidates..."\n' +
+      '  - "Tarnas 2006 explored Saturn-Neptune cycles"\n' +
+      '  - "Klusmann et al 2023 documented HPA reactivity"\n' +
+      '  - "Pope and Wurlitzer 2017 frame this as..."\n\n' +
+      'WRITE THE AUTHORS DIRECTLY INTO YOUR PROSE. The server-side post-processor will ' +
+      'wrap each author-year mention as a tappable citation marker automatically. ' +
+      'You do not need to add HTML span tags yourself, just write the author and year as ' +
+      'natural inline text.\n\n' +
+      'WHICH AUTHORS TO CITE:\n' +
+      '- Neuroscience claims (DMN, sleep, emotion, predictive processing): Bremer 2022, Walker 2017, Barrett 2017, Craig 2002, Clark 2016\n' +
+      '- Circadian or lunar physiology: Cajochen 2013, Cajochen and Schmidt 2024\n' +
+      '- Astrology (symbolic): Tarnas 2006, Greene 1976\n' +
+      '- Astrology empirical limits (when Science voice or sceptic context): Carlson 1985, Hartmann 2006\n' +
+      '- Maya astronomy (peer-reviewed): Sprajc 2023, Aldana 2022, Aveni 2001\n' +
+      '- Dreamspell (modern symbolic system): Arguelles 1987\n' +
+      '- Living Maya tradition: Tedlock 1992\n' +
+      '- Numerology lineage: Drayer 2002, Kahn 2001, Riedweg 2005\n' +
+      '- Psychoneuroimmunology: Bower and Kuhlman 2023, Mengelkoch 2023\n' +
+      '- Polyvagal/autonomic: Porges 2011\n';
+    if (tracksCycle) {
+      cdpCitationInstruction += '- Menstrual cycle (with explicit user opt-in): Hill 2019, Pope and Wurlitzer 2017 (practitioner literature), Klusmann 2023 (HPA reactivity), Baker and Lee 2023 (sleep architecture), Riley 1999 (pain), Lange 2024 (PMDD), Jang 2025 (BOUNDED NULL on cognitive performance, always cite alongside positive findings for intellectual honesty)\n';
+    }
+    cdpCitationInstruction += '\n' +
+      'BEFORE COMPLETING the JSON, verify that your prose contains ' + minCites + ' to ' + maxCites + ' ' +
+      'inline author-year mentions. Count them. If fewer, add more where claims warrant.\n' +
+      '═══════════════════════════════════════════════\n';
+  }
+
   const scope = tierScope[tier] || tierScope.oracle;
 
   const sys = `You are the Oracle at Cosmic Daily Planner (cosmicdailyplanner.com), a rigorous, personalised daily cosmic planner synthesising Swiss Ephemeris astronomy, Pythagorean numerology, Western psychological astrology, and Dreamspell/Law of Time.${_langNote}
@@ -1121,7 +1491,13 @@ Bortolotti et al. (2025) Frontiers in Neuroscience, supercomplexity: aesthetics 
 Foster & Roenneberg (2008) Current Biology, human responses to geophysical daily, annual, lunar cycles
 
 WHERE RELEVANT: cite specific sources in readings to substantiate claims. Every factual claim traceable to a named authority. Symbolic claims explicitly labelled as symbolic.
-${voiceInstruction}`;
+
+SCHOLARLY CITATIONS:
+Where the Reading makes a factual, scientific, or scholarly claim, mention the source author and year inline in the prose: "Bremer 2022", "Tarnas 2006", "Hill 2019", etc. The server-side post-processor will automatically wrap these mentions as tappable citation markers. You do not need to add HTML span tags yourself. Just write the author-year as natural inline text. Symbolic claims must be labelled as symbolic.
+
+See the AVAILABLE REFERENCES list and AUTHOR ATTRIBUTION REQUIREMENT below for specifics.
+
+${voiceInstruction}${cdpReferencesBlock}${cdpCitationInstruction}`;
 
   const user = `PROFILE:
 ${profileBlock}
@@ -1164,10 +1540,10 @@ ${weekAhead.map(w => `${w.dayStr}: ${w.kin} | UD${w.ud}${w.isGAP ? ' GAP' : ''}`
 
 Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no preamble. JSON object only):
 {
-  "synthesis": "<2-3 sentence italic opening, synthesise ALL four frameworks into the single deepest truth for ${firstName} today. Weave the Dreamspell Kin, Universal Day, dominant transit, and moon phase into one resonant, specific, memorable statement. This is the headline they carry all day.>",
+  "synthesis": "<2-3 sentence italic opening, synthesise ALL four frameworks into the single deepest truth for ${firstName} today. Weave the Dreamspell Kin, Universal Day, dominant transit, and moon phase into one resonant, specific, memorable statement. This is the headline they carry all day. Where the Saturn-Neptune historical resonance is named, cite Tarnas 2006 inline.>",
   "numerology": {
     "headline": "UD ${num.ud}: ${num.udM?.n}: <one punchy, ${firstName}-specific sentence connecting their number to their current chapter>",
-    "body": "<4 substantial paragraphs: (1) What Universal Day ${num.ud} (${num.udM?.n}) means specifically for ${firstName} today, named context, named chapter, named projects or relationships from their profile. (2) How UD ${num.ud} interacts with their Life Path ${num.lp || 'number'}, what tension or alignment emerges between daily energy and core soul pattern. (3) Personal Day ${num.pd || num.ud} meaning, its shadow side, and how ${firstName} can work with rather than against it. (4) How Personal Month ${num.pm || ''} colours everything this month, what it amplifies, what it challenges, what it asks ${firstName} to build or release.>",
+    "body": "<4 substantial paragraphs: (1) What Universal Day ${num.ud} (${num.udM?.n}) means specifically for ${firstName} today, named context, named chapter, named projects or relationships from their profile. Cite Drayer 2002 or Kahn 2001 inline for the Pythagorean numerology framework. (2) How UD ${num.ud} interacts with their Life Path ${num.lp || 'number'}, what tension or alignment emerges between daily energy and core soul pattern. (3) Personal Day ${num.pd || num.ud} meaning, its shadow side, and how ${firstName} can work with rather than against it. (4) How Personal Month ${num.pm || ''} colours everything this month, what it amplifies, what it challenges, what it asks ${firstName} to build or release.>",
     "three_energies": {
       "morning": {"num": ${num.pd || num.ud}, "name": "${NUM[num.pd || num.ud]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s morning, specific action, specific awareness, what this energy most rewards in the first part of the day>"},
       "afternoon": {"num": ${num.pm || num.mEn}, "name": "${NUM[num.pm || num.mEn]?.n}", "guidance": "<3 concrete sentences for ${firstName}'s afternoon, how the energy shifts, what becomes available, specific advice for the middle of the day>"},
@@ -1176,17 +1552,17 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
   },
   "moon_section": {
     "headline": "<${moon.phase} in ${planets[1].sign}, one evocative, ${firstName}-specific headline that names the essential tension or gift>",
-    "body": "<3 substantial paragraphs: (1) What ${moon.phase} in ${planets[1].sign} specifically illuminates or asks of ${firstName}, their relationships, inner life, body, or context. (2) Where ${moon.cycle} days into the lunar cycle places ${firstName}, what is culminating, releasing, or building. Reference the emotional arc of this specific phase position. (3) ${moonAlert ? 'Specific guidance for this BLACK MOON or SHIVA MOON threshold, what it means for decisions, timing, and energy today.' : 'Specific communication and relationship guidance for today, what to say, what to hold, what to offer.'}>"
+    "body": "<3 substantial paragraphs: (1) What ${moon.phase} in ${planets[1].sign} specifically illuminates or asks of ${firstName}, their relationships, inner life, body, or context. Where circadian-rhythm or sleep claims arise, cite Cajochen 2013 or Walker 2017 inline. (2) Where ${moon.cycle} days into the lunar cycle places ${firstName}, what is culminating, releasing, or building. Reference the emotional arc of this specific phase position. (3) ${moonAlert ? 'Specific guidance for this BLACK MOON or SHIVA MOON threshold, what it means for decisions, timing, and energy today.' : 'Specific communication and relationship guidance for today, what to say, what to hold, what to offer.'}>"
   },
   "astrology": {
     "main_transit_headline": "<Name the single most significant active transit with precise degree notation, e.g. 'Mercury 15.5° Aries square Jupiter 15.9° Cancer. Precision Over Expansion'>",
-    "main_transit_body": "<4 substantial paragraphs: (1) Precise astronomical description of this transit (planets, signs, exact orb, quality. (2) Historical and cultural context) what happened during the last time these planets made this aspect, what archetypal pattern is active. Cite Greene (1976) or Tarnas (2006) where relevant. (3) What this transit means for the world right now, structural, cultural, economic. (4) What this transit specifically asks of ${firstName} given their personal context and current chapter. Concrete, named, grounded.>",
-    "saturn_neptune": "<3 substantial paragraphs: (1) The Saturn-Neptune cycle, cite Tarnas (2006) Cosmos & Psyche explicitly, name the 1522 (Magellan circumnavigation), 1917 (WWI/Russian Revolution), 1952 (DNA discovery/early computing), 1989 (Berlin Wall/Cold War end) conjunctions with their historical significance. (2) What this current conjunction in Aries means specifically, dissolution of Saturn structures (old models, gatekeeping, rigid systems) meeting Neptunian vision (new paradigms, idealised possibilities) in the sign of pioneering initiations. How this affects the world's structures right now. (3) What this civilisational reset personally asks of ${firstName}, the impossible integration it invites, the dreamer AND architect simultaneously, how their current work or life chapter is positioned within this historical moment.>",
+    "main_transit_body": "<4 substantial paragraphs: (1) Precise astronomical description of this transit (planets, signs, exact orb, quality. (2) Historical and cultural context) what happened during the last time these planets made this aspect, what archetypal pattern is active. Cite Tarnas 2006 inline for the archetypal-astrology framework, and Greene 1976 inline for psychological astrology. Write the year directly in prose as 'Tarnas 2006 explored...' not in parentheses alone. (3) What this transit means for the world right now, structural, cultural, economic. (4) What this transit specifically asks of ${firstName} given their personal context and current chapter. Concrete, named, grounded.>",
+    "saturn_neptune": "<3 substantial paragraphs: (1) The Saturn-Neptune cycle. Write 'Tarnas 2006' inline (not 'Tarnas (2006)' alone), and name the 1522 (Magellan circumnavigation), 1917 (WWI/Russian Revolution), 1952 (DNA discovery/early computing), 1989 (Berlin Wall/Cold War end) conjunctions with their historical significance. (2) What this current conjunction in Aries means specifically, dissolution of Saturn structures (old models, gatekeeping, rigid systems) meeting Neptunian vision (new paradigms, idealised possibilities) in the sign of pioneering initiations. How this affects the world's structures right now. (3) What this civilisational reset personally asks of ${firstName}, the impossible integration it invites, the dreamer AND architect simultaneously, how their current work or life chapter is positioned within this historical moment.>",
     "uranus_note": "<2 sentences: Uranus at ${planets[7].degStr} approaching Gemini ingress ~April 26 2026, what financial structures, communication architectures, and valuations this disrupts, and the specific implication for ${firstName}'s timing and planning.>"
   },
   "dreamspell": {
     "headline": "${kin.full}${kin.isGAP ? ' ★ GALACTIC ACTIVATION PORTAL' : ''}",
-    "body": "<3-4 paragraphs: (1) Tone ${kin.toneNum} (${kin.tone}), its question, its challenge, its gift. What this tone specifically asks ${firstName} to embody or practice today. (2) The ${kin.seal} seal, its core power, its archetype, its gifts and shadow. Applied concretely to ${firstName}'s current situation and context. (3) The wavespell position and what specific invitation it carries, where ${firstName} is in the larger 13-day arc. (4) ${kin.isGAP ? 'GALACTIC ACTIVATION PORTAL: the veil between dimensions is thinner today. What specific arrivals, synchronicities, or unexpected clarity should ' + firstName + ' pay attention to? What has been seeking entrance?' : ''} Always note: Argüelles (1987) modern system, distinct from ancient K\'iche\' tzolkʼin.>",
+    "body": "<3-4 paragraphs: (1) Tone ${kin.toneNum} (${kin.tone}), its question, its challenge, its gift. What this tone specifically asks ${firstName} to embody or practice today. (2) The ${kin.seal} seal, its core power, its archetype, its gifts and shadow. Applied concretely to ${firstName}'s current situation and context. (3) The wavespell position and what specific invitation it carries, where ${firstName} is in the larger 13-day arc. (4) ${kin.isGAP ? 'GALACTIC ACTIVATION PORTAL: the veil between dimensions is thinner today. What specific arrivals, synchronicities, or unexpected clarity should ' + firstName + ' pay attention to? What has been seeking entrance?' : ''} Write 'Argüelles 1987' inline (not in parentheses alone) when describing the Dreamspell framework, and 'Tedlock 1992' inline when distinguishing from the living K\'iche\' tzolkʼin.>",
     "disclaimer": "Dreamspell: Argüelles (1987) The Mayan Factor, 20th-century modern system, distinct from the ancient K'iche' Maya tzolkʼin maintained continuously by Guatemalan daykeepers (Aldana 2022)."
   },
   "planetary_positions": [
@@ -1195,7 +1571,7 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
   "aspects": [
     ${aspects.slice(0,6).map(a => `{"dots":${a.str},"label":"${a.desc}","body":"<3 sentences: what this specific aspect means for ${firstName} today, the tension or gift it brings, how it manifests in their actual life, one concrete way to work with it>"}`).join(',\n    ')}
   ],
-  "shadow_work": "<3-4 italic sentences, the hard question ${firstName} actually needs right now. Grounded in their personal context. Not philosophical abstractions but the specific avoidance, the specific deferral, the specific unexamined assumption. Ask the question they most need to hear. Do not soften it.>",
+  "shadow_work": "<3-4 italic sentences, the hard question ${firstName} actually needs right now. Grounded in their personal context. Not philosophical abstractions but the specific avoidance, the specific deferral, the specific unexamined assumption. Ask the question they most need to hear. Do not soften it. Where the neuroscience of self-reference or emotional construction is invoked, cite Bremer 2022 or Barrett 2017 inline.>",
   "priorities": [
     {"rank":1,"title":"<Most important priority today, specific to ${firstName}'s context and projects>","rationale":"<3-4 sentences with full cosmic rationale, which specific transits, numbers, and lunar phase support this priority today and why>","action":"<One specific, concrete, completable action for today, precise, physical, completable in a single session>"},
     {"rank":2,"title":"<Relationship or connection priority, specific person or type of connection>","rationale":"<3-4 sentences with cosmic rationale>","action":"<One specific action, what to say, who to reach, what to create>"},
@@ -1219,23 +1595,62 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
   },
   "closing_line": "<One final sentence, italic, specific to ${firstName}, not inspirational fluff. The truth of where they actually are, spoken with warmth and precision. The sentence they will carry.>",
   "sources": "Astronomy: Swiss Ephemeris (Koch & Treindl, Astrodienst AG, ae_2026.pdf); USNO Moon Phases. Maya calendrics: Šprajc et al. (2023) Science Advances doi:10.1126/sciadv.abq7675; Aldana (2022) doi:10.34758/qyyd-vx23. Dreamspell: Argüelles (1987) The Mayan Factor. Astrology: Greene (1976) Saturn; Tarnas (2006) Cosmos & Psyche; Hand (2002) Planets in Transit; Brady (1999) Predictive Astrology; Brennan (2017) Hellenistic Astrology. Numerology: Drayer (2002); Kahn (2001) Pythagoras."
-}`;
+}
+
+OUTPUT FORMAT (strict): Respond with ONLY the JSON object above, populated for ${firstName} on ${dateStr}. No markdown code fences. No preamble. No commentary before or after. The very first character of your response must be { and the very last must be }. Citations are written inline inside the prose string values, not after the JSON.
+
+BEFORE YOU FINISH: count the author-year mentions in your prose (patterns like "Tarnas 2006", "Drayer 2002", "Bower and Kuhlman 2023", "Klusmann et al 2023"). If the count is below the tier minimum stated above in the CITATION REQUIREMENT, add more by attributing existing claims to the relevant authors named in the requirement. Do not invent claims to fit citations, attribute claims you have already made. The frameworks you are using (Pythagorean numerology, Western psychological astrology, Dreamspell, neuroscience of attention and sleep) all have named scholarly sources; use them.`;
 
   const maxTok = {free:800, seeker:3000, initiate:5000, mystic:8000, oracle:16000}[tier] || 8192;
   // Use Haiku for lighter tiers, much faster, still quality
-  const genModel = (tier === 'seeker' || tier === 'initiate') ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6';
+  const genModel = 'claude-sonnet-4-6';
+  
+  // iter12d: structured timing logs for diagnosing slow Readings.
+  // Each line lands in Railway logs and lets us see exactly where time went.
+  const _genStart = Date.now();
+  const _sysLen = sys.length;
+  const _userLen = user.length;
+  console.log('[reading-gen] tier=' + tier + ' model=' + genModel + ' maxTok=' + maxTok + ' sysLen=' + _sysLen + ' userLen=' + _userLen + ' jobId=' + (jobId || 'sync'));
+  
   const raw = await callAPI(genModel, maxTok, sys, user);
+  
+  const _apiMs = Date.now() - _genStart;
+  console.log('[reading-gen DONE] tier=' + tier + ' apiMs=' + _apiMs + ' rawLen=' + (raw ? raw.length : 0) + ' jobId=' + (jobId || 'sync'));
 
   let reading;
   try {
-    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Strip markdown code fences anywhere in the text (model sometimes wraps,
+    // sometimes adds trailing commentary after the JSON).
+    let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Extract the outermost balanced JSON object: scan forward from first '{'
+    // and track brace depth (respecting strings and escapes) until depth=0.
+    // This trims off any chatty prose the model appended after the JSON.
+    const firstBrace = cleaned.indexOf('{');
+    if (firstBrace > -1) {
+      let depth = 0, inStr = false, esc = false, end = -1;
+      for (let i = firstBrace; i < cleaned.length; i++) {
+        const c = cleaned[i];
+        if (esc) { esc = false; continue; }
+        if (c === '\\' && inStr) { esc = true; continue; }
+        if (c === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (c === '{') depth++;
+        else if (c === '}') {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
+      }
+      if (end > -1) cleaned = cleaned.slice(firstBrace, end + 1);
+    }
     reading = JSON.parse(cleaned);
   } catch(e) {
     try {
-      const repaired = repairJSON(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+      const stripped = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const repaired = repairJSON(stripped);
       reading = JSON.parse(repaired);
       reading._repaired = true;
     } catch(e2) {
+      console.warn('[reading-gen PARSE FAIL] tier=' + tier + ' err=' + e.message + ' rawHead=' + (raw || '').slice(0, 200).replace(/\n/g, '\\n'));
       reading = {synthesis: raw, raw: true, parseError: e.message};
     }
   }
@@ -1280,6 +1695,22 @@ Generate the FULL ORACLE READING as valid JSON (no markdown, no fences, no pream
     }
   }
 
+  // iter12f: post-process citations into v11-cite spans
+  // This wraps any "Author Year" pattern in prose fields with the
+  // structured citation marker so the frontend can render popovers,
+  // regardless of whether the model followed the inline-citation
+  // instruction in the prompt.
+  try {
+    const citesWrapped = postProcessCitations(reading);
+    if (citesWrapped > 0) {
+      console.log('[reading-gen citations] wrapped', citesWrapped, 'inline citations from bibliography');
+    } else {
+      console.log('[reading-gen citations] no author-year patterns found in prose');
+    }
+  } catch (e) {
+    console.warn('[reading-gen citations] post-processor failed:', e.message);
+  }
+  
   return {reading, planets, moon, kin, num, aspects, weekAhead};
 }
 
@@ -1373,7 +1804,7 @@ Generate ONLY these sections as valid JSON:
 
   const maxTok1 = {free:400, seeker:1800, initiate:2200, mystic:2800, oracle:3500}[tier] || 2000;
   // Use Haiku for seeker/free Phase1 (fast enough), Sonnet for deeper tiers
-  const p1Model = (tier === 'seeker' || tier === 'free') ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6';
+  const p1Model = (tier === 'free') ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6';
   const raw1 = await callAPI(p1Model, maxTok1, sys1, user1);
 
   try {
@@ -1447,12 +1878,15 @@ app.post('/api/reading/start', async (req, res) => {
     error: null
   });
 
-  // v22h: per-tier hard job deadline. If the orchestration is still running
-  // when this fires, mark the job as errored so the client polling sees
-  // failure and can prompt the user to retry. Bounds the worst case end-to-end
-  // wall time and prevents 'still composing' phantom states.
-  const _jobDeadlineMs = {free: 90000, seeker: 90000, initiate: 180000,
-                          mystic: 240000, oracle: 240000}[activeTier] || 180000;
+  // Orchestrated readings: per-tier hard job deadline. Sections run in
+  // parallel (concurrency cap 3-4), each with 90s per-call ceiling. Wall
+  // time is dominated by the slowest section, not the sum. Deadlines below
+  // are comfortable headroom: typical wall times are 10-15s (free),
+  // 22-35s (seeker), 35-55s (initiate), 50-75s (mystic), 60-100s (oracle).
+  // If a section retries on transient, that adds up to 90s before falling
+  // back to the static stub, so we set ceilings well above typical.
+  const _jobDeadlineMs = {free: 60000, seeker: 90000, initiate: 150000,
+                          mystic: 210000, oracle: 300000}[activeTier] || 180000;
   setTimeout(() => {
     const _j = jobs.get(jobId);
     if (_j && _j.status !== 'complete' && _j.status !== 'error') {
@@ -1465,104 +1899,349 @@ app.post('/api/reading/start', async (req, res) => {
 
   res.json({ jobId, status: 'pending' });
 
-  // ── TWO-PHASE GENERATION ────────────────────────────────────────
-  // Phase 1: actionable core in ~25s (free tier skips to full)
-  // Phase 2: full depth analysis continues in background
+  // ── ORCHESTRATED SECTION GENERATION ─────────────────────────────────
+  // All tiers run through the per-section orchestrator. Sections run
+  // in parallel, model selected per section. Phase 1 (synthesis +
+  // numerology) renders to the client as soon as both arrive, typically
+  // 8 to 12 seconds. Remaining sections stream into the job result as
+  // they complete. Full reading lands in 30 to 75 seconds depending on
+  // tier, compared to the previous 4 to 9 minutes (which routinely
+  // failed at Oracle due to a 180s callAPI hard cap on a 16,000-token
+  // single-shot call that physically could not complete).
   (async () => {
     try {
-      // Pre-calculate shared data once
+      // Pre-calculate framework data once. These are deterministic
+      // and shared across every section composition.
       const planets = buildPlanets(ds);
       const moon = getMoon(ds);
       const kin = getKin(ds);
       const num = getNumerology(ds, profile?.birthDay, profile?.birthMonth, profile?.birthYear);
       const aspects = getAspects(planets);
+      const weekAhead = getWeekAhead(ds);
 
-      if (activeTier === 'free' || activeTier === 'seeker') {
-        // Free/Seeker: use the fast quickread path (Haiku, ~12s)
-        const p = profile || {};
-        const fn = p.nickname || (p.name ? p.name.split(' ')[0] : 'you');
-        const ctx = [p.context,p.building,p.chapter,
-          p.active_threads?(Array.isArray(p.active_threads)?p.active_threads.join(', '):p.active_threads):null,
-          p.birthDay?('Born '+p.birthDay+'/'+p.birthMonth+'/'+p.birthYear):null
-        ].filter(Boolean).join('. ');
-        const moonNote = moon.isBlack?'BLACK MOON, do not initiate.':moon.isShiva?'SHIVA MOON, plant with intention.':'';
-        const weekAhead = getWeekAhead(ds);
-        const weekCtx = weekAhead.slice(1).map(w => w.dayStr+': UD'+w.ud+(w.isGAP?' GAP★':'')+' '+w.kin).join(', ');
-        const langMode = (profile && profile.readingLang === 'modern') ? 'modern' : 'ancient';
-        const langInstr = langMode === 'modern'
-          ? ' READING LANGUAGE: Modern scientific. Frame every insight in neuroscience terms: salience network, circadian rhythms, interoception, neuroplasticity, predictive coding. Name the mechanism. Cite the science briefly (e.g. Barrett 2017, Bremer 2022). Still use the cosmic data as the scaffold but translate it into brain science language.'
-          : ' READING LANGUAGE: Ancient traditional. Use the language of cosmic intelligence, archetypes, energetic fields and symbolic meaning. No neuroscience terminology.';
-        const qdSys = 'You are the Oracle at Cosmic Daily Planner. Respond ONLY with valid JSON, no markdown, no preamble.' + langInstr + ' Schema: {"synthesis":"string","priorities":[{"title":"string","action":"string"},{"title":"string","action":"string"},{"title":"string","action":"string"}],"shadow":"string","focus_on":["string","string","string","string"],"ease_off":["string","string","string","string"],"time_windows":{"morning":"string","afternoon":"string","evening":"string"},"week_notes":["string","string","string","string","string","string"],"next_tier_teaser":"string"}. week_notes: exactly 6 notes (2 sentences each): what the day energy means + one specific implication for the person. next_tier_teaser: 1-2 compelling sentences about what a Monthly Arc reading would additionally reveal for this person this month, end with a curiosity hook. Max 1200 tokens. Be specific.';
-        const weekDateList = weekAhead.slice(1).map((w,i)=>(i+1)+'. '+w.dayStr+' (UD'+w.ud+(w.isGAP?' GAP':'')+' '+w.kin+')').join('; ');
-        const qdUser = 'Person: '+fn+'. Date: '+ds+'. Moon: '+moon.phase+(moonNote?' ('+moonNote+')':'')+'. UD: '+num.ud+(num.udM&&num.udM.n?' ('+num.udM.n+')':'')+', PD: '+(num.pd||num.ud)+'. LP: '+(num.lp||'?')+', PY: '+(num.py||'?')+'. Kin: '+kin.full+(kin.isGAP?' GALACTIC ACTIVATION PORTAL':'')+'. '+ctx+'. Next 6 days (in order for week_notes): '+weekDateList+'. Saturn-Neptune Aries 2026 (Tarnas 2006). Write personal daily reading for '+fn+'. week_notes must have exactly 6 strings in same order as the dates above.';
-        let qdRaw;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            qdRaw = await callAPI('claude-haiku-4-5-20251001', 1800, qdSys, qdUser);
-            break;
-          } catch(e) {
-            // v22h: retry on a wider set of transient failures, not just
-            // 'overloaded'. Socket timeouts, hard timeouts, and 5xx errors
-            // are all worth retrying with backoff.
-            const transient = e.message.includes('overloaded')
-              || e.message.includes('Socket timeout')
-              || e.message.includes('hard_timeout')
-              || e.message.includes('http_5')
-              || e.message.includes('ECONNRESET')
-              || e.message.includes('ETIMEDOUT');
-            if (transient && attempt < 2) {
-              console.log(`Job ${jobId} transient (${e.message.slice(0,60)}), retry ${attempt+1}...`);
-              await new Promise(r => setTimeout(r, 3000 + attempt * 2000));
-            } else throw e;
-          }
+      // Natal chart for natal_integration section. Only compute if we
+      // have birth date; tolerate absence gracefully (orchestrator falls
+      // back to Sun-sign-only natal anchor from birth date).
+      let natalPlanets = null;
+      try {
+        if (profile?.birthDay && profile?.birthMonth && profile?.birthYear) {
+          const bIso = `${profile.birthYear}-${String(profile.birthMonth).padStart(2,'0')}-${String(profile.birthDay).padStart(2,'0')}`;
+          natalPlanets = buildPlanets(bIso);
         }
-        const qdCleaned = qdRaw.replace(/```json[\n]?/g,'').replace(/```[\n]?/g,'').trim();
-        let qdReading;
-        try { qdReading = JSON.parse(qdCleaned); } catch(e) { qdReading = {synthesis:qdRaw,raw:true}; }
-        const qdJob = jobs.get(jobId);
-        if (qdJob) {
-          qdJob.status = 'complete';
-          if (qdReading.week_notes && Array.isArray(qdReading.week_notes) && weekAhead.length > 1) {
-            qdReading.week_ahead = weekAhead.slice(1).map((w, i) => ({
-              date: w.date, dayStr: w.dayStr, note: qdReading.week_notes[i] || ''
-            }));
+      } catch (e) { /* non-fatal; orchestrator falls back */ }
+
+      // Build the shared context that threads through every section.
+      // This is what makes the reading bespoke rather than generic.
+      const sharedContext = orchestrator.buildSharedContext({
+        profile: profile || {},
+        dateStr: ds,
+        planets, moon, kin, num, aspects,
+        weekAhead,
+        recentHistory: recentHistory || [],
+        yesterdayIntention,
+        natalPlanets
+      });
+
+      // Model map: orchestrator names models abstractly ("haiku", "sonnet"),
+      // server resolves to the current Anthropic identifiers.
+      const modelMap = {
+        haiku: 'claude-haiku-4-5-20251001',
+        sonnet: 'claude-sonnet-4-6'
+      };
+
+      // Run the orchestrator. Phase 1 callback updates the job as soon
+      // as the synthesis and numerology sections arrive; the client polls
+      // status every 2s and picks up phase1_complete.
+      const reading = await orchestrator.composeReading({
+        tier: activeTier,
+        sharedContext,
+        bibliography: CDP_BIBLIOGRAPHY,
+        callAPIFn: callAPI,
+        modelMap,
+        scrubFn: (typeof scrubHouseStyle === 'function') ? scrubHouseStyle : null,
+        jobId,
+        onPhase1: (phase1Payload) => {
+          const job = jobs.get(jobId);
+          if (job && job.status !== 'complete' && job.status !== 'error') {
+            // Adapt phase1 payload to legacy shape that the frontend
+            // fillPhase1Sections() function consumes. Phase 1 always
+            // contains synthesis and numerology sections (both flagged
+            // phase1: true in the section library).
+            const _voice = (profile && profile.readingLang === 'modern') ? 'science_text'
+                         : (profile && profile.readingLang === 'scientific') ? 'science_text'
+                         : 'tradition_text';
+            const _pickVoice = (sec) => {
+              if (!sec) return '';
+              return sec[_voice] || sec.tradition_text || sec.everyday_text || sec.science_text || '';
+            };
+            const _strip = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            const _firstSentence = (s) => {
+              const txt = _strip(s);
+              const m = txt.match(/^[^.!?]+[.!?]/);
+              return m ? m[0].trim() : txt.slice(0, 160);
+            };
+            // iter13b: defensive string coercion for headline. If the model
+            // ever returns a non-string headline, the frontend forEach over
+            // priorities would crash and leave the panel blank.
+            const _str = (v, fallback) => {
+              if (v == null) return fallback || '';
+              if (typeof v === 'string') return v;
+              if (typeof v === 'number') return String(v);
+              if (typeof v === 'object') {
+                if (typeof v.tradition === 'string') return v.tradition;
+                if (typeof v.science   === 'string') return v.science;
+                if (typeof v.everyday  === 'string') return v.everyday;
+                if (typeof v.headline  === 'string') return v.headline;
+                if (typeof v.body      === 'string') return v.body;
+                if (typeof v.text      === 'string') return v.text;
+                return fallback || '';
+              }
+              return String(v);
+            };
+            const synth = phase1Payload.synthesis;
+            const numer = phase1Payload.numerology;
+            const legacyP1 = {
+              synthesis: _strip(_pickVoice(synth)),
+              priorities: [
+                synth ? { title: _str(synth.headline, 'Today'),
+                          action: _firstSentence(synth.everyday_text || synth.tradition_text || '') } : null,
+                numer ? { title: _str(numer.headline, 'The day in number'),
+                          action: _firstSentence(numer.everyday_text || numer.tradition_text || '') } : null
+              ].filter(Boolean),
+              // Sections payload preserved for the next generation of
+              // the frontend to consume directly.
+              sections: phase1Payload
+            };
+            job.phase1 = legacyP1;
+            job.status = 'phase1_complete';
+            console.log(`[orchestrator ${jobId}] phase1 ready at ${((Date.now() - job.startedAt)/1000).toFixed(1)}s`);
           }
-          qdJob.result = { reading: qdReading, planets, moon, kin, num, aspects, weekAhead };
-          qdJob.completedAt = Date.now();
-          console.log(`Job ${jobId} ${activeTier} complete (${((Date.now()-qdJob.startedAt)/1000).toFixed(1)}s)`);
+        },
+        onSectionComplete: (sectionId, result) => {
+          // Optional progressive update hook. Currently logs only.
+          // Future enhancement: live-update the job result so clients
+          // polling at high frequency can render sections one by one.
         }
-        return;
+      });
+
+      // Post-process: also run the legacy author-year wrapper across
+      // section prose, as a safety net for cases where the model used
+      // inline author-year mentions in addition to (or instead of)
+      // returning citation IDs. Wrapper is idempotent and cheap.
+      try {
+        if (typeof postProcessCitations === 'function') {
+          postProcessCitations(reading);
+        }
+      } catch(e) { /* non-fatal */ }
+
+      // ── BACKWARDS-COMPATIBLE LEGACY SHAPE ─────────────────────────
+      // The frontend (app.html) currently consumes the legacy quickread
+      // shape: reading.synthesis, reading.priorities, reading.shadow,
+      // reading.focus_on, reading.ease_off, reading.time_windows,
+      // reading.week_notes, reading.week_ahead. We project the section
+      // payload onto those fields so the frontend renders unchanged.
+      // The new section-based fields (reading.sections, reading.sectionMap,
+      // reading.citationMeta) remain in the payload for the next
+      // generation of the frontend to consume.
+      const sm = reading.sectionMap || {};
+      const legacyVoice = (profile && profile.readingLang === 'modern') ? 'science_text'
+                        : (profile && profile.readingLang === 'scientific') ? 'science_text'
+                        : 'tradition_text';
+      const pickVoiceHtml = (sec) => {
+        if (!sec) return '';
+        // Prefer the explicitly requested voice; fall back to others if empty.
+        return sec[legacyVoice] || sec.tradition_text || sec.everyday_text || sec.science_text || '';
+      };
+      const stripHtml = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+      // iter13b: defensive string coercion. If the model returns an object
+      // where a string was expected (e.g. headline as {tradition, science})
+      // or returns nothing at all, we always emit a string. Without this,
+      // the frontend's forEach over priorities/focus/ease can crash with
+      // "(...).replace is not a function" on the first non-string field.
+      const _str = (v, fallback) => {
+        if (v == null) return fallback || '';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number') return String(v);
+        if (typeof v === 'object') {
+          if (typeof v.tradition === 'string') return v.tradition;
+          if (typeof v.science   === 'string') return v.science;
+          if (typeof v.everyday  === 'string') return v.everyday;
+          if (typeof v.headline  === 'string') return v.headline;
+          if (typeof v.body      === 'string') return v.body;
+          if (typeof v.text      === 'string') return v.text;
+          return fallback || '';
+        }
+        return String(v);
+      };
+
+      // Map orchestrator sections to legacy fields
+      reading.synthesis = stripHtml(pickVoiceHtml(sm.synthesis));
+      reading.shadow = stripHtml(pickVoiceHtml(sm.shadow));
+      reading.shadow_work = reading.shadow;
+
+      // Priorities: derive three short priorities from synthesis + numerology + body
+      // Each priority pairs a title from the section headline with an action
+      // drawn from the first sentence of the everyday voice text.
+      const firstSentence = (s) => {
+        const txt = stripHtml(s);
+        const m = txt.match(/^[^.!?]+[.!?]/);
+        return m ? m[0].trim() : txt.slice(0, 160);
+      };
+      const buildPriority = (sec, fallback) => {
+        if (!sec) return fallback;
+        return {
+          title: _str(sec.headline, fallback.title),
+          action: firstSentence(sec.everyday_text || sec.tradition_text || sec.science_text || '') || fallback.action
+        };
+      };
+      reading.priorities = [
+        buildPriority(sm.synthesis, { title: 'Today', action: 'Read the synthesis above.' }),
+        buildPriority(sm.numerology || sm.body, { title: 'Body and number', action: 'Notice the energy quality of the day.' }),
+        buildPriority(sm.lunar || sm.transits, { title: 'Sky', action: 'Note the lunar position and any active transit.' })
+      ];
+
+      // Focus_on / ease_off: derive four-item arrays from synthesis + body
+      // and shadow. Short evocative phrases.
+      reading.focus_on = [
+        sm.numerology ? _str(sm.numerology.headline, 'The day in number') : 'The opening of the day',
+        sm.lunar ? _str(sm.lunar.headline, 'Lunar pacing') : 'Pacing',
+        sm.dreamspell ? _str(sm.dreamspell.headline, 'Today\u2019s Kin') : 'Symbolic anchor',
+        sm.body ? _str(sm.body.headline, 'Body as compass') : 'Body and breath'
+      ];
+      reading.ease_off = [
+        sm.shadow ? 'Where today might catch you' : 'Forcing a result',
+        'Pushing tired attention',
+        'Multitasking under load',
+        'Skipping the wind-down'
+      ];
+
+      // Time windows: from pacing section if present, otherwise synthesised
+      // from synthesis + body. Plain text.
+      if (sm.pacing) {
+        const pacingText = stripHtml(pickVoiceHtml(sm.pacing));
+        // Try to split into morning/afternoon/evening if those labels exist
+        const morningMatch = pacingText.match(/morning[:\s]+([^.]+\.)/i);
+        const afternoonMatch = pacingText.match(/afternoon[:\s]+([^.]+\.)/i);
+        const eveningMatch = pacingText.match(/evening[:\s]+([^.]+\.)/i);
+        reading.time_windows = {
+          morning: morningMatch ? morningMatch[1].trim() : pacingText.slice(0, 200),
+          afternoon: afternoonMatch ? afternoonMatch[1].trim() : 'Steady pace; protect the post-lunch dip.',
+          evening: eveningMatch ? eveningMatch[1].trim() : 'Wind down; protect sleep onset.'
+        };
+      } else {
+        reading.time_windows = {
+          morning: 'Use the early hours for the day\u2019s most important attention.',
+          afternoon: 'Steady pace; protect the post-lunch dip.',
+          evening: 'Wind down; protect sleep onset.'
+        };
       }
 
-      if (activeTier !== 'free') {
-        // Phase 1, fast actionable core for initiate/mystic/oracle
-        const p1 = await generatePhase1(ds, profile || {}, activeTier, planets, moon, kin, num, aspects, jobId);
-        const job = jobs.get(jobId);
-        if (job) {
-          job.phase1 = p1;
-          job.status = 'phase1_complete';
-          console.log(`Job ${jobId} Phase 1 complete (${((Date.now() - job.startedAt)/1000).toFixed(1)}s)`);
-        }
+      // Week ahead notes: derive from week ahead data
+      reading.week_notes = (weekAhead || []).slice(1, 7).map(w =>
+        `${w.dayStr}: Universal Day ${w.ud}${w.isGAP ? ' GAP' : ''}, Kin ${w.kin}.`
+      );
+      reading.week_ahead = (weekAhead || []).slice(1, 7).map((w, i) => ({
+        date: w.date, dayStr: w.dayStr, note: reading.week_notes[i] || ''
+      }));
+
+      reading.next_tier_teaser = activeTier === 'oracle' ? ''
+        : `A higher tier reading would add ${activeTier === 'free' ? 'three more sections including lunar pacing and Kin' : activeTier === 'seeker' ? 'transits, Dreamspell depth, and body-compass sections' : activeTier === 'initiate' ? 'shadow, pacing, and body-compass sections' : 'depth synthesis and natal integration'}.`;
+
+      // ── DEEP-SECTION LEGACY PROJECTION ────────────────────────────
+      // The frontend renders these legacy section objects in fillAISections:
+      //   reading.numerology     { headline, body, three_energies? }
+      //   reading.astrology      { main_transit_headline, main_transit_body, saturn_neptune? }
+      //   reading.dreamspell     { headline, body, disclaimer? }
+      //   reading.moon_section   { headline, body }
+      //   reading.body_section   { headline, body }
+      //   reading.shadow_section { headline, body }
+      //
+      // We project each orchestrator section onto its legacy counterpart so
+      // every panel in the rendered reading has prose, not just the top
+      // synthesis. The picked voice for `body` follows the user's readingLang
+      // preference (modern/scientific → science_text, otherwise tradition_text).
+      // We also retain the multi-voice payload on each projected object so the
+      // future client-side voice toggle can swap without another API call.
+      const projectSection = (sec, fallbackHeadline) => {
+        if (!sec) return null;
+        return {
+          headline: _str(sec.headline, fallbackHeadline || ''),
+          body: stripHtml(pickVoiceHtml(sec)),
+          tradition: stripHtml(sec.tradition_text || ''),
+          science: stripHtml(sec.science_text || ''),
+          everyday: stripHtml(sec.everyday_text || ''),
+          citations: Array.isArray(sec.citations) ? sec.citations.slice() : []
+        };
+      };
+
+      reading.numerology = projectSection(sm.numerology, 'The day in number');
+      reading.dreamspell = projectSection(sm.dreamspell, kin && kin.full ? kin.full : 'Today\u2019s Kin');
+      reading.moon_section = projectSection(sm.lunar, moon && moon.phase ? moon.phase : 'The moon, today');
+      reading.body_section = projectSection(sm.body, 'Body, today');
+      reading.shadow_section = projectSection(sm.shadow, 'Where today might catch you');
+      reading.pacing_section = projectSection(sm.pacing, 'Pacing across the day');
+
+      // Astrology has two sub-fields the frontend reads: main transit and
+      // Saturn-Neptune. Map both off the transits section, putting the bulk
+      // of the prose in main_transit_body and a derived short paragraph in
+      // saturn_neptune if the section happens to discuss it.
+      if (sm.transits) {
+        const transitsBody = stripHtml(pickVoiceHtml(sm.transits));
+        reading.astrology = {
+          main_transit_headline: sm.transits.headline || 'The sky, this morning',
+          main_transit_body: transitsBody,
+          saturn_neptune: /saturn|neptune/i.test(transitsBody) ? transitsBody : '',
+          tradition: stripHtml(sm.transits.tradition_text || ''),
+          science: stripHtml(sm.transits.science_text || ''),
+          everyday: stripHtml(sm.transits.everyday_text || ''),
+          citations: Array.isArray(sm.transits.citations) ? sm.transits.citations.slice() : []
+        };
+      } else {
+        reading.astrology = null;
       }
 
-      // Phase 2, full depth (runs for initiate/mystic/oracle; free goes direct)
-      const r = await generateReading(ds, profile || {}, activeTier, recentHistory || [], planets, moon, kin, num, aspects, yesterdayIntention, jobId);
+      // Oracle-only sections: depth synthesis and natal integration.
+      // Expose as reading.depth_synthesis and reading.natal_integration so
+      // the Oracle-tier render can surface them as their own panels.
+      reading.depth_synthesis = projectSection(sm.depth_synthesis, 'How the frameworks converge today');
+      reading.natal_integration = projectSection(sm.natal_integration, 'Today against your natal chart');
+
+      // Three-energies block for the numerology three-square legacy render
+      // (Day / Day+Month / Full-date integrated with personal year).
+      // Built from the deterministic numerology data we already computed.
+      if (num && reading.numerology) {
+        reading.numerology.three_energies = {
+          day:        { n: num.ud,            label: num.udM && num.udM.n ? 'Master ' + num.udM.n : 'Universal Day ' + num.ud },
+          day_month:  { n: num.pd || num.ud,  label: 'Personal Day ' + (num.pd || num.ud) },
+          full_date:  { n: num.py,            label: 'Personal Year ' + num.py }
+        };
+      }
+
+      // Assemble final job payload. Frontend expects { reading, planets,
+      // moon, kin, num, aspects, weekAhead } in job.result.
       const job = jobs.get(jobId);
       if (job) {
-        // Merge phase1 into full reading (phase1 had fresher/shorter prompts, keep phase2 for depth)
-        if (job.phase1 && r.reading) {
-          // Phase 2 takes precedence for content depth, but phase1 fills gaps if phase2 truncated
-          r.reading._phase1 = job.phase1;
-        }
         job.status = 'complete';
-        job.result = r;
+        job.result = {
+          reading,
+          planets, moon, kin, num, aspects,
+          weekAhead,
+          tier: activeTier,
+          sectionTimings: reading.timings,
+          generatedAt: new Date().toISOString()
+        };
         job.completedAt = Date.now();
+        const totalMs = job.completedAt - job.startedAt;
+        const sectionCount = reading.sections.length;
+        const okCount = reading.sections.filter(s => s.ok).length;
+        const citeCount = reading.citationUnion.length;
+        console.log(`[orchestrator ${jobId}] COMPLETE tier=${activeTier} sections=${okCount}/${sectionCount} cites=${citeCount} totalMs=${totalMs}`);
       }
-      console.log(`Job ${jobId} complete (${((Date.now() - job?.startedAt)/1000).toFixed(1)}s)`);
     } catch(e) {
       const job = jobs.get(jobId);
       if (job) { job.status = 'error'; job.error = e.message; }
-      console.error(`Job ${jobId} failed:`, e.message);
+      console.error(`[orchestrator ${jobId}] FAILED:`, e.message, e.stack ? e.stack.split('\n')[1] : '');
     }
   })();
 });
@@ -3334,6 +4013,399 @@ Plain language, real wisdom, no decoration.`;
   } catch (e) {
     console.error('[POST /api/compass/reply exception]', e);
     res.status(500).json({ ok: false, error: 'reply_failed' });
+  }
+});
+
+
+// ── /api/compass/coordinate-drawer ─────────────────────────────────
+// iter12: when a user taps a chip on the Compass surface, return
+// Oracle-generated, bibliography-anchored prose for that chip in their
+// current voice. Falls back to graceful static content if the
+// Anthropic call fails or the bibliography is unavailable.
+//
+// Request body:
+//   {
+//     chip: "time" | "lunar" | "symbol" | "body",
+//     voice: "tradition" | "science" | "everyday",
+//     coordinates: { pd, ud, personalYear, moonPhase, moonAge,
+//                    kinSeal, kinTone, kinNumber, isGAP, isMasterDay,
+//                    cyclePhase },
+//     userProfile: { firstName, lifePath, birthKin, hasCycleData, tier }
+//   }
+//
+// Response:
+//   { title, body_html, citations[], voice, chip, source, ms }
+// ─────────────────────────────────────────────────────────────────────
+
+// Voice register instructions (Two Telescopes architecture).
+const CDP_DRAWER_VOICES = {
+  tradition: "Speak in the TRADITION voice. This is the symbolic-archetypal register.\n" +
+    "You draw on Pythagorean numerology, Mayan/Dreamspell calendrics, lunar wisdom across\n" +
+    "contemplative traditions, psychological astrology, and contemporary women's-health\n" +
+    "practitioner literature. The day is read symbolically as a quality, an invitation, a\n" +
+    "season. Practitioner literature (Hill 2019, Pope & Wurlitzer 2017, Greene 1976, Tarnas\n" +
+    "2006) is cited authentically when symbolic claims are made. Maya/Dreamspell references\n" +
+    "ALWAYS clearly distinguish Argüelles 1987 Dreamspell from the living K'iche' tzolk'in\n" +
+    "(Tedlock 1992). Tone: reflective, layered, evocative without being mystical-hype. Never\n" +
+    "overclaim. Never use phrases like 'the universe wants', 'manifest', 'vibration', or\n" +
+    "'energy' as physical claims.",
+  science: "Speak in the SCIENCE voice. This is the empirically-grounded register.\n" +
+    "You draw on peer-reviewed cognitive neuroscience (Bremer 2022, Walker 2017, Barrett\n" +
+    "2017, Clark 2016), affective neuroscience (Craig 2002, Porges 2011), circadian biology\n" +
+    "(Cajochen 2013, Cajochen & Schmidt 2024), psychoneuroimmunology (Bower & Kuhlman 2023,\n" +
+    "Mengelkoch 2023), psychoneuroendocrinology (Klusmann 2022, 2023), pain neuroscience\n" +
+    "(Riley 1999, Morales-Lalaguna 2025), sleep medicine (Baker & Lee 2023), and clinical\n" +
+    "psychology (Lange 2024 on PMDD/PMS). You are HONEST about what is established, what is\n" +
+    "suggestive, what is null. When a high-quality null exists you CITE IT (Jang 2025 on\n" +
+    "cycle/cognition is the model case: the cycle does not measurably alter cognitive\n" +
+    "performance on standardised tasks, BUT it modulates the systems within which cognition\n" +
+    "operates, HPA reactivity, sleep architecture, pain perception, mood, inflammation,\n" +
+    "all of which are documented). For astrology and symbolic frames you cite Carlson 1985\n" +
+    "Nature and Hartmann 2006 as honest counterweights. Tone: precise, calibrated, with\n" +
+    "effect-size language where available, never wellness-overclaim. Symbolic frameworks are\n" +
+    "clearly labelled as contemplative-anchor rather than predictive mechanism.",
+  everyday: "Speak in the EVERYDAY voice. This is the plain-speech register. No jargon\n" +
+    "from either side. Same content as the other voices, named in language a smart friend\n" +
+    "would use over coffee. Cite occasionally and only where it adds weight; you can also\n" +
+    "simply say 'the research suggests' or 'the practitioner tradition holds' without a full\n" +
+    "citation. Tone: warm, direct, practical. Never patronising. Never hedging or wishy-washy.\n" +
+    "The reader is a sophisticated adult who wants to know what today is for and what to\n" +
+    "notice."
+};
+
+const CDP_DRAWER_CHIPS = {
+  time: "The TIME chip is about TODAY'S NUMEROLOGICAL/CYCLICAL SIGNATURE, the quality\n" +
+    "of attention this specific day asks for. Personal Day numerology is the primary input.\n" +
+    "If today is a master number day (11, 22, 33, 44) flag that with its specific quality.",
+  lunar: "The LUNAR chip is about WHERE WE ARE IN THE LUNAR CYCLE. Moon phase, days\n" +
+    "since new moon, proximity to full or new moon. CDP-specific concepts: Black Moon (2\n" +
+    "days before new moon, a tricky preparatory window) and Shiva Moon (2 days after new\n" +
+    "moon, a blissful settling window) are part of the lunar lexicon when relevant.",
+  symbol: "The SYMBOL chip is about TODAY'S DREAMSPELL KIN, the symbolic-archetypal\n" +
+    "day-quality from Argüelles 1987. Tone (1-13) names the developmental position in a\n" +
+    "13-day wavespell. Seal (the named archetype like Red Skywalker, White Wind, Blue Hand)\n" +
+    "carries the archetypal quality. Galactic Activation Portals (GAP days, 52 canonical\n" +
+    "entries) deserve specific note when present.",
+  body: "The BODY chip is about WHAT THE BODY IS DOING TODAY and how to read it as a\n" +
+    "compass. Interoception is the empirical backbone. If cycle data is available, hormonal\n" +
+    "phase is the primary input AND is treated honestly: the cycle modulates the systems\n" +
+    "within which cognition operates (HPA, sleep, pain, mood, inflammation) even when\n" +
+    "cognitive performance on objective tasks does not measurably shift (Jang 2025). The\n" +
+    "four-seasons framing (inner winter/spring/summer/autumn) is practitioner literature\n" +
+    "(Hill 2019, Pope & Wurlitzer 2017) and labelled as such."
+};
+
+// In-memory response cache, TTL 1 hour, soft cap 500 entries.
+const CDP_DRAWER_CACHE = new Map();
+const CDP_DRAWER_CACHE_TTL_MS = 60 * 60 * 1000;
+
+function cdpDrawerCacheKey(chip, voice, coords, profile) {
+  const c = coords || {};
+  const p = profile || {};
+  return [
+    chip, voice,
+    c.pd || '', c.moonPhase || '', c.kinTone || '', c.kinSeal || '',
+    c.cyclePhase || '', c.isGAP ? '1' : '0', c.isMasterDay ? '1' : '0',
+    (p.firstName || '').slice(0, 16)
+  ].join('|');
+}
+
+function cdpResolveReferences(chip, voice, coords) {
+  if (!CDP_BIBLIOGRAPHY || !CDP_BIBLIOGRAPHY.entries) return [];
+  const key = chip + '_' + voice;
+  const defaults = (CDP_BIBLIOGRAPHY.voice_chip_default_refs || {})[key] || [];
+  const refs = [...defaults];
+  const claimToEntries = CDP_BIBLIOGRAPHY.claim_to_entries || {};
+  if (chip === 'body' && coords && coords.cyclePhase) {
+    (claimToEntries['systems_cycle_affects'] || []).forEach(r => {
+      if (!refs.includes(r)) refs.push(r);
+    });
+  }
+  if (chip === 'time' && coords && coords.isMasterDay) {
+    (claimToEntries['pythagorean_lineage'] || []).forEach(r => {
+      if (!refs.includes(r)) refs.push(r);
+    });
+  }
+  if (chip === 'symbol' && coords && coords.isGAP) {
+    (claimToEntries['maya_astronomy'] || []).forEach(r => {
+      if (!refs.includes(r)) refs.push(r);
+    });
+  }
+  return refs.filter(r => CDP_BIBLIOGRAPHY.entries[r]);
+}
+
+function cdpBuildDrawerPrompt(chip, voice, coords, profile, refIds) {
+  const voiceInstr = CDP_DRAWER_VOICES[voice] || CDP_DRAWER_VOICES.tradition;
+  const chipRole = CDP_DRAWER_CHIPS[chip] || CDP_DRAWER_CHIPS.time;
+  const refsBlock = refIds.map(refId => {
+    const e = CDP_BIBLIOGRAPHY.entries[refId];
+    if (!e) return '';
+    const authors = Array.isArray(e.authors) ? e.authors.join('; ') : (e.authors || '');
+    const where = e.journal || e.publisher || '';
+    return '  ' + refId + ': ' + authors + ' (' + e.year + '). ' + e.title + '. ' + where + '. ' + (e.note || '');
+  }).filter(Boolean).join('\n');
+  
+  const c = coords || {};
+  const coordsLines = [];
+  if (c.pd) coordsLines.push('Personal Day: ' + c.pd);
+  if (c.ud) coordsLines.push('Universal Day: ' + c.ud);
+  if (c.personalYear) coordsLines.push('Personal Year: ' + c.personalYear);
+  if (c.moonPhase) coordsLines.push('Moon phase: ' + c.moonPhase + (c.moonAge ? ' (day ' + c.moonAge + ' of cycle)' : ''));
+  if (c.kinTone && c.kinSeal) coordsLines.push('Dreamspell Kin: ' + c.kinTone + ' ' + c.kinSeal + (c.kinNumber ? ' (Kin ' + c.kinNumber + ')' : ''));
+  if (c.isGAP) coordsLines.push('Galactic Activation Portal day');
+  if (c.isMasterDay) coordsLines.push('Master number day (carries amplified quality)');
+  if (c.cyclePhase) coordsLines.push('Hormonal phase: ' + c.cyclePhase);
+  
+  const p = profile || {};
+  const profileLines = [];
+  if (p.firstName) profileLines.push("Reader's name: " + p.firstName);
+  if (p.lifePath) profileLines.push("Reader's Life Path: " + p.lifePath);
+  
+  return 'You are composing the ' + chip.toUpperCase() + ' drawer for the Cosmic Daily Planner\n' +
+    'Compass surface. CDP synthesises Pythagorean numerology, Western psychological astrology,\n' +
+    'Mayan/Dreamspell calendrics, and lunar cycles into a daily personalised reading. The\n' +
+    "central premise is Two Telescopes: ancient contemplative traditions and modern\n" +
+    'neuroscience are not competing explanations, they point at the same coordinates from\n' +
+    'different epistemic positions.\n\n' +
+    voiceInstr + '\n\n' +
+    chipRole + '\n\n' +
+    "TODAY'S COORDINATES:\n" + coordsLines.join('\n') + '\n\n' +
+    'READER CONTEXT:\n' + (profileLines.join('\n') || '(no profile-specific data provided)') + '\n\n' +
+    'AVAILABLE REFERENCES (cite by id using <span class="v11-cite" data-ref="REF_ID">Display Text</span>):\n' +
+    refsBlock + '\n\n' +
+    'OUTPUT RULES:\n' +
+    '- Output STRICTLY a single JSON object with exactly these keys: title, body_html.\n' +
+    '- title: 4-9 words. Names the coordinate concretely. No quotes inside the title.\n' +
+    '- body_html: 100-160 words of prose in valid HTML. Use <p> tags for paragraphs. Wrap\n' +
+    '  citation markers as <span class="v11-cite" data-ref="ref-id">Author Year</span>.\n' +
+    '  Use 2-4 distinct citations. Cite only refs from the AVAILABLE REFERENCES list above.\n' +
+    '- Voice register MUST match the voice instruction above.\n' +
+    '- No em-dashes (U+2014) or en-dashes (U+2013) anywhere, use commas, colons, or\n' +
+    '  restructure the sentence.\n' +
+    '- No exclamation marks anywhere.\n' +
+    '- No \'manifest\', \'vibration\', \'energy field\', \'the universe wants you\', \'evidence-based\'\n' +
+    '  as a marketing word.\n' +
+    '- If the topic is the menstrual cycle in the Science voice, you MUST be honest about\n' +
+    '  what the empirical literature does and does not show. The cycle modulates many\n' +
+    '  systems (HPA, sleep, pain, mood, inflammation) but Jang 2025 found no robust effect\n' +
+    '  on cognitive performance tasks specifically, that nuance is required.\n' +
+    '- If the topic involves astrology in the Science voice, you MUST acknowledge the\n' +
+    '  sceptical literature (Carlson 1985 Nature, Hartmann 2006) appropriately.\n\n' +
+    'OUTPUT FORMAT (JSON only, no preamble, no markdown fences):\n' +
+    '{"title":"...","body_html":"<p>...</p>"}';
+}
+
+function cdpExtractCitations(bodyHtml) {
+  const cites = [];
+  if (!bodyHtml || !CDP_BIBLIOGRAPHY) return cites;
+  const re = /<span\s+class="v11-cite"\s+data-ref="([^"]+)"[^>]*>([^<]+)<\/span>/g;
+  const seen = new Set();
+  let m;
+  while ((m = re.exec(bodyHtml)) !== null) {
+    const refId = m[1];
+    if (seen.has(refId)) continue;
+    seen.add(refId);
+    const e = CDP_BIBLIOGRAPHY.entries[refId];
+    if (!e) continue;
+    cites.push({
+      ref: refId,
+      display: m[2],
+      authors: Array.isArray(e.authors) ? e.authors.join(', ') : (e.authors || ''),
+      year: e.year,
+      title: e.title,
+      journal: e.journal || null,
+      publisher: e.publisher || null,
+      doi: e.doi || null,
+      url: e.url || null,
+      type: e.type || null,
+      lineage: e.lineage || null
+    });
+  }
+  return cites;
+}
+
+function cdpSanitiseDrawerHtml(s) {
+  if (!s) return '';
+  let out = s.replace(/\u2014/g, ', ').replace(/\u2013/g, ', ');
+  out = out.replace(/!/g, '.');
+  out = out.replace(/,\s*,/g, ',');
+  out = out.replace(/,\s*\./g, '.');
+  return out;
+}
+
+function cdpFallbackDrawer(chip, voice, coords) {
+  const c = coords || {};
+  const cite = (refId, text) => {
+    if (!CDP_BIBLIOGRAPHY || !CDP_BIBLIOGRAPHY.entries || !CDP_BIBLIOGRAPHY.entries[refId]) return text;
+    return '<span class="v11-cite" data-ref="' + refId + '">' + text + '</span>';
+  };
+  const F = {
+    time: {
+      tradition: {
+        title: 'Personal Day ' + (c.pd || '?') + ' in the Pythagorean count',
+        body_html: '<p>In Pythagorean numerology today reduces to ' + (c.pd || '?') + '. Each number carries a specific quality of attention. ' + cite('drayer-2002', 'Drayer 2002') + ' offers the practitioner depth; ' + cite('kahn-2001', 'Kahn 2001') + ' anchors the historical lineage in the school at Croton. Read today as a quality, not a script.</p>'
+      },
+      science: {
+        title: 'Cognitive rhythm signature today',
+        body_html: '<p>Personal-day signatures correlate loosely with shifts in default-mode network activity versus salience-network engagement, per ' + cite('bremer-2022', 'Bremer 2022') + '. Hippocampal consolidation favours reflective windows, per ' + cite('walker-2017', 'Walker 2017') + '. One input among many, not a deterministic claim.</p>'
+      },
+      everyday: {
+        title: "Today's quality",
+        body_html: '<p>Today has a specific feel. Easier to do some things, harder to do others. Work with the day rather than around it.</p>'
+      }
+    },
+    lunar: {
+      tradition: {
+        title: (c.moonPhase || 'Moon') + ' tonight',
+        body_html: '<p>The moon is in ' + (c.moonPhase || 'transition') + '. Lunar wisdom across traditions reads this phase as a turning point in the cycle. CDP draws phase timing from ' + cite('usno', 'USNO') + '.</p>'
+      },
+      science: {
+        title: 'Lunar position and sleep',
+        body_html: '<p>Lunar phase has measurable effects on melatonin and sleep architecture in controlled conditions, per ' + cite('cajochen-2013', 'Cajochen et al 2013') + '. Subtle but real; one input alongside circadian timing and sleep history.</p>'
+      },
+      everyday: {
+        title: (c.moonPhase || 'Moon') + ' tonight',
+        body_html: '<p>The moon is in ' + (c.moonPhase || 'transition') + '. Notice your sleep, your patience, your appetite this week.</p>'
+      }
+    },
+    symbol: {
+      tradition: {
+        title: (c.kinTone || '') + ' ' + (c.kinSeal || 'Kin'),
+        body_html: '<p>The Dreamspell synthesis is ' + cite('arguelles-1987', 'Arguelles 1987') + ", distinct from the living K'iche' tzolk'in documented by " + cite('tedlock-1992', 'Tedlock 1992') + '. Read symbolically, not as prediction.</p>'
+      },
+      science: {
+        title: 'Symbolic anchor for today',
+        body_html: '<p>The Dreamspell Kin is a 260-day symbolic count, ' + cite('arguelles-1987', 'Arguelles 1987') + ', used here as a contemplative anchor. For empirical claims about natal astrology, the sceptical literature includes ' + cite('carlson-1985', 'Carlson 1985') + '.</p>'
+      },
+      everyday: {
+        title: (c.kinTone || '') + ' ' + (c.kinSeal || 'today'),
+        body_html: '<p>CDP uses a 13-day symbolic count. Take it as a lens, not a prediction.</p>'
+      }
+    },
+    body: {
+      tradition: {
+        title: c.cyclePhase ? (c.cyclePhase + ' phase') : 'Body as compass',
+        body_html: c.cyclePhase
+          ? "<p>Hormonal phase: " + c.cyclePhase + ". Across contemplative women's-health practitioner literature (" + cite('hill-2019', 'Hill 2019') + ', ' + cite('pope-wurlitzer-2017', 'Pope and Wurlitzer 2017') + '), each phase carries its own quality of energy, attention, and relational sensitivity.</p>'
+          : '<p>The body is the first signal. ' + cite('porges-2011', 'Porges 2011') + ' on neuroception offers the bridge between contemplative attention and physiological reading.</p>'
+      },
+      science: {
+        title: c.cyclePhase ? (c.cyclePhase + ' phase signature') : 'Interoception today',
+        body_html: c.cyclePhase
+          ? '<p>The cycle modulates the systems within which cognition operates. ' + cite('klusmann-2023', 'Klusmann 2023') + ' shows higher HPA reactivity in luteal phase. ' + cite('baker-lee-2023', 'Baker and Lee 2023') + ' documents sleep architecture changes. ' + cite('riley-1999', 'Riley 1999') + ' shows phase-dependent pain perception. ' + cite('jang-2025', 'Jang 2025') + ' finds no robust effect on cognitive performance tasks specifically, even as these underlying systems shift.</p>'
+          : '<p>The genuine body signal is interoception, ' + cite('craig-2002', 'Craig 2002') + ': noticing internal state directly.</p>'
+      },
+      everyday: {
+        title: c.cyclePhase ? (c.cyclePhase + ' phase') : 'How is your body today?',
+        body_html: c.cyclePhase
+          ? '<p>You are in ' + c.cyclePhase + '. Some phases are for output, some for integration, per ' + cite('hill-2019', 'Hill 2019') + '. Adjust the day to match.</p>'
+          : '<p>Take 30 seconds. Where is energy in your body. Where is tension. The answer matters.</p>'
+      }
+    }
+  };
+  return (F[chip] && F[chip][voice]) || F.time.tradition;
+}
+
+app.post('/api/compass/coordinate-drawer', async (req, res) => {
+  const t0 = Date.now();
+  try {
+    const body = req.body || {};
+    const chip = String(body.chip || '').toLowerCase();
+    const voice = String(body.voice || 'tradition').toLowerCase();
+    const coords = body.coordinates || {};
+    const profile = body.userProfile || {};
+    
+    const VALID_CHIPS = ['time', 'lunar', 'symbol', 'body'];
+    const VALID_VOICES = ['tradition', 'science', 'everyday'];
+    if (!VALID_CHIPS.includes(chip)) {
+      return res.status(400).json({ error: 'invalid chip', valid: VALID_CHIPS });
+    }
+    if (!VALID_VOICES.includes(voice)) {
+      return res.status(400).json({ error: 'invalid voice', valid: VALID_VOICES });
+    }
+    if (!CDP_BIBLIOGRAPHY) {
+      return res.status(500).json({ error: 'bibliography unavailable on server' });
+    }
+    
+    // iter12c PRIVACY GATE: strip cyclePhase unless the user has explicitly
+    // opted in via userProfile.tracksCycle. This is the second line of defence;
+    // the frontend strips cyclePhase too. Two defences because cycle data is
+    // sensitive and applying it to the wrong user is a serious product failure.
+    if (coords && coords.cyclePhase && profile.tracksCycle !== true) {
+      console.log('[coordinate-drawer] stripping cyclePhase, tracksCycle not set');
+      delete coords.cyclePhase;
+    }
+    
+    // Cache check
+    const cacheKey = cdpDrawerCacheKey(chip, voice, coords, profile);
+    const cachedEntry = CDP_DRAWER_CACHE.get(cacheKey);
+    if (cachedEntry && (Date.now() - cachedEntry.t) < CDP_DRAWER_CACHE_TTL_MS) {
+      return res.json(Object.assign({}, cachedEntry.payload, { cached: true, ms: Date.now() - t0 }));
+    }
+    
+    const refIds = cdpResolveReferences(chip, voice, coords);
+    let result;
+    let source = 'oracle';
+    
+    if (!process.env.ANTHROPIC_API_KEY) {
+      result = cdpFallbackDrawer(chip, voice, coords);
+      source = 'fallback_no_apikey';
+    } else {
+      try {
+        const sys = cdpBuildDrawerPrompt(chip, voice, coords, profile, refIds);
+        const userMsg = 'Compose the drawer JSON for this chip and these coordinates. Output JSON only.';
+        let raw = await callAPI('claude-sonnet-4-6', 1024, sys, userMsg);
+        raw = (raw || '').replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+        
+        let parsed = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (parseErr) {
+          const m = raw.match(/\{[\s\S]*\}/);
+          if (m) {
+            try { parsed = JSON.parse(m[0]); } catch (e2) { parsed = null; }
+          }
+        }
+        
+        if (!parsed || !parsed.title || !parsed.body_html) {
+          console.warn('[coordinate-drawer] invalid JSON shape, using fallback');
+          result = cdpFallbackDrawer(chip, voice, coords);
+          source = 'fallback_bad_json';
+        } else {
+          parsed.title = cdpSanitiseDrawerHtml(parsed.title);
+          parsed.body_html = cdpSanitiseDrawerHtml(parsed.body_html);
+          result = parsed;
+        }
+      } catch (apiErr) {
+        console.error('[coordinate-drawer] Anthropic call failed:', apiErr.message);
+        result = cdpFallbackDrawer(chip, voice, coords);
+        source = 'fallback_api_error';
+      }
+    }
+    
+    const citations = cdpExtractCitations(result.body_html);
+    const payload = {
+      title: result.title,
+      body_html: result.body_html,
+      citations: citations,
+      voice: voice,
+      chip: chip,
+      coordinates_echo: coords,
+      generated_at: new Date().toISOString(),
+      source: source
+    };
+    
+    // Cache (with soft cap)
+    CDP_DRAWER_CACHE.set(cacheKey, { t: Date.now(), payload: payload });
+    if (CDP_DRAWER_CACHE.size > 500) {
+      const oldest = [...CDP_DRAWER_CACHE.entries()].sort((a, b) => a[1].t - b[1].t)[0];
+      if (oldest) CDP_DRAWER_CACHE.delete(oldest[0]);
+    }
+    
+    return res.json(Object.assign({}, payload, { cached: false, ms: Date.now() - t0 }));
+  } catch (e) {
+    console.error('[coordinate-drawer] handler error:', e.stack || e.message);
+    return res.status(500).json({ error: 'internal error', detail: e.message });
   }
 });
 
