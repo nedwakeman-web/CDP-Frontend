@@ -23608,21 +23608,41 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
      be commented out without affecting the others.
      ════════════════════════════════════════════════════════════════════ -->
 <style>
-/* FIX 2: helper text readability override */
-#scompass .v6-compass-helper,
-#scompass .v6-compass-helper * {
+/* iter13k: Compass surface polish */
+
+/* FIX 2a: helper text readability (the .cdp-v6-subline class from iter13h,
+   not .v6-compass-helper which is the older "two telescopes" link). */
+#scompass .cdp-v6-subline {
   font-style: normal !important;
+  font-size: 14.5px !important;
+  color: rgba(245, 228, 196, 0.82) !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0.005em !important;
+}
+@media (max-width: 759px) {
+  #scompass .cdp-v6-subline {
+    font-size: 13.5px !important;
+  }
+}
+
+/* FIX 5a: dotted-circle bullet on prompt starters.
+   The original CSS rule at line 22087 used "\u25CC" which is JavaScript
+   escape syntax, not CSS unicode escape syntax. CSS uses "\25CC" without
+   the "u" prefix. This override fixes the prefix so the bullet renders. */
+.cdp-v6-starter::before {
+  content: "\25CC  " !important;  /* dotted circle U+25CC, gentle bullet */
+}
+
+/* FIX 2b: the older v6-compass-helper element (the "See how the two
+   telescopes meet" link container) is also fine to keep readable. */
+#scompass .v6-compass-helper {
   font-size: 14px !important;
   color: rgba(245, 228, 196, 0.78) !important;
   line-height: 1.55 !important;
-  letter-spacing: 0.01em !important;
 }
 #scompass .v6-compass-helper a {
   color: rgba(201, 160, 80, 0.92) !important;
   font-style: italic !important;
-}
-#scompass .v6-compass-helper a:hover {
-  color: rgba(245, 228, 196, 0.98) !important;
 }
 </style>
 <script>
@@ -23875,9 +23895,10 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
     return starters.slice(0, 3);
   }
 
-  // FIX 5: render starters with literal dotted-circle char.
-  // String.fromCharCode is immune to escape-sequence pipeline issues.
-  var DOTTED_CIRCLE = String.fromCharCode(0x25CC) + '  ';
+  // FIX 5: render starters. The dotted-circle bullet is added by the CSS
+  // ::before pseudo-element (fixed in iter13k CSS above to use \25CC
+  // CSS-style escape rather than \u25CC JS-style escape which was rendering
+  // as literal "u25CC" text). The textContent here is plain prose only.
 
   function renderIter13jStartersInto(container) {
     if (!container) return;
@@ -23887,7 +23908,7 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'cdp-v6-starter';
-      btn.textContent = DOTTED_CIRCLE + text;
+      btn.textContent = text;
       btn.addEventListener('click', function(ev) {
         ev.preventDefault();
         var inputEl = document.getElementById('v19Intention');
