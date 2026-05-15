@@ -6421,7 +6421,7 @@ async function loadReading(dateStr, tier) {
     }
   } catch(e) {}
 
-  const activeTier = tier || currentTier || 'oracle';
+  const activeTier = tier || currentTier || 'free';  // iter13l: default to free, not oracle
   const cont = document.getElementById('readingContent');
 
   if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
@@ -21376,6 +21376,13 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   window.v11PreloadReading = function() {
+    // iter13l: auto-preload disabled. The previous behaviour called
+    // loadReading(TODAY) with no tier argument on every page load, which
+    // defaulted to oracle and wasted API tokens. Readings now fire only on
+    // explicit user action (intention submit or tier click).
+    console.log('[iter13l] auto-preload disabled, awaiting user intent');
+    return;
+    /* DISABLED OLD BODY:
     if (typeof currentReading !== 'undefined' && currentReading) {
       console.log('[iter11] preload skipped, reading already loaded');
       return;
@@ -21403,6 +21410,7 @@ document.addEventListener('DOMContentLoaded', function() {
       window.cdpPreloadInFlight = false;
       console.warn('[iter11] preload start failed', e);
     }
+    */  // end iter13l disabled block
   };
 
   function v11InitCompass() {
