@@ -1,0 +1,10 @@
+/* Vessel surface styles — placeholder for staged migration */
+#app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  background: var(--ink);
+  color: #fff;
+}

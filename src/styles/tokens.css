@@ -1,0 +1,10 @@
+/* CDP design tokens and CSS variables */
+:root {
+  --ink: #1A1A1A;
+  --navy-deep: #2C3E5A;
+  --navy-mid: #3E6B8A;
+  --gold: #B8942A;
+  --rule: #BFA363;
+  --font-body: Georgia, serif;
+  --font-display: Cinzel, sans-serif;
+}
