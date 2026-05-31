@@ -2952,6 +2952,86 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 
 
 
+<!-- v24: landing handoff. The Compass landing (root index.html) sends users
+     into /app.html with optional query parameters. signin=1 is set when the
+     user tapped Sign In. q carries a question typed before Continue (alongside
+     mode=quick, which the app already consumes). This block acts on both: it
+     opens the real auth modal for signin=1, and it prefills the first available
+     intention input with q. Neither auto submits. signin and q are stripped
+     from the URL once consumed so a refresh does not repeat the action. mode is
+     preserved. Visitors with no such params are unaffected. -->
+<script>
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var wantSignin = params.get('signin') === '1';
+    var pendingQ = params.get('q');
+    if (pendingQ != null) { pendingQ = String(pendingQ).trim().slice(0, 240); }
+    if (!wantSignin && !pendingQ) return;
+
+    var signinDone = false;
+    var qDone = !pendingQ;
+    var tries = 0;
+    var MAX_TRIES = 40; // about six seconds at 150ms
+
+    function stripParams() {
+      try {
+        var u = new URLSearchParams(window.location.search);
+        u.delete('signin');
+        u.delete('q');
+        var qs = u.toString();
+        var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        window.history.replaceState({}, document.title, clean);
+      } catch (e) {}
+    }
+
+    function tryFill() {
+      if (qDone) return true;
+      var ids = ['v19Intention', 'intentionInput', 'askInput'];
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el && typeof el.value === 'string' && !el.value.trim()) {
+          el.value = pendingQ;
+          try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+          qDone = true;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function trySignin() {
+      if (signinDone) return true;
+      if (typeof window.openAuth === 'function') {
+        window.openAuth();
+        signinDone = true;
+        return true;
+      }
+      return false;
+    }
+
+    function tick() {
+      tries++;
+      if (wantSignin) trySignin();
+      if (pendingQ) tryFill();
+      var allDone = (!wantSignin || signinDone) && qDone;
+      if (allDone || tries >= MAX_TRIES) { stripParams(); return; }
+      setTimeout(tick, 150);
+    }
+
+    function start() { setTimeout(tick, 150); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start);
+    } else {
+      start();
+    }
+  } catch (err) {
+    if (window.console && console.warn) { console.warn('[CDP] landing handoff failed:', err && err.message); }
+  }
+})();
+</script>
+
+
 <!-- ── DISCLOSURE LAYER 1 (v18) ─────────────────────────────────────────────
      Shown once on first visit, before any signup or reading. Two stages:
      (1) wellness-companion-not-medical disclosure with three-paragraph copy
@@ -3499,9 +3579,9 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <div class="entry-toggle-row">
       <span class="entry-toggle-label">READING LANGUAGE</span>
       <div class="entry-toggle">
-        <button id="langAncient" class="active" onclick="setLang('ancient')">☽ TRADITION</button>
+        <button id="langAncient" onclick="setLang('ancient')">☽ TRADITION</button>
         <button id="langModern" onclick="setLang('modern')">⬡ SCIENCE</button>
-        <button id="langEveryday" onclick="setLang('everyday')">✦ EVERYDAY</button>
+        <button id="langEveryday" class="active" onclick="setLang('everyday')">✦ EVERYDAY</button>
       </div>
     </div>
     <button class="entry-btn" onclick="beginFromEntry()">&#9733; BEGIN MY READING</button>
@@ -3594,9 +3674,9 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <div id="readingProgressDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 1.5s ease-in-out infinite;margin-right:4px;flex-shrink:0" title="Reading is loading in background"></div>
   <div class="topbar-right">
     <div id="langToggleBar" class="cdp-voice-bar" role="tablist" aria-label="Reading voice" style="margin-right:4px" title="Switch reading voice. Same data, different language.">
-      <button type="button" id="tbLangAncient" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition" role="tab" aria-selected="true" title="Symbolic and archetypal voice. Astrology, numerology, Dreamspell language.">Tradition</button>
+      <button type="button" id="tbLangAncient" class="cdp-voice-tradition-btn" data-voice="tradition" role="tab" aria-selected="false" title="Symbolic and archetypal voice. Astrology, numerology, Dreamspell language.">Tradition</button>
       <button type="button" id="tbLangModern" class="cdp-voice-science-btn" data-voice="science" role="tab" aria-selected="false" title="Neuroscience and chronobiology voice. Circadian cognition, salience network, predictive processing.">Science</button>
-      <button type="button" id="tbLangEveryday" class="cdp-voice-everyday-btn" data-voice="everyday" role="tab" aria-selected="false" title="Plain spoken voice. No jargon from either tradition or science. Just direct, warm, practical.">Everyday</button>
+      <button type="button" id="tbLangEveryday" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday" role="tab" aria-selected="true" title="Plain spoken voice. No jargon from either tradition or science. Just direct, warm, practical.">Everyday</button>
     </div>
     <div id="authBtnArea">
       <button class="signin-btn" onclick="openAuth()">Sign In</button>
@@ -6681,7 +6761,7 @@ async function loadReading(dateStr, tier) {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         date: dateStr,
-        profile: {...profile, intention, cycleContext: getCycleContext(), readingLang: localStorage.getItem('cdp_lang')||'ancient'},
+        profile: {...profile, intention, cycleContext: getCycleContext(), readingLang: localStorage.getItem('cdp_lang')||'everyday'},
         tier: activeTier,
         user_id: currentUser?.id || null,
         recentHistory: recentReadingHistory,
@@ -7401,11 +7481,11 @@ function stars(n) { return '●'.repeat(Math.max(0,n)) + '○'.repeat(Math.max(0
 function cleanText(t) {
   if (!t) return '';
   // Three-voice tolerance: if handed an object, extract the text for the
-  // currently-selected voice (defaults to tradition). Prevents legacy render
+  // currently-selected voice (defaults to everyday). Prevents legacy render
   // call sites from producing "[object Object]" when sections come back voiced.
   if (typeof t === 'object' && !Array.isArray(t)) {
     if ('tradition' in t || 'science' in t || 'everyday' in t) {
-      const cv = (typeof window !== 'undefined' && window.cdpVoice) || 'tradition';
+      const cv = (typeof window !== 'undefined' && window.cdpVoice) || 'everyday';
       t = t[cv] || t.tradition || t.science || t.everyday || '';
     } else if (t.body || t.text || t.content) {
       t = t.body || t.text || t.content;
@@ -7478,11 +7558,14 @@ function renderVoicedSection(value, opts) {
   const science   = String(value.science   || '').trim();
   const everyday  = String(value.everyday  || '').trim();
 
-  // Initial visible voice = current toggle setting (defaults to tradition)
-  const currentVoice = (typeof window !== 'undefined' && window.cdpVoice) || 'tradition';
-  const initialText = (currentVoice === 'science') ? science
-                    : (currentVoice === 'everyday') ? everyday
-                    : tradition;
+  // Initial visible voice = current toggle setting (defaults to everyday)
+  const currentVoice = (typeof window !== 'undefined' && window.cdpVoice) || 'everyday';
+  // Resolve the requested voice first, then fall back gracefully so a missing
+  // variant never leaves the section blank. Everyday is the shared synthesis.
+  const _voiceOrder = (currentVoice === 'science') ? [science, everyday, tradition]
+                    : (currentVoice === 'tradition') ? [tradition, everyday, science]
+                    : [everyday, tradition, science];
+  const initialText = _voiceOrder.find(function(t) { return t && t.length; }) || '';
 
   if (mode === 'inline') {
     // Single element with data attributes  -  toggle swaps textContent in place.
@@ -9067,8 +9150,8 @@ function fillAISections(data, dateStr) {
           science:   String(sObj.science   || '').trim(),
           everyday:  String(sObj.everyday  || '').trim()
         };
-        // Pick visible text from current toggle (defaults to tradition)
-        const cv = window.cdpVoice || 'tradition';
+        // Pick visible text from current toggle (defaults to everyday)
+        const cv = window.cdpVoice || 'everyday';
         _synthRaw = _synthVoiced[cv] || _synthVoiced.tradition || _synthVoiced.science || _synthVoiced.everyday || '';
       }
     }
@@ -9404,9 +9487,9 @@ function renderReading(data, dateStr) {
         </div>
         <div class="cdp-voice-bar" role="tablist" aria-label="Reading voice"
           style="margin: 0; flex-shrink: 0">
-          <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition">Tradition</button>
+          <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition">Tradition</button>
           <button type="button" class="cdp-voice-science-btn" data-voice="science">Science</button>
-          <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday">Everyday</button>
+          <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday">Everyday</button>
         </div>
       </div>
   </div>`;
@@ -10501,8 +10584,8 @@ function tapYearEnergy(yearEn, year) {
 
 // ── LANGUAGE TOGGLE BAR sync ─────────────────────────────────────────────────
 function updateLangToggleBar() {
-  var lang = 'ancient';
-  try { lang = localStorage.getItem('cdp_lang') || 'ancient'; } catch(e) {}
+  var lang = 'everyday';
+  try { lang = localStorage.getItem('cdp_lang') || 'everyday'; } catch(e) {}
   // Topbar toggle: the new three-voice bar is styled by .cdp-voice-bar CSS
   // and managed by the global voice handler (window.cdpSetVoice). Skip
   // legacy inline-style management when the new structure is detected.
@@ -10593,7 +10676,7 @@ const SCIENCE_BRIDGES = {
 function openScienceBridge(topic) {
   var bridge = SCIENCE_BRIDGES[topic];
   if (!bridge) return;
-  var lang = localStorage.getItem('cdp_lang') || 'ancient';
+  var lang = localStorage.getItem('cdp_lang') || 'everyday';
   var firstName = getFirstName();
   var explanation = lang === 'modern' ? bridge.modern : lang === 'everyday' ? (bridge.everyday || bridge.ancient) : bridge.ancient;
   var voiceLabel = lang === 'modern' ? '⬡ Science' : lang === 'everyday' ? '✦ Plain English' : '☽ Tradition';
@@ -15098,9 +15181,9 @@ window.addEventListener('load', function() {
 <!-- ══ THREE-VOICE TOGGLE MODULE ══ -->
 <template id="cdp-voice-bar-template">
   <div class="cdp-voice-bar" role="tablist" aria-label="Reading voice">
-    <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition" role="tab" aria-selected="true">Tradition</button>
+    <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition" role="tab" aria-selected="false">Tradition</button>
     <button type="button" class="cdp-voice-science-btn" data-voice="science" role="tab" aria-selected="false">Science</button>
-    <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday" role="tab" aria-selected="false">Everyday</button>
+    <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday" role="tab" aria-selected="true">Everyday</button>
   </div>
 </template>
 <template id="cdp-tt-disclosure-template">
@@ -15130,9 +15213,9 @@ window.addEventListener('load', function() {
         <div class="cdp-tt-cta">
           <span class="cdp-tt-cta-text">Pick a starting voice. You can switch any time.</span>
           <div class="cdp-voice-bar" role="tablist" aria-label="Choose a starting voice">
-            <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition">Tradition</button>
+            <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition">Tradition</button>
             <button type="button" class="cdp-voice-science-btn" data-voice="science">Science</button>
-            <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday">Everyday</button>
+            <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday">Everyday</button>
           </div>
         </div>
       </div>
@@ -15189,7 +15272,7 @@ window.addEventListener('load', function() {
   }
 
   function getVoice() {
-    return document.body.getAttribute('data-cdp-voice') || 'tradition';
+    return document.body.getAttribute('data-cdp-voice') || 'everyday';
   }
 
   function setVoice(voice) {
@@ -15269,7 +15352,7 @@ window.addEventListener('load', function() {
   // v19RenderVoiceQuote function being in scope (it lives inside an IIFE).
   document.addEventListener('cdp:voice-changed', function(ev) {
     try {
-      var v = (ev && ev.detail && ev.detail.voice) || 'tradition';
+      var v = (ev && ev.detail && ev.detail.voice) || 'everyday';
 
       // 1. Mark the active voice in the nudge so the other two read as options
       var nudgeLinks = document.querySelectorAll('#v19VoiceNudge .nudge-link');
@@ -15375,15 +15458,15 @@ window.addEventListener('load', function() {
   // ===== Initialise =====
 
   // ── PREFERRED VOICE PERSISTENCE (v13) ─────────────────────────────────
-  // The user's "natural" voice  -  Ned defaults to Science, Sonia to Tradition,
-  // Connie probably Everyday. Saved across sessions so each reading opens in
-  // the user's preferred register without re-toggling.
+  // The user's chosen natural voice, saved across sessions so each reading
+  // opens in the register they prefer. When none has been set, the default
+  // is Everyday, the shared compass synthesis every user receives.
   const PREF_VOICE_KEY = 'cdp_preferred_voice';
   function getPreferredVoice() {
     try {
       const v = localStorage.getItem(PREF_VOICE_KEY);
-      return VALID_VOICES.includes(v) ? v : 'tradition';
-    } catch(e) { return 'tradition'; }
+      return VALID_VOICES.includes(v) ? v : 'everyday';
+    } catch(e) { return 'everyday'; }
   }
   function setPreferredVoice(voice) {
     if (!VALID_VOICES.includes(voice)) return;
@@ -15432,8 +15515,8 @@ window.addEventListener('load', function() {
   window.cdpSetPreferredVoice = setPreferredVoice;
 
   function init() {
-    // Load preferred voice from localStorage (v13). If user has never set one,
-    // defaults to 'tradition' for backwards compatibility with all prior content.
+    // Load preferred voice from localStorage (v13). If the user has never set
+    // one, the default is Everyday, the shared compass synthesis every user gets.
     const preferred = getPreferredVoice();
     if (!document.body.hasAttribute('data-cdp-voice')) {
       document.body.setAttribute('data-cdp-voice', preferred);
@@ -16233,7 +16316,7 @@ document.addEventListener('cdp:reading-ready', function() {
   // diverse default set if no synthesis is available.
   function selectReferences(reading) {
     var themes = new Set();
-    var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
+    var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
 
     // Detect themes from the reading
     if (reading) {
@@ -18372,7 +18455,7 @@ document.addEventListener('cdp:reading-ready', function() {
     <p class="v6-compass-date" id="v6CompassDate"></p>
 
     <!-- iter11: voice-aware ambient layer -->
-    <div class="v6-cycling-words v6-cycling-voiceaware" aria-hidden="true" data-voice="tradition">
+    <div class="v6-cycling-words v6-cycling-voiceaware" aria-hidden="true" data-voice="everyday">
       <span class="v6-cycling-word">Ancient and modern</span>
       <span class="v6-cycling-word">Tradition and science</span>
       <span class="v6-cycling-word">Ritual and research</span>
@@ -18382,9 +18465,9 @@ document.addEventListener('cdp:reading-ready', function() {
 
     <!-- iter11: Compass voice toggle (master) -->
     <div class="v11-voice-toggle" role="tablist" aria-label="Voice for Compass">
-      <button type="button" data-voice="tradition" class="v11-voice-btn active" onclick="v11SetCompassVoice(&apos;tradition&apos;)">Tradition</button>
+      <button type="button" data-voice="tradition" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;tradition&apos;)">Tradition</button>
       <button type="button" data-voice="science" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;science&apos;)">Science</button>
-      <button type="button" data-voice="everyday" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;everyday&apos;)">Everyday</button>
+      <button type="button" data-voice="everyday" class="v11-voice-btn active" onclick="v11SetCompassVoice(&apos;everyday&apos;)">Everyday</button>
     </div>
 
     <!-- Compass illustration with animated celestial body tracing the
@@ -19013,7 +19096,7 @@ document.addEventListener('cdp:reading-ready', function() {
   }
 
   function v19PickQuote(voice, hour, seed) {
-    const v = (voice || 'tradition').toLowerCase();
+    const v = (voice || 'everyday').toLowerCase();
     const pool = (V19_VOICE_QUOTES[v] || V19_VOICE_QUOTES.tradition);
     const bucket = v19BucketForHour(hour);
     const candidates = pool[bucket] || pool.opening;
@@ -19041,7 +19124,7 @@ document.addEventListener('cdp:reading-ready', function() {
     const labelEl = document.getElementById('v19VoiceLabel');
     if (!quoteEl) return;
 
-    const v = (voice || 'tradition').toLowerCase();
+    const v = (voice || 'everyday').toLowerCase();
     const seed = v19DayBucketSeed(userId, hour);
     const newQuote = v19PickQuote(v, hour, seed);
 
@@ -19147,8 +19230,8 @@ document.addEventListener('cdp:reading-ready', function() {
     }
 
     // Voice glyph + voice-of-day quote (Day 2 polish)
-    let voice = 'tradition';
-    try { voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition'; } catch (e) {}
+    let voice = 'everyday';
+    try { voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday'; } catch (e) {}
     v19RenderVoiceQuote(voice, hour, userId);
 
     // Compass tile populate, defensive multi-path.
@@ -19280,7 +19363,7 @@ document.addEventListener('cdp:reading-ready', function() {
         var kinTile = document.getElementById('v19TileKin');
         var moonTile = document.getElementById('v19TileMoon');
         var dayTile = document.getElementById('v19TileDay');
-        var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
+        var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
 
         if (kinTile && !kinTile.dataset.cdpTapWired) {
           kinTile.dataset.cdpTapWired = '1';
@@ -20260,8 +20343,8 @@ Removed from v1:
 
   function getVoice() {
     try {
-      return (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
-    } catch (e) { return 'tradition'; }
+      return (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
+    } catch (e) { return 'everyday'; }
   }
 
   function getFirstName() {
@@ -21088,7 +21171,7 @@ document.addEventListener('DOMContentLoaded', function() {
      static drawer content if the endpoint fails or is unreachable.
      Also wires citation popover when user taps a v11-cite span. */
   window.v11OpenChipDrawer = async function(chipKey) {
-    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var voice = document.body.getAttribute('data-compass-voice') || 'everyday';
     var header = document.getElementById('v11DrawerHeader');
     var title = document.getElementById('v11DrawerTitle');
     var body = document.getElementById('v11DrawerBody');
@@ -21351,7 +21434,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!text) return;
     respDiv.classList.remove('empty');
     respDiv.textContent = 'Thinking...';
-    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var voice = document.body.getAttribute('data-compass-voice') || 'everyday';
     var coords = v11GetCoords();
     try {
       var apiBase = (typeof API_BASE !== 'undefined' ? API_BASE : '');
@@ -21414,11 +21497,11 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   function v11InitCompass() {
-    var savedVoice = 'tradition';
+    var savedVoice = 'everyday';
     try {
       savedVoice = localStorage.getItem('cdp_compass_voice') ||
                    (typeof window.cdpGetVoice === 'function' ? window.cdpGetVoice() : '') ||
-                   'tradition';
+                   'everyday';
     } catch(e) {}
     v11SetCompassVoice(savedVoice);
     setTimeout(function() {
@@ -22372,7 +22455,7 @@ body.cdp-v6-active #scompass .v6-compass-frame {
     var frame = scompass.querySelector('.v6-compass-frame');
     if (!frame) return;
     var sourceToggle = scompass.querySelector('.v11-voice-toggle');
-    var activeVoice = 'tradition';
+    var activeVoice = 'everyday';
     try {
       if (document.body && document.body.dataset && document.body.dataset.compassVoice) {
         activeVoice = document.body.dataset.compassVoice;
