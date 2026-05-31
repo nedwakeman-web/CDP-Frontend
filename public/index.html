@@ -81,7 +81,7 @@
   <header class="header">
     <div class="brand">COSMIC DAILY PLANNER</div>
     <div class="header-right">
-      <a class="nav-link" href="/the-thinking">THE THINKING</a>
+      <a class="nav-link" href="/the-thinking.html">THE THINKING</a>
       <a class="nav-link" href="#" id="signinTop">SIGN IN</a>
     </div>
   </header>
@@ -283,11 +283,16 @@
   });
 
   // ----- cold-state actions (routed in production) -----
-  function go(href) { /* placeholder: production routes to onboarding or sign in */ }
-  document.getElementById('makeMine').addEventListener('click', function () { go('/app?onboard=1'); });
-  document.getElementById('askCold').addEventListener('click', function () { go('/app?mode=quick'); });
-  document.getElementById('signinLink').addEventListener('click', function (e) { e.preventDefault(); go('/signin'); });
-  document.getElementById('signinTop').addEventListener('click', function (e) { e.preventDefault(); go('/signin'); });
+  // Real navigation. The app (app.html) handles onboarding, the quick ask, and sign in.
+  function go(href) { window.location.href = href; }
+  function askValue() { var el = document.getElementById('askInput'); return el && el.value ? el.value.trim() : ''; }
+  document.getElementById('makeMine').addEventListener('click', function () { go('/app.html?onboard=1'); });
+  document.getElementById('askCold').addEventListener('click', function () {
+    var q = askValue();
+    go('/app.html?mode=quick' + (q ? '&q=' + encodeURIComponent(q) : ''));
+  });
+  document.getElementById('signinLink').addEventListener('click', function (e) { e.preventDefault(); go('/app.html?signin=1'); });
+  document.getElementById('signinTop').addEventListener('click', function (e) { e.preventDefault(); go('/app.html?signin=1'); });
 
 })();
 </script>
