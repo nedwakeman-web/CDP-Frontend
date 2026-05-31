@@ -5,13 +5,18 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
+# Proxy API calls to the Railway backend. This is the only redirect this
+# multi-page static site needs.
 [[redirects]]
   from = "/api/*"
   to = "https://cdp-server-production.up.railway.app/:splat"
   status = 200
   force = false
+
+# NOTE: the previous "/* -> /index.html" rewrite was removed on purpose.
+# That rule served the landing for every path, so /the-thinking and /app
+# both rendered index.html. This is a multi-page static site, not a single
+# page app, so each page is served from its own file (index.html, app.html,
+# the-thinking.html). Netlify serves /the-thinking from the-thinking.html and
+# /app from app.html automatically. Add a custom 404.html later if you want a
+# branded not-found page.
