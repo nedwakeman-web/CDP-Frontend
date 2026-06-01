@@ -9,6 +9,11 @@
  * day's coordinates are shown as one converged view, drawn from the shared
  * coordinate core, never recomputed and never invented.
  *
+ * One menu. Navigation, account, settings, and the deliberate reading door all
+ * live in a single menu. The old pattern of a separate menu plus a duplicate
+ * account strip is not reproduced. Items that are not built yet are gathered
+ * here too, honestly marked, so there is one place for them rather than several.
+ *
  * Discipline held here:
  *   - No coordinate is fabricated. The lunar window reads as not yet available
  *     until USNO is wired; the deep reading is named as the next stage.
@@ -23,7 +28,7 @@
  * both driven by CSS variables so the repo style tokens can replace them.
  */
 
-import type { Lens, HeldIntention, VesselState, Orchestrator, Composed, DepthContext } from './compose';
+import type { Lens, HeldIntention, VesselState, Orchestrator, DepthContext } from './compose';
 import { dayCoordinates } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
 
@@ -157,7 +162,8 @@ const STYLES = `
 .cdp-topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin: 0 0 2rem; flex-wrap: wrap; }
 .cdp-date { color: var(--cdp-gold); font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; }
 .cdp-date em { color: var(--cdp-muted); font-style: italic; text-transform: none; letter-spacing: 0; margin-left: 0.6rem; }
-.cdp-theme { background: transparent; border: 1px solid var(--cdp-side-border); color: var(--cdp-muted); border-radius: 999px; padding: 0.3rem 0.85rem; font-family: Georgia, serif; font-size: 0.8rem; cursor: pointer; }
+.cdp-menu-btn { background: transparent; border: 1px solid var(--cdp-side-border); color: var(--cdp-muted); border-radius: 999px; padding: 0.3rem 0.95rem; font-family: Georgia, serif; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.cdp-menu-btn:hover { color: var(--cdp-gold); border-color: rgba(200,162,74,0.5); }
 
 .cdp-compass { display: flex; justify-content: center; margin: 0.5rem 0 1.5rem; }
 .cdp-compass-svg { width: clamp(8rem, 22vw, 12rem); height: auto; }
@@ -215,10 +221,25 @@ const STYLES = `
 .cdp-chip .star { color: var(--cdp-gold); margin-right: 0.4rem; }
 .cdp-busy { color: var(--cdp-muted); font-style: italic; }
 
-.cdp-deep { margin: 3rem 0 0; border-top: 1px solid var(--cdp-side-border); padding-top: 1.5rem; }
-.cdp-deep-head { font-family: Cinzel, Georgia, serif; color: var(--cdp-gold); font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase; margin: 0 0 0.8rem; }
-.cdp-link { background: transparent; border: 0; cursor: pointer; color: var(--cdp-gold); font-family: Georgia, serif; font-size: 0.98rem; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
-.cdp-deep-panel { margin: 0.9rem 0 0; color: var(--cdp-muted); }
+/* the single consolidated menu */
+.cdp-backdrop { position: fixed; inset: 0; background: rgba(6,12,22,0.5); opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 40; }
+.cdp-backdrop.open { opacity: 1; pointer-events: auto; }
+.cdp-menu { position: fixed; top: 0; right: 0; height: 100vh; width: min(20rem, 88vw); background: var(--cdp-bg); border-left: 1px solid var(--cdp-side-border); transform: translateX(100%); transition: transform 0.24s ease; z-index: 50; overflow-y: auto; padding: 1.25rem 1.25rem 2rem; }
+.cdp-menu.open { transform: none; }
+.cdp-menu-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 1.25rem; }
+.cdp-menu-title { font-family: Cinzel, Georgia, serif; letter-spacing: 0.2em; font-size: 0.8rem; color: var(--cdp-gold); text-transform: uppercase; }
+.cdp-menu-x { background: transparent; border: 0; color: var(--cdp-muted); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.cdp-menu-sect { margin: 0 0 1.4rem; }
+.cdp-menu-sect-head { font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cdp-muted); margin: 0 0 0.5rem; }
+.cdp-menu-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 0.75rem; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--cdp-side-border); color: var(--cdp-ink); font-family: Georgia, serif; font-size: 0.98rem; padding: 0.6rem 0.1rem; cursor: pointer; }
+.cdp-menu-row:hover { color: var(--cdp-gold); }
+.cdp-menu-row.static { cursor: default; }
+.cdp-menu-row.static:hover { color: var(--cdp-ink); }
+.cdp-menu-row.current span:first-child { color: var(--cdp-gold); }
+.cdp-menu-val { font-size: 0.78rem; color: var(--cdp-muted); font-style: italic; }
+.cdp-menu-val.soon { opacity: 0.7; }
+.cdp-menu-note { color: var(--cdp-muted); font-style: italic; font-size: 0.88rem; margin: 0.5rem 0 0; }
+.cdp-menu-foot { color: var(--cdp-muted); font-size: 0.78rem; font-style: italic; margin: 1.5rem 0 0; }
 `;
 
 /* ---- coordinate rendering ------------------------------------------------- */
@@ -253,6 +274,11 @@ const FOLLOWUPS = [
   'What is the smallest next step?',
 ];
 
+const SOON_ITEMS = [
+  'Calendar', 'Profiles', 'Compatibility', 'My Year', 'History',
+  'Tiers', 'Guide', 'Streak', 'Feedback', 'Share and invite', 'Account', 'Sign in',
+];
+
 export async function mountVessel(options: VesselOptions): Promise<void> {
   const { root, orchestrator } = options;
   const profile = options.profile;
@@ -263,6 +289,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const entries: Entry[] = [];
   let lens: Lens = 'everyday';
   let theme: Theme = 'dark';
+  let menuOpen = false;
+
+  // The default voice persists across visits when storage is available.
+  try {
+    const v = window.localStorage.getItem('cdp-default-voice');
+    if (v === 'tradition' || v === 'science' || v === 'everyday') lens = v;
+  } catch (_e) { /* storage unavailable, keep the session default */ }
 
   if (!document.getElementById('cdp-vessel-styles')) {
     const style = el('style', { id: 'cdp-vessel-styles' });
@@ -276,6 +309,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   const layout = el('div', { class: 'cdp-layout' });
   surface.appendChild(layout);
+
+  function setTheme(next: Theme): void {
+    theme = next;
+    surface.setAttribute('data-theme', theme);
+  }
 
   /* ----- sidebar ----- */
   const side = el('aside', { class: 'cdp-side' });
@@ -306,7 +344,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const q = search.value.trim().toLowerCase();
     const match = (it: HeldIntention) => q.length === 0 || it.text.toLowerCase().indexOf(q) >= 0;
     const visible = state.intentions.filter(match);
-
     const activeNow = visible.slice(0, 1);
     const held = visible.slice(1);
 
@@ -346,13 +383,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   voiceState.textContent = 'in the ' + lensLabel(lens) + ' voice';
   dateEl.appendChild(voiceState);
   topbar.appendChild(dateEl);
-  const themeBtn = el('button', { type: 'button', class: 'cdp-theme' }, 'Light') as HTMLButtonElement;
-  themeBtn.addEventListener('click', () => {
-    theme = theme === 'dark' ? 'light' : 'dark';
-    surface.setAttribute('data-theme', theme);
-    themeBtn.textContent = theme === 'dark' ? 'Light' : 'Dark';
-  });
-  topbar.appendChild(themeBtn);
+  const menuBtn = el('button', { type: 'button', class: 'cdp-menu-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, 'Menu') as HTMLButtonElement;
+  menuBtn.addEventListener('click', () => openMenu());
+  topbar.appendChild(menuBtn);
   main.appendChild(topbar);
 
   const compass = el('div', { class: 'cdp-compass' });
@@ -397,7 +430,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   askRow.appendChild(reply);
   ask.appendChild(askRow);
   main.appendChild(ask);
-  setVoice('everyday');
+  setVoice(lens); // respect the stored default
 
   const thread = el('div', { class: 'cdp-thread', 'aria-live': 'polite' });
   main.appendChild(thread);
@@ -429,7 +462,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     card.appendChild(bodyWrap);
     if (entry.oracleSummary) card.appendChild(el('p', { class: 'cdp-living' }, entry.oracleSummary));
 
-    // Re-hear in another voice, in place.
     const rehear = el('div', { class: 'cdp-rehear' });
     rehear.appendChild(el('span', { class: 'lbl' }, 'hear in'));
     for (const def of voiceDefs) {
@@ -440,7 +472,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     card.appendChild(rehear);
     wrap.appendChild(card);
 
-    // Ask a follow-up.
     const follow = el('div', { class: 'cdp-follow' });
     follow.appendChild(el('span', { class: 'lbl' }, 'Ask a follow-up'));
     for (const f of FOLLOWUPS) {
@@ -486,7 +517,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     entries.push(entry);
     renderThread();
 
-    // Show the composing state on the new entry.
     const node = thread.children[entries.length - 1] as HTMLElement | undefined;
     if (node) {
       const card = node.querySelector('.cdp-reply');
@@ -508,22 +538,89 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   reply.addEventListener('click', () => { const t = textarea.value; textarea.value = ''; void compose(t); });
   textarea.addEventListener('keydown', (e: KeyboardEvent) => {
-    // Enter sends; Shift with Enter keeps a new line.
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = textarea.value; textarea.value = ''; void compose(t); }
   });
 
   renderSidebar();
 
-  /* the deliberate door to the deep reading, honest about its stage */
-  const deep = el('div', { class: 'cdp-deep' });
-  deep.appendChild(el('p', { class: 'cdp-deep-head' }, 'The deep reading'));
-  const deepBtn = el('button', { type: 'button', class: 'cdp-link' }, 'Open the deep reading') as HTMLButtonElement;
-  const deepPanel = el('div', { class: 'cdp-deep-panel' });
-  deepBtn.addEventListener('click', () => {
-    clear(deepPanel);
-    deepPanel.appendChild(el('p', {}, 'The deep reading is the long, cited reading drawn around your chart. It is composed in the next stage of the build, and it never opens on its own. When it is wired, it will open only from here, when you choose it.'));
+  /* ----- the one menu ----- */
+
+  const backdrop = el('div', { class: 'cdp-backdrop', 'aria-hidden': 'true' });
+  const drawer = el('div', { class: 'cdp-menu', role: 'dialog', 'aria-label': 'Menu', 'aria-modal': 'true' });
+  surface.appendChild(backdrop);
+  surface.appendChild(drawer);
+
+  function closeMenu(): void {
+    menuOpen = false;
+    backdrop.classList.remove('open');
+    drawer.classList.remove('open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu(): void {
+    menuOpen = true;
+    backdrop.classList.add('open');
+    drawer.classList.add('open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+  }
+  backdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && menuOpen) closeMenu(); });
+
+  const mh = el('div', { class: 'cdp-menu-head' });
+  mh.appendChild(el('span', { class: 'cdp-menu-title' }, 'Menu'));
+  const closeBtn = el('button', { type: 'button', class: 'cdp-menu-x', 'aria-label': 'Close menu' }, '\u00d7') as HTMLButtonElement;
+  closeBtn.addEventListener('click', closeMenu);
+  mh.appendChild(closeBtn);
+  drawer.appendChild(mh);
+
+  // The day: where you are, and the deliberate reading door.
+  const daySect = el('div', { class: 'cdp-menu-sect' });
+  daySect.appendChild(el('p', { class: 'cdp-menu-sect-head' }, 'The day'));
+  const compassRow = el('div', { class: 'cdp-menu-row static current' });
+  compassRow.appendChild(el('span', {}, 'Compass'));
+  compassRow.appendChild(el('span', { class: 'cdp-menu-val' }, 'here now'));
+  daySect.appendChild(compassRow);
+  const readingRow = el('button', { type: 'button', class: 'cdp-menu-row' });
+  readingRow.appendChild(el('span', {}, 'Reading'));
+  readingRow.appendChild(el('span', { class: 'cdp-menu-val' }, 'open'));
+  const readingNote = el('p', { class: 'cdp-menu-note' });
+  readingRow.addEventListener('click', () => {
+    clear(readingNote);
+    readingNote.appendChild(el('span', {}, 'The deep reading is the long, cited reading drawn around your chart. It is composed in the next stage of the build, and it opens only from here, when you choose it.'));
   });
-  deep.appendChild(deepBtn);
-  deep.appendChild(deepPanel);
-  main.appendChild(deep);
+  daySect.appendChild(readingRow);
+  daySect.appendChild(readingNote);
+  drawer.appendChild(daySect);
+
+  // Settings: the live controls, theme and the default voice.
+  const settings = el('div', { class: 'cdp-menu-sect' });
+  settings.appendChild(el('p', { class: 'cdp-menu-sect-head' }, 'Settings'));
+  const themeRow = el('button', { type: 'button', class: 'cdp-menu-row' });
+  themeRow.appendChild(el('span', {}, 'Toggle theme'));
+  const themeVal = el('span', { class: 'cdp-menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
+  themeRow.appendChild(themeVal);
+  themeRow.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); themeVal.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
+  settings.appendChild(themeRow);
+
+  const pinRow = el('button', { type: 'button', class: 'cdp-menu-row' });
+  pinRow.appendChild(el('span', {}, 'Pin current voice as default'));
+  const pinVal = el('span', { class: 'cdp-menu-val' }, lensLabel(lens));
+  pinRow.appendChild(pinVal);
+  pinRow.addEventListener('click', () => {
+    try { window.localStorage.setItem('cdp-default-voice', lens); } catch (_e) { /* storage unavailable */ }
+    pinVal.textContent = lensLabel(lens);
+  });
+  settings.appendChild(pinRow);
+  drawer.appendChild(settings);
+
+  // Everything the old menus scattered, gathered here and honestly marked.
+  const soon = el('div', { class: 'cdp-menu-sect' });
+  soon.appendChild(el('p', { class: 'cdp-menu-sect-head' }, 'Arrives as the build grows'));
+  for (const label of SOON_ITEMS) {
+    const row = el('div', { class: 'cdp-menu-row static' });
+    row.appendChild(el('span', {}, label));
+    row.appendChild(el('span', { class: 'cdp-menu-val soon' }, 'soon'));
+    soon.appendChild(row);
+  }
+  drawer.appendChild(soon);
+  drawer.appendChild(el('p', { class: 'cdp-menu-foot' }, 'One menu, gathering what the old menus scattered. Each item lights up as its stage lands.'));
 }

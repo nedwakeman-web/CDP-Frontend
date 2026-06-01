@@ -126,7 +126,7 @@ export class LocalOrchestrator implements Orchestrator {
     return `You are holding: ${clause_}.`;
   }
 
-  firstHold(it: HeldIntention, lens: Lens, now = Date.now()): Composed {
+  firstHold(it: HeldIntention, lens: Lens, _now = Date.now()): Composed {
     const lensLabel = lens === 'everyday' ? 'everyday' : lens === 'science' ? 'neuroscience' : 'archetypal';
     return {
       text: `Holding "${it.text}" in the ${lensLabel} lens.`,
