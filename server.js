@@ -4906,7 +4906,10 @@ try {
 // a long reading can. Drop coordinates.js, lenses.js, and compose-depth.js into
 // the repo root alongside this file for the require to resolve.
 try {
-  require('./compose-depth').register(app);
+  let _composeDepth;
+  try { _composeDepth = require('./lib/compose-depth'); }
+  catch (_e) { _composeDepth = require('./compose-depth'); }
+  _composeDepth.register(app);
   console.log('CDP compose-depth route registered');
 } catch (e) {
   console.error('CDP compose-depth failed to register:', e.message);
