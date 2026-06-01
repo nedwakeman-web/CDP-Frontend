@@ -3645,7 +3645,6 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <div class="nav nav-iter10d" style="display:flex;gap:8px;align-items:center">
     <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)">Compass</button>
     <button class="npill" onclick="showScreen(&apos;sr&apos;,this);if(!currentReading)showModeSelector()">Reading</button>
-    <button class="npill" onclick="if(window.openVessel)openVessel()" title="Your intentions and the live compass">Vessel</button>
     <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)" title="Your daily compass, home">Home</button>
   </div>
   <!-- Mobile hamburger (Sonia #50) -->
@@ -3682,7 +3681,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <div id="authBtnArea">
       <button class="signin-btn" onclick="openAuth()">Sign In</button>
     </div>
-    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="openQuietMenu()" aria-label="Open menu" title="Menu: settings, profiles, calendar, tiers, history, feedback, theme">
+    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="if(window.cdpOpenHome){cdpOpenHome(&apos;right&apos;)}else{openQuietMenu()}" aria-label="Open menu" title="Open your people, readings, and account">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/>
         <line x1="4" y1="12" x2="20" y2="12"/>
@@ -22158,14 +22157,14 @@ body.cdp-v6-active #scompass[data-engagement-state="pre"] .v6-cycling-words {
   transition: opacity 0.6s ease;
 }
 .cdp-v6-starters.cdp-v6-visible {
-  opacity: 0.88;
+  opacity: 1;
 }
 .cdp-v6-starter {
   display: inline-block;
   font-family: 'EB Garamond', Georgia, serif;
   font-style: italic;
-  font-size: 13.5px;
-  color: rgba(245, 228, 196, 0.62);
+  font-size: 14.5px;
+  color: rgba(245, 228, 196, 0.85);
   background: transparent;
   border: none;
   cursor: pointer;
