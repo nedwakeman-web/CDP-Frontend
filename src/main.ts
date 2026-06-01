@@ -1,28 +1,38 @@
 /**
  * CDP: Bootstrap and mount the Vessel surface.
  *
- * The Vessel is the primary interaction surface. It holds intentions (the acute,
- * chronic, developmental, systemic concerns a person names), threads them through
- * a composition orchestrator, and renders calm, grounded reflections back.
+ * The Vessel is the primary interaction surface. It holds intentions, threads
+ * them through a composition orchestrator, and renders calm, grounded
+ * reflections back. This is the entry point. It mounts Vessel to #app and wires
+ * the orchestrator.
  *
- * This is the entry point. It mounts Vessel to #app and wires the orchestrator.
- * The orchestrator is switched at boot: if an API base is configured, the real
- * (server-backed) orchestrator is used; otherwise, the browser-side placeholder
- * is used.
+ * Orchestrator choice. The server-backed ApiOrchestrator is used by default,
+ * because it already degrades to an honest held state when the endpoint is
+ * unreachable, so it is safe even before or during a server problem. Gating on
+ * a configured API base would be unsafe here: the production deploy proxies
+ * /api to Railway with an empty VITE_API_BASE, so such a gate would silently
+ * fall back to the local placeholder in production, the worst place for it.
+ * The local placeholder is therefore selected only in an explicit offline mode,
+ * VITE_OFFLINE set to true, or VITE_API_BASE set to the sentinel "local".
+ *
+ * House style holds in this file: no em dashes, no en dashes, no exclamation
+ * marks, in code and in comments alike.
  */
 
 import { mountVessel } from './surface/vessel';
-import { LocalOrchestrator } from './surface/compose';
+import { LocalOrchestrator, ApiOrchestrator } from './surface/compose';
 import type { Orchestrator } from './surface/compose';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || '';
+const OFFLINE = (import.meta.env.VITE_OFFLINE as string | undefined) === 'true' || API_BASE === 'local';
 
 function chooseOrchestrator(): Orchestrator {
-  // STAGED: ApiOrchestrator is a future step. For now, always use LocalOrchestrator.
-  // At step three (Volume 16), this logic switches: if API_BASE is set, spin up
-  // the ApiOrchestrator and it will round-trip to /api/vessel/meet, /api/vessel/hold, etc.
-  // Until then, the LocalOrchestrator reflects the held state plainly and honestly.
-  return new LocalOrchestrator();
+  const local = new LocalOrchestrator();
+  if (OFFLINE) return local;
+  // The empty base resolves to a relative /api path, which the Netlify proxy
+  // forwards to Railway in production. A set base posts directly in dev.
+  const base = API_BASE === 'local' ? '' : API_BASE;
+  return new ApiOrchestrator(base, local);
 }
 
 async function bootstrap(): Promise<void> {
