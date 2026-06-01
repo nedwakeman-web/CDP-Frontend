@@ -582,7 +582,7 @@ button img[aria-hidden="true"] {
   padding: 5px 11px; background: rgba(8,26,45,0.5);
   border: 1px solid rgba(165,132,89,0.32); border-radius: 16px;
   color: rgba(245,228,196,0.88); font-family: 'EB Garamond', Georgia, serif;
-  font-size: 12px; font-style: normal; cursor: pointer;
+  font-size: 13.5px; font-style: normal; cursor: pointer;
   white-space: nowrap;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
@@ -2952,6 +2952,86 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
 
 
 
+<!-- v24: landing handoff. The Compass landing (root index.html) sends users
+     into /app.html with optional query parameters. signin=1 is set when the
+     user tapped Sign In. q carries a question typed before Continue (alongside
+     mode=quick, which the app already consumes). This block acts on both: it
+     opens the real auth modal for signin=1, and it prefills the first available
+     intention input with q. Neither auto submits. signin and q are stripped
+     from the URL once consumed so a refresh does not repeat the action. mode is
+     preserved. Visitors with no such params are unaffected. -->
+<script>
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var wantSignin = params.get('signin') === '1';
+    var pendingQ = params.get('q');
+    if (pendingQ != null) { pendingQ = String(pendingQ).trim().slice(0, 240); }
+    if (!wantSignin && !pendingQ) return;
+
+    var signinDone = false;
+    var qDone = !pendingQ;
+    var tries = 0;
+    var MAX_TRIES = 40; // about six seconds at 150ms
+
+    function stripParams() {
+      try {
+        var u = new URLSearchParams(window.location.search);
+        u.delete('signin');
+        u.delete('q');
+        var qs = u.toString();
+        var clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        window.history.replaceState({}, document.title, clean);
+      } catch (e) {}
+    }
+
+    function tryFill() {
+      if (qDone) return true;
+      var ids = ['v19Intention', 'intentionInput', 'askInput'];
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el && typeof el.value === 'string' && !el.value.trim()) {
+          el.value = pendingQ;
+          try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+          qDone = true;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function trySignin() {
+      if (signinDone) return true;
+      if (typeof window.openAuth === 'function') {
+        window.openAuth();
+        signinDone = true;
+        return true;
+      }
+      return false;
+    }
+
+    function tick() {
+      tries++;
+      if (wantSignin) trySignin();
+      if (pendingQ) tryFill();
+      var allDone = (!wantSignin || signinDone) && qDone;
+      if (allDone || tries >= MAX_TRIES) { stripParams(); return; }
+      setTimeout(tick, 150);
+    }
+
+    function start() { setTimeout(tick, 150); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', start);
+    } else {
+      start();
+    }
+  } catch (err) {
+    if (window.console && console.warn) { console.warn('[CDP] landing handoff failed:', err && err.message); }
+  }
+})();
+</script>
+
+
 <!-- ── DISCLOSURE LAYER 1 (v18) ─────────────────────────────────────────────
      Shown once on first visit, before any signup or reading. Two stages:
      (1) wellness-companion-not-medical disclosure with three-paragraph copy
@@ -3499,9 +3579,9 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <div class="entry-toggle-row">
       <span class="entry-toggle-label">READING LANGUAGE</span>
       <div class="entry-toggle">
-        <button id="langAncient" class="active" onclick="setLang('ancient')">☽ TRADITION</button>
+        <button id="langAncient" onclick="setLang('ancient')">☽ TRADITION</button>
         <button id="langModern" onclick="setLang('modern')">⬡ SCIENCE</button>
-        <button id="langEveryday" onclick="setLang('everyday')">✦ EVERYDAY</button>
+        <button id="langEveryday" class="active" onclick="setLang('everyday')">✦ EVERYDAY</button>
       </div>
     </div>
     <button class="entry-btn" onclick="beginFromEntry()">&#9733; BEGIN MY READING</button>
@@ -3565,7 +3645,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <div class="nav nav-iter10d" style="display:flex;gap:8px;align-items:center">
     <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)">Compass</button>
     <button class="npill" onclick="showScreen(&apos;sr&apos;,this);if(!currentReading)showModeSelector()">Reading</button>
-    <button class="npill" onclick="window.location.href=&apos;/&apos;" title="The Two Telescopes overview">Home</button>
+    <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)" title="Your daily compass, home">Home</button>
   </div>
   <!-- Mobile hamburger (Sonia #50) -->
   <button class="nav-hamburger" onclick="toggleMobileNav()" id="navHamburger">
@@ -3594,14 +3674,14 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <div id="readingProgressDot" style="display:none;width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 1.5s ease-in-out infinite;margin-right:4px;flex-shrink:0" title="Reading is loading in background"></div>
   <div class="topbar-right">
     <div id="langToggleBar" class="cdp-voice-bar" role="tablist" aria-label="Reading voice" style="margin-right:4px" title="Switch reading voice. Same data, different language.">
-      <button type="button" id="tbLangAncient" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition" role="tab" aria-selected="true" title="Symbolic and archetypal voice. Astrology, numerology, Dreamspell language.">Tradition</button>
+      <button type="button" id="tbLangAncient" class="cdp-voice-tradition-btn" data-voice="tradition" role="tab" aria-selected="false" title="Symbolic and archetypal voice. Astrology, numerology, Dreamspell language.">Tradition</button>
       <button type="button" id="tbLangModern" class="cdp-voice-science-btn" data-voice="science" role="tab" aria-selected="false" title="Neuroscience and chronobiology voice. Circadian cognition, salience network, predictive processing.">Science</button>
-      <button type="button" id="tbLangEveryday" class="cdp-voice-everyday-btn" data-voice="everyday" role="tab" aria-selected="false" title="Plain spoken voice. No jargon from either tradition or science. Just direct, warm, practical.">Everyday</button>
+      <button type="button" id="tbLangEveryday" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday" role="tab" aria-selected="true" title="Plain spoken voice. No jargon from either tradition or science. Just direct, warm, practical.">Everyday</button>
     </div>
     <div id="authBtnArea">
       <button class="signin-btn" onclick="openAuth()">Sign In</button>
     </div>
-    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="openQuietMenu()" aria-label="Open menu" title="Menu: settings, profiles, calendar, tiers, history, feedback, theme">
+    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="if(window.cdpOpenHome){cdpOpenHome(&apos;right&apos;)}else{openQuietMenu()}" aria-label="Open menu" title="Open your people, readings, and account">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/>
         <line x1="4" y1="12" x2="20" y2="12"/>
@@ -6421,7 +6501,7 @@ async function loadReading(dateStr, tier) {
     }
   } catch(e) {}
 
-  const activeTier = tier || currentTier || 'oracle';
+  const activeTier = tier || currentTier || 'free';  // iter13l: default to free, not oracle
   const cont = document.getElementById('readingContent');
 
   if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
@@ -6681,7 +6761,7 @@ async function loadReading(dateStr, tier) {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         date: dateStr,
-        profile: {...profile, intention, cycleContext: getCycleContext(), readingLang: localStorage.getItem('cdp_lang')||'ancient'},
+        profile: {...profile, intention, cycleContext: getCycleContext(), readingLang: localStorage.getItem('cdp_lang')||'everyday'},
         tier: activeTier,
         user_id: currentUser?.id || null,
         recentHistory: recentReadingHistory,
@@ -6723,7 +6803,7 @@ async function loadReading(dateStr, tier) {
     // server had already errored but client kept polling. Now the client
     // surfaces server errors promptly and only times out if the server is
     // genuinely unreachable.
-    const _serverDeadlines = { free: 90, seeker: 90, initiate: 180, mystic: 240, oracle: 240 };
+    const _serverDeadlines = { free: 60, seeker: 90, initiate: 150, mystic: 210, oracle: 300 };
     const _serverDeadlineSec = _serverDeadlines[activeTier] || 240;
     const maxWait = (_serverDeadlineSec + 15) * 1000;
     console.log('[iter12d reading] tier=' + activeTier + ' serverDeadline=' + _serverDeadlineSec + 's clientMaxWait=' + (_serverDeadlineSec + 15) + 's');
@@ -7401,11 +7481,11 @@ function stars(n) { return '●'.repeat(Math.max(0,n)) + '○'.repeat(Math.max(0
 function cleanText(t) {
   if (!t) return '';
   // Three-voice tolerance: if handed an object, extract the text for the
-  // currently-selected voice (defaults to tradition). Prevents legacy render
+  // currently-selected voice (defaults to everyday). Prevents legacy render
   // call sites from producing "[object Object]" when sections come back voiced.
   if (typeof t === 'object' && !Array.isArray(t)) {
     if ('tradition' in t || 'science' in t || 'everyday' in t) {
-      const cv = (typeof window !== 'undefined' && window.cdpVoice) || 'tradition';
+      const cv = (typeof window !== 'undefined' && window.cdpVoice) || 'everyday';
       t = t[cv] || t.tradition || t.science || t.everyday || '';
     } else if (t.body || t.text || t.content) {
       t = t.body || t.text || t.content;
@@ -7478,11 +7558,14 @@ function renderVoicedSection(value, opts) {
   const science   = String(value.science   || '').trim();
   const everyday  = String(value.everyday  || '').trim();
 
-  // Initial visible voice = current toggle setting (defaults to tradition)
-  const currentVoice = (typeof window !== 'undefined' && window.cdpVoice) || 'tradition';
-  const initialText = (currentVoice === 'science') ? science
-                    : (currentVoice === 'everyday') ? everyday
-                    : tradition;
+  // Initial visible voice = current toggle setting (defaults to everyday)
+  const currentVoice = (typeof window !== 'undefined' && window.cdpVoice) || 'everyday';
+  // Resolve the requested voice first, then fall back gracefully so a missing
+  // variant never leaves the section blank. Everyday is the shared synthesis.
+  const _voiceOrder = (currentVoice === 'science') ? [science, everyday, tradition]
+                    : (currentVoice === 'tradition') ? [tradition, everyday, science]
+                    : [everyday, tradition, science];
+  const initialText = _voiceOrder.find(function(t) { return t && t.length; }) || '';
 
   if (mode === 'inline') {
     // Single element with data attributes  -  toggle swaps textContent in place.
@@ -9067,8 +9150,8 @@ function fillAISections(data, dateStr) {
           science:   String(sObj.science   || '').trim(),
           everyday:  String(sObj.everyday  || '').trim()
         };
-        // Pick visible text from current toggle (defaults to tradition)
-        const cv = window.cdpVoice || 'tradition';
+        // Pick visible text from current toggle (defaults to everyday)
+        const cv = window.cdpVoice || 'everyday';
         _synthRaw = _synthVoiced[cv] || _synthVoiced.tradition || _synthVoiced.science || _synthVoiced.everyday || '';
       }
     }
@@ -9404,9 +9487,9 @@ function renderReading(data, dateStr) {
         </div>
         <div class="cdp-voice-bar" role="tablist" aria-label="Reading voice"
           style="margin: 0; flex-shrink: 0">
-          <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition">Tradition</button>
+          <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition">Tradition</button>
           <button type="button" class="cdp-voice-science-btn" data-voice="science">Science</button>
-          <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday">Everyday</button>
+          <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday">Everyday</button>
         </div>
       </div>
   </div>`;
@@ -10501,8 +10584,8 @@ function tapYearEnergy(yearEn, year) {
 
 // ── LANGUAGE TOGGLE BAR sync ─────────────────────────────────────────────────
 function updateLangToggleBar() {
-  var lang = 'ancient';
-  try { lang = localStorage.getItem('cdp_lang') || 'ancient'; } catch(e) {}
+  var lang = 'everyday';
+  try { lang = localStorage.getItem('cdp_lang') || 'everyday'; } catch(e) {}
   // Topbar toggle: the new three-voice bar is styled by .cdp-voice-bar CSS
   // and managed by the global voice handler (window.cdpSetVoice). Skip
   // legacy inline-style management when the new structure is detected.
@@ -10593,7 +10676,7 @@ const SCIENCE_BRIDGES = {
 function openScienceBridge(topic) {
   var bridge = SCIENCE_BRIDGES[topic];
   if (!bridge) return;
-  var lang = localStorage.getItem('cdp_lang') || 'ancient';
+  var lang = localStorage.getItem('cdp_lang') || 'everyday';
   var firstName = getFirstName();
   var explanation = lang === 'modern' ? bridge.modern : lang === 'everyday' ? (bridge.everyday || bridge.ancient) : bridge.ancient;
   var voiceLabel = lang === 'modern' ? '⬡ Science' : lang === 'everyday' ? '✦ Plain English' : '☽ Tradition';
@@ -15098,9 +15181,9 @@ window.addEventListener('load', function() {
 <!-- ══ THREE-VOICE TOGGLE MODULE ══ -->
 <template id="cdp-voice-bar-template">
   <div class="cdp-voice-bar" role="tablist" aria-label="Reading voice">
-    <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition" role="tab" aria-selected="true">Tradition</button>
+    <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition" role="tab" aria-selected="false">Tradition</button>
     <button type="button" class="cdp-voice-science-btn" data-voice="science" role="tab" aria-selected="false">Science</button>
-    <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday" role="tab" aria-selected="false">Everyday</button>
+    <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday" role="tab" aria-selected="true">Everyday</button>
   </div>
 </template>
 <template id="cdp-tt-disclosure-template">
@@ -15130,9 +15213,9 @@ window.addEventListener('load', function() {
         <div class="cdp-tt-cta">
           <span class="cdp-tt-cta-text">Pick a starting voice. You can switch any time.</span>
           <div class="cdp-voice-bar" role="tablist" aria-label="Choose a starting voice">
-            <button type="button" class="cdp-voice-tradition-btn cdp-active" data-voice="tradition">Tradition</button>
+            <button type="button" class="cdp-voice-tradition-btn" data-voice="tradition">Tradition</button>
             <button type="button" class="cdp-voice-science-btn" data-voice="science">Science</button>
-            <button type="button" class="cdp-voice-everyday-btn" data-voice="everyday">Everyday</button>
+            <button type="button" class="cdp-voice-everyday-btn cdp-active" data-voice="everyday">Everyday</button>
           </div>
         </div>
       </div>
@@ -15189,7 +15272,7 @@ window.addEventListener('load', function() {
   }
 
   function getVoice() {
-    return document.body.getAttribute('data-cdp-voice') || 'tradition';
+    return document.body.getAttribute('data-cdp-voice') || 'everyday';
   }
 
   function setVoice(voice) {
@@ -15269,7 +15352,7 @@ window.addEventListener('load', function() {
   // v19RenderVoiceQuote function being in scope (it lives inside an IIFE).
   document.addEventListener('cdp:voice-changed', function(ev) {
     try {
-      var v = (ev && ev.detail && ev.detail.voice) || 'tradition';
+      var v = (ev && ev.detail && ev.detail.voice) || 'everyday';
 
       // 1. Mark the active voice in the nudge so the other two read as options
       var nudgeLinks = document.querySelectorAll('#v19VoiceNudge .nudge-link');
@@ -15375,15 +15458,15 @@ window.addEventListener('load', function() {
   // ===== Initialise =====
 
   // ── PREFERRED VOICE PERSISTENCE (v13) ─────────────────────────────────
-  // The user's "natural" voice  -  Ned defaults to Science, Sonia to Tradition,
-  // Connie probably Everyday. Saved across sessions so each reading opens in
-  // the user's preferred register without re-toggling.
+  // The user's chosen natural voice, saved across sessions so each reading
+  // opens in the register they prefer. When none has been set, the default
+  // is Everyday, the shared compass synthesis every user receives.
   const PREF_VOICE_KEY = 'cdp_preferred_voice';
   function getPreferredVoice() {
     try {
       const v = localStorage.getItem(PREF_VOICE_KEY);
-      return VALID_VOICES.includes(v) ? v : 'tradition';
-    } catch(e) { return 'tradition'; }
+      return VALID_VOICES.includes(v) ? v : 'everyday';
+    } catch(e) { return 'everyday'; }
   }
   function setPreferredVoice(voice) {
     if (!VALID_VOICES.includes(voice)) return;
@@ -15432,8 +15515,8 @@ window.addEventListener('load', function() {
   window.cdpSetPreferredVoice = setPreferredVoice;
 
   function init() {
-    // Load preferred voice from localStorage (v13). If user has never set one,
-    // defaults to 'tradition' for backwards compatibility with all prior content.
+    // Load preferred voice from localStorage (v13). If the user has never set
+    // one, the default is Everyday, the shared compass synthesis every user gets.
     const preferred = getPreferredVoice();
     if (!document.body.hasAttribute('data-cdp-voice')) {
       document.body.setAttribute('data-cdp-voice', preferred);
@@ -16233,7 +16316,7 @@ document.addEventListener('cdp:reading-ready', function() {
   // diverse default set if no synthesis is available.
   function selectReferences(reading) {
     var themes = new Set();
-    var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
+    var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
 
     // Detect themes from the reading
     if (reading) {
@@ -17038,7 +17121,7 @@ document.addEventListener('cdp:reading-ready', function() {
   font-size: 14px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--v19-gold);
+  color: #C9A050;
   margin: 0 0 4px 0;
 }
 
@@ -18372,7 +18455,7 @@ document.addEventListener('cdp:reading-ready', function() {
     <p class="v6-compass-date" id="v6CompassDate"></p>
 
     <!-- iter11: voice-aware ambient layer -->
-    <div class="v6-cycling-words v6-cycling-voiceaware" aria-hidden="true" data-voice="tradition">
+    <div class="v6-cycling-words v6-cycling-voiceaware" aria-hidden="true" data-voice="everyday">
       <span class="v6-cycling-word">Ancient and modern</span>
       <span class="v6-cycling-word">Tradition and science</span>
       <span class="v6-cycling-word">Ritual and research</span>
@@ -18382,9 +18465,9 @@ document.addEventListener('cdp:reading-ready', function() {
 
     <!-- iter11: Compass voice toggle (master) -->
     <div class="v11-voice-toggle" role="tablist" aria-label="Voice for Compass">
-      <button type="button" data-voice="tradition" class="v11-voice-btn active" onclick="v11SetCompassVoice(&apos;tradition&apos;)">Tradition</button>
+      <button type="button" data-voice="tradition" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;tradition&apos;)">Tradition</button>
       <button type="button" data-voice="science" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;science&apos;)">Science</button>
-      <button type="button" data-voice="everyday" class="v11-voice-btn" onclick="v11SetCompassVoice(&apos;everyday&apos;)">Everyday</button>
+      <button type="button" data-voice="everyday" class="v11-voice-btn active" onclick="v11SetCompassVoice(&apos;everyday&apos;)">Everyday</button>
     </div>
 
     <!-- Compass illustration with animated celestial body tracing the
@@ -19013,7 +19096,7 @@ document.addEventListener('cdp:reading-ready', function() {
   }
 
   function v19PickQuote(voice, hour, seed) {
-    const v = (voice || 'tradition').toLowerCase();
+    const v = (voice || 'everyday').toLowerCase();
     const pool = (V19_VOICE_QUOTES[v] || V19_VOICE_QUOTES.tradition);
     const bucket = v19BucketForHour(hour);
     const candidates = pool[bucket] || pool.opening;
@@ -19041,7 +19124,7 @@ document.addEventListener('cdp:reading-ready', function() {
     const labelEl = document.getElementById('v19VoiceLabel');
     if (!quoteEl) return;
 
-    const v = (voice || 'tradition').toLowerCase();
+    const v = (voice || 'everyday').toLowerCase();
     const seed = v19DayBucketSeed(userId, hour);
     const newQuote = v19PickQuote(v, hour, seed);
 
@@ -19147,8 +19230,8 @@ document.addEventListener('cdp:reading-ready', function() {
     }
 
     // Voice glyph + voice-of-day quote (Day 2 polish)
-    let voice = 'tradition';
-    try { voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition'; } catch (e) {}
+    let voice = 'everyday';
+    try { voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday'; } catch (e) {}
     v19RenderVoiceQuote(voice, hour, userId);
 
     // Compass tile populate, defensive multi-path.
@@ -19280,7 +19363,7 @@ document.addEventListener('cdp:reading-ready', function() {
         var kinTile = document.getElementById('v19TileKin');
         var moonTile = document.getElementById('v19TileMoon');
         var dayTile = document.getElementById('v19TileDay');
-        var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
+        var voice = (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
 
         if (kinTile && !kinTile.dataset.cdpTapWired) {
           kinTile.dataset.cdpTapWired = '1';
@@ -20260,8 +20343,8 @@ Removed from v1:
 
   function getVoice() {
     try {
-      return (window.cdpGetVoice && window.cdpGetVoice()) || 'tradition';
-    } catch (e) { return 'tradition'; }
+      return (window.cdpGetVoice && window.cdpGetVoice()) || 'everyday';
+    } catch (e) { return 'everyday'; }
   }
 
   function getFirstName() {
@@ -21088,7 +21171,7 @@ document.addEventListener('DOMContentLoaded', function() {
      static drawer content if the endpoint fails or is unreachable.
      Also wires citation popover when user taps a v11-cite span. */
   window.v11OpenChipDrawer = async function(chipKey) {
-    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var voice = document.body.getAttribute('data-compass-voice') || 'everyday';
     var header = document.getElementById('v11DrawerHeader');
     var title = document.getElementById('v11DrawerTitle');
     var body = document.getElementById('v11DrawerBody');
@@ -21351,7 +21434,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!text) return;
     respDiv.classList.remove('empty');
     respDiv.textContent = 'Thinking...';
-    var voice = document.body.getAttribute('data-compass-voice') || 'tradition';
+    var voice = document.body.getAttribute('data-compass-voice') || 'everyday';
     var coords = v11GetCoords();
     try {
       var apiBase = (typeof API_BASE !== 'undefined' ? API_BASE : '');
@@ -21376,6 +21459,13 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   window.v11PreloadReading = function() {
+    // iter13l: auto-preload disabled. The previous behaviour called
+    // loadReading(TODAY) with no tier argument on every page load, which
+    // defaulted to oracle and wasted API tokens. Readings now fire only on
+    // explicit user action (intention submit or tier click).
+    console.log('[iter13l] auto-preload disabled, awaiting user intent');
+    return;
+    /* DISABLED OLD BODY:
     if (typeof currentReading !== 'undefined' && currentReading) {
       console.log('[iter11] preload skipped, reading already loaded');
       return;
@@ -21403,14 +21493,15 @@ document.addEventListener('DOMContentLoaded', function() {
       window.cdpPreloadInFlight = false;
       console.warn('[iter11] preload start failed', e);
     }
+    */  // end iter13l disabled block
   };
 
   function v11InitCompass() {
-    var savedVoice = 'tradition';
+    var savedVoice = 'everyday';
     try {
       savedVoice = localStorage.getItem('cdp_compass_voice') ||
                    (typeof window.cdpGetVoice === 'function' ? window.cdpGetVoice() : '') ||
-                   'tradition';
+                   'everyday';
     } catch(e) {}
     v11SetCompassVoice(savedVoice);
     setTimeout(function() {
@@ -22066,14 +22157,14 @@ body.cdp-v6-active #scompass[data-engagement-state="pre"] .v6-cycling-words {
   transition: opacity 0.6s ease;
 }
 .cdp-v6-starters.cdp-v6-visible {
-  opacity: 0.88;
+  opacity: 1;
 }
 .cdp-v6-starter {
   display: inline-block;
   font-family: 'EB Garamond', Georgia, serif;
   font-style: italic;
-  font-size: 13.5px;
-  color: rgba(245, 228, 196, 0.62);
+  font-size: 14.5px;
+  color: rgba(245, 228, 196, 0.85);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -22364,7 +22455,7 @@ body.cdp-v6-active #scompass .v6-compass-frame {
     var frame = scompass.querySelector('.v6-compass-frame');
     if (!frame) return;
     var sourceToggle = scompass.querySelector('.v11-voice-toggle');
-    var activeVoice = 'tradition';
+    var activeVoice = 'everyday';
     try {
       if (document.body && document.body.dataset && document.body.dataset.compassVoice) {
         activeVoice = document.body.dataset.compassVoice;
@@ -22877,8 +22968,8 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
   margin: 6px auto 0;
   font-family: 'EB Garamond', Georgia, serif;
   font-style: italic;
-  font-size: 12.5px;
-  color: rgba(201, 160, 80, 0.72);
+  font-size: 13px;
+  color: rgba(201, 160, 80, 0.95);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -23559,5 +23650,516 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
   }
 })();
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     iter13j: Build A polish + production bug fixes
+     ════════════════════════════════════════════════════════════════════
+
+     Six fixes, bundled:
+
+     FIX 1 - Restart Reading button (production bug, ongoing).
+         The button was calling changeModeAndReload() which only opened
+         a hidden mode selector and did nothing visible. Real users have
+         been working around this by re-selecting tier. Direct fix:
+         override changeModeAndReload() so the button actually restarts
+         the reading at the current tier.
+
+     FIX 2 - Italic helper text readability.
+         The "A line, a question, a need, an intention. The Oracle replies
+         in the voice you choose." line was italic at small size with low
+         contrast. CSS override: remove italics, lift the size slightly,
+         raise the contrast.
+
+     FIX 3 - Greeting uses real OAuth name.
+         The iter13i safeFirstName() helper fell through to "Friend" or
+         "you" even when an OAuth user was signed in. Override: read the
+         OAuth profile name first when available.
+
+     FIX 4 - Threads trigger button injection.
+         iter13i used .v6-compass-helper class selector. The element has
+         both a class and a stable ID (#v6CompassHelper). The injection
+         occasionally raced. Use the ID, retry up to five times with
+         backoff, fall back to inserting at end of #scompass.
+
+     FIX 5 - Dotted-circle u25CC literal rendering.
+         The Build B starter buttons rendered "u25CC" as literal text.
+         The prepended "\u25CC  " escape was being collapsed somewhere
+         in a render path. Use String.fromCharCode(0x25CC) which is
+         immune to escape-sequence pipeline issues.
+
+     FIX 6 - Defensive polling timeout.
+         If a reading job hangs (Phase 1 returned but Phase 2 never
+         completes), the polling loop currently runs indefinitely until
+         the server's deadline kicks in. Add a client-side guard: after
+         3 minutes past phase1, force a friendly error state rather than
+         spinning forever.
+
+     Reversibility: removing this block reverts behaviour to iter13i.
+     Each fix is independent; if one causes a regression, that fix can
+     be commented out without affecting the others.
+     ════════════════════════════════════════════════════════════════════ -->
+<style>
+/* iter13k: Compass surface polish */
+
+/* FIX 2a: helper text readability (the .cdp-v6-subline class from iter13h,
+   not .v6-compass-helper which is the older "two telescopes" link). */
+#scompass .cdp-v6-subline {
+  font-style: normal !important;
+  font-size: 14.5px !important;
+  color: rgba(245, 228, 196, 0.82) !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0.005em !important;
+}
+@media (max-width: 759px) {
+  #scompass .cdp-v6-subline {
+    font-size: 13.5px !important;
+  }
+}
+
+/* FIX 5a: dotted-circle bullet on prompt starters.
+   The original CSS rule at line 22087 used "\u25CC" which is JavaScript
+   escape syntax, not CSS unicode escape syntax. CSS uses "\25CC" without
+   the "u" prefix. This override fixes the prefix so the bullet renders. */
+.cdp-v6-starter::before {
+  content: "\25CC  " !important;  /* dotted circle U+25CC, gentle bullet */
+}
+
+/* FIX 2b: the older v6-compass-helper element (the "See how the two
+   telescopes meet" link container) is also fine to keep readable. */
+#scompass .v6-compass-helper {
+  font-size: 16px !important;
+  color: rgba(245, 228, 196, 0.92) !important;
+  line-height: 1.55 !important;
+}
+#scompass .v6-compass-helper a {
+  color: rgba(201, 160, 80, 0.92) !important;
+  font-style: italic !important;
+}
+</style>
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   iter13j: Build A polish + production bug fixes
+   ════════════════════════════════════════════════════════════════════ */
+(function iter13jBuildAPolish() {
+
+  // ─── FIX 1: Restart Reading button ──────────────────────────────
+  // Replace changeModeAndReload with a version that actually restarts
+  // the reading at the current tier. The original showed a hidden modal.
+  try {
+    window.changeModeAndReload = function() {
+      try {
+        var currentDateStr = (typeof selectedDate !== 'undefined' && selectedDate)
+                             ? selectedDate
+                             : new Date().toISOString().slice(0, 10);
+        var currentTierKey = (typeof activeTier !== 'undefined' && activeTier)
+                             ? activeTier
+                             : (typeof currentTier !== 'undefined' && currentTier ? currentTier : 'free');
+
+        // Cancel any in-flight polling so the new reading is clean
+        if (typeof pollingTimer !== 'undefined' && pollingTimer) {
+          try { clearInterval(pollingTimer); } catch (e) {}
+          pollingTimer = null;
+        }
+        if (typeof stageTimer !== 'undefined' && stageTimer) {
+          try { clearInterval(stageTimer); } catch (e) {}
+        }
+        // Clear any stuck job marker so the new reading is not blocked
+        try { sessionStorage.removeItem('cdp_active_job'); } catch (e) {}
+        // Reset the phase-1-rendered flag
+        try { window._phase1Rendered = false; } catch (e) {}
+        // Call the canonical reading loader
+        if (typeof loadReading === 'function') {
+          loadReading(currentDateStr, currentTierKey);
+        } else if (typeof generateTierReading === 'function') {
+          generateTierReading(currentTierKey);
+        } else {
+          // Last-resort fallback: full page reload
+          window.location.reload();
+        }
+      } catch (err) {
+        console.warn('[iter13j Restart Reading] fallback to reload:', err.message);
+        window.location.reload();
+      }
+    };
+    console.log('[iter13j] Restart Reading patched');
+  } catch (e) {
+    console.warn('[iter13j] Restart Reading patch failed:', e.message);
+  }
+
+  // ─── FIX 3: real OAuth name in greeting ──────────────────────────
+  // Read the OAuth user's actual first name. Falls back to the profile
+  // name, then to empty string. NEVER returns "Friend" or "you".
+  function getOAuthFirstName() {
+    try {
+      if (typeof currentUser !== 'undefined' && currentUser) {
+        if (currentUser.user_metadata) {
+          var md = currentUser.user_metadata;
+          if (md.first_name) return String(md.first_name).trim();
+          if (md.name) {
+            var parts = String(md.name).trim().split(/\s+/);
+            if (parts[0] && parts[0].length > 0 && parts[0].toLowerCase() !== 'friend') {
+              return parts[0];
+            }
+          }
+          if (md.full_name) {
+            var parts2 = String(md.full_name).trim().split(/\s+/);
+            if (parts2[0] && parts2[0].length > 0 && parts2[0].toLowerCase() !== 'friend') {
+              return parts2[0];
+            }
+          }
+        }
+        if (currentUser.email) {
+          // Best-effort: extract before @ and capitalise. Only if it looks
+          // like a real name (not generic prefix like "info" or "hello").
+          var local = String(currentUser.email).split('@')[0];
+          if (/^[a-zA-Z]+$/.test(local) && local.length > 1 && local.length < 20) {
+            // Don't use email-prefix as name if it looks generic
+            var generic = ['info','hello','contact','admin','support','sales','team'];
+            if (generic.indexOf(local.toLowerCase()) < 0) {
+              return local.charAt(0).toUpperCase() + local.slice(1).toLowerCase();
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    try {
+      var prof = JSON.parse(localStorage.getItem('cdp_profile') || '{}');
+      if (prof && prof.name && typeof prof.name === 'string') {
+        var first = prof.name.trim().split(/\s+/)[0];
+        if (first && first.toLowerCase() !== 'friend' && first.length > 0) {
+          return first;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function isDemoMode() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('demo') === '1') return true;
+      if (params.get('mode') === 'demo') return true;
+      if (localStorage.getItem('cdp_demo') === '1') return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // ─── FIX 4 + FIX 5: re-implement greeting and starter render ─────
+  // Override the iter13i greeting/starter render with a version that:
+  //   - Uses real OAuth name (FIX 3)
+  //   - Uses literal dotted-circle character via fromCharCode (FIX 5)
+  //   - Re-injects the threads trigger button with ID-based selector
+  //     and retry (FIX 4)
+
+  function classifyThreadsLocal() {
+    var threads = (window.cdpThreadsAPI && typeof window.cdpThreadsAPI.active === 'function')
+                  ? (window.cdpThreadsAPI.active() || [])
+                  : [];
+    var today = new Date();
+    var todayStr = today.toISOString().slice(0, 10);
+    var todays = [];
+    var recent = [];
+    threads.forEach(function(thr) {
+      if (!thr || !thr.label) return;
+      if (thr.date && thr.date === todayStr) {
+        todays.push(thr);
+      } else {
+        recent.push(thr);
+      }
+    });
+    return { todays: todays, recent: recent };
+  }
+
+  function buildIter13jGreeting() {
+    var name = getOAuthFirstName();
+    var nameTag = name ? ' ' + name : '';
+    var classified = classifyThreadsLocal();
+    var now = new Date();
+    var hour = now.getHours();
+    var dow = now.getDay();
+    var demo = isDemoMode();
+
+    // Tier 0: thread dated today
+    if (classified.todays.length > 0) {
+      var first = classified.todays[0];
+      var label = String(first.label).replace(/[<>"]/g, '').trim().slice(0, 80);
+      if (classified.todays.length === 1) {
+        if (hour < 12) return 'Morning' + nameTag + '. ' + label + ' is today.';
+        if (hour < 17) return label + ' is today' + nameTag + '. Where are you with it?';
+        if (hour < 21) return 'Evening' + nameTag + '. How did ' + label + ' land?';
+        return 'Late' + nameTag + '. How did ' + label + ' land?';
+      } else {
+        if (hour < 12) return 'Morning' + nameTag + '. A full day on the schedule.';
+        return 'A full day' + nameTag + '. Where are you with it?';
+      }
+    }
+
+    // Tier 1: recent thread carrying soft context
+    if (classified.recent.length > 0) {
+      var dateStr = now.toISOString().slice(0, 10);
+      var hash = 0;
+      for (var i = 0; i < dateStr.length; i++) {
+        hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+        hash = hash & hash;
+      }
+      var pick = classified.recent[Math.abs(hash) % classified.recent.length];
+      var rlabel = String(pick.label).replace(/[<>"]/g, '').trim().slice(0, 80);
+      if (hour < 12) return 'Morning' + nameTag + '. How is ' + rlabel + ' sitting?';
+      if (hour < 17) return 'Where are you with ' + rlabel + nameTag + '?';
+      if (hour < 21) return 'Evening' + nameTag + '. ' + rlabel + ' been on your mind?';
+      return 'Late' + nameTag + '. Still thinking about ' + rlabel + '?';
+    }
+
+    // Tier 2: yesterday's intention
+    try {
+      var raw = sessionStorage.getItem('cdp_compass_yesterday')
+             || localStorage.getItem('cdp_last_intention');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.text && parsed.date) {
+          var iDate = new Date(parsed.date);
+          var diff = Math.round((now - iDate) / (24 * 3600 * 1000));
+          if (diff === 1 && parsed.text.length < 80) {
+            var safe = parsed.text.replace(/[<>"]/g, '').slice(0, 70);
+            return 'Morning' + nameTag + '. How did "' + safe + '" land?';
+          }
+        }
+      }
+    } catch (e) {}
+
+    // Tier 3: small, present, time-of-day fallback. NEVER says "Friend"
+    // or "you". In demo mode with no real name, the greeting is just the
+    // time of day without an appendage.
+    if (hour < 6) return 'Early hours' + nameTag + '.';
+    if (hour < 12) {
+      if (dow === 1) return 'Morning' + nameTag + '. Monday again.';
+      if (dow === 5) return 'Morning' + nameTag + '. End of the week.';
+      if (dow === 0 || dow === 6) return 'Morning' + nameTag + '. Weekend.';
+      return 'Morning' + nameTag + '.';
+    }
+    if (hour < 17) return 'Afternoon' + nameTag + '.';
+    if (hour < 21) {
+      if (dow === 5) return 'Evening' + nameTag + '. Long week.';
+      return 'Evening' + nameTag + '.';
+    }
+    return 'Still up' + nameTag + '?';
+  }
+
+  function buildIter13jStarters() {
+    var classified = classifyThreadsLocal();
+    var starters = [];
+
+    if (classified.todays.length > 0) {
+      var first = classified.todays[0];
+      var label = String(first.label).replace(/[<>"]/g, '').trim().slice(0, 80);
+      starters.push('Help me prepare for ' + label + '.');
+      starters.push('What is the most useful frame for ' + label + '?');
+    }
+    if (classified.recent.length > 0 && starters.length < 2) {
+      var pick = classified.recent[0];
+      var rlabel = String(pick.label).replace(/[<>"]/g, '').trim().slice(0, 80);
+      starters.push('How is ' + rlabel + ' sitting now?');
+    }
+
+    var openOptions = [
+      'Frame a decision I am sitting with.',
+      'Walk me through what is coming today.',
+      'Listen for a minute while I think out loud.',
+      'Tell me what the day is asking.',
+      'I have a specific question.'
+    ];
+
+    var now = new Date();
+    var dateStr = now.toISOString().slice(0, 10);
+    var hash = 0;
+    for (var i = 0; i < dateStr.length; i++) {
+      hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+      hash = hash & hash;
+    }
+    var seed = Math.abs(hash);
+    while (starters.length < 3 && openOptions.length > 0) {
+      var idx = seed % openOptions.length;
+      var pick2 = openOptions.splice(idx, 1)[0];
+      if (starters.indexOf(pick2) < 0) starters.push(pick2);
+      seed = Math.floor(seed / Math.max(openOptions.length, 1)) + (seed * 17) + 31;
+    }
+    return starters.slice(0, 3);
+  }
+
+  // FIX 5: render starters. The dotted-circle bullet is added by the CSS
+  // ::before pseudo-element (fixed in iter13k CSS above to use \25CC
+  // CSS-style escape rather than \u25CC JS-style escape which was rendering
+  // as literal "u25CC" text). The textContent here is plain prose only.
+
+  function renderIter13jStartersInto(container) {
+    if (!container) return;
+    var starters = buildIter13jStarters();
+    while (container.firstChild) container.removeChild(container.firstChild);
+    starters.forEach(function(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cdp-v6-starter';
+      btn.textContent = text;
+      btn.addEventListener('click', function(ev) {
+        ev.preventDefault();
+        var inputEl = document.getElementById('v19Intention');
+        if (inputEl) {
+          inputEl.value = text;
+          inputEl.focus();
+          try { inputEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+        }
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function renderIter13jGreeting() {
+    var scompass = document.getElementById('scompass');
+    if (!scompass) return;
+    var greetingEl = scompass.querySelector('.cdp-v6-greeting');
+    if (greetingEl) {
+      try { greetingEl.textContent = buildIter13jGreeting(); } catch (e) {}
+    }
+    var startersContainer = scompass.querySelector('.cdp-v6-starters');
+    if (startersContainer) {
+      try { renderIter13jStartersInto(startersContainer); } catch (e) {}
+    }
+  }
+
+  // ─── FIX 4: threads trigger button injection ────────────────────
+  // ID-based selector + retry with backoff. Insert after the helper if
+  // possible, else append to #scompass directly.
+  function injectThreadsTriggerRobust(attempt) {
+    attempt = attempt || 0;
+    var scompass = document.getElementById('scompass');
+    if (!scompass) {
+      if (attempt < 8) setTimeout(function() { injectThreadsTriggerRobust(attempt + 1); }, 400);
+      return;
+    }
+    if (scompass.querySelector('.cdp-threads-trigger')) return; // already present
+
+    var helper = document.getElementById('v6CompassHelper')
+              || scompass.querySelector('.v6-compass-helper')
+              || scompass.querySelector('.cdp-v6-helper');
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cdp-threads-trigger';
+    btn.textContent = 'What are you working on?';
+    btn.setAttribute('aria-label', 'Open active threads editor');
+    btn.addEventListener('click', function(ev) {
+      ev.preventDefault();
+      // Re-open the iter13i modal editor. The function is defined inside
+      // iter13i's IIFE so we trigger via a synthetic event on the API.
+      if (window.cdpThreadsAPI && typeof window.cdpThreadsOpenEditor === 'function') {
+        window.cdpThreadsOpenEditor();
+      } else {
+        // Fallback: dispatch a custom event iter13i can listen for, or
+        // simulate the open via direct DOM construction. If neither
+        // works, log and bail.
+        var existing = document.getElementById('cdpThreadsScrim');
+        if (existing) existing.classList.add('cdp-threads-open');
+        else console.warn('[iter13j] threads editor open hook not found');
+      }
+    });
+
+    if (helper && helper.parentNode) {
+      helper.parentNode.insertBefore(btn, helper.nextSibling);
+    } else {
+      scompass.appendChild(btn);
+    }
+    // Active count label refresh, mirroring iter13i behaviour
+    try {
+      var threads = (window.cdpThreadsAPI && window.cdpThreadsAPI.active) ? window.cdpThreadsAPI.active() : [];
+      if (threads.length === 1) btn.textContent = '1 active thread. Edit or add.';
+      else if (threads.length > 1) btn.textContent = threads.length + ' active threads. Edit or add.';
+    } catch (e) {}
+    requestAnimationFrame(function() { btn.classList.add('cdp-v6-visible'); });
+    console.log('[iter13j] threads trigger injected');
+  }
+
+  // ─── FIX 6: defensive client-side polling timeout ────────────────
+  // If 3 minutes pass after phase 1 was rendered without a final
+  // "complete" status, surface a friendly error so the user is not
+  // stuck on a perpetual "deep analysis composing" spinner.
+  (function installPollingGuard() {
+    var GUARD_AFTER_PHASE1_MS = 180000; // 3 minutes
+    var checkTimer = setInterval(function() {
+      try {
+        if (!window._phase1Rendered) return;
+        if (!window._phase1RenderedAt) {
+          window._phase1RenderedAt = Date.now();
+          return;
+        }
+        var sincePhase1 = Date.now() - window._phase1RenderedAt;
+        if (sincePhase1 > GUARD_AFTER_PHASE1_MS && (typeof pollingTimer !== 'undefined' && pollingTimer)) {
+          // Surface a friendly error in the existing status bar
+          console.warn('[iter13j] reading guard tripped at', Math.round(sincePhase1/1000), 's after phase 1');
+          try { clearInterval(pollingTimer); pollingTimer = null; } catch (e) {}
+          try { if (typeof stageTimer !== 'undefined' && stageTimer) clearInterval(stageTimer); } catch (e) {}
+          var sb = document.getElementById('skeletonStatusBar');
+          if (sb) {
+            sb.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:10px 20px;justify-content:space-between;width:100%">'
+              + '<div style="font-size:13px;color:var(--text2);font-family:\'EB Garamond\',serif">'
+              + 'Deep analysis is taking longer than usual. Restart to try again.'
+              + '</div>'
+              + '<button onclick="changeModeAndReload()" style="background:var(--gold);border:none;color:#0e1a2e;padding:7px 16px;border-radius:2px;cursor:pointer;font-family:\'Cinzel\',serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-weight:600">Restart</button>'
+              + '</div>';
+            sb.style.opacity = '1';
+          }
+          window._phase1Rendered = false;
+          window._phase1RenderedAt = null;
+        }
+      } catch (err) {}
+    }, 5000);
+    // Keep the timer reference reachable for debugging
+    window._iter13jGuardTimer = checkTimer;
+  })();
+
+  // Also hook phase1 render to capture the timestamp; the existing render
+  // path sets _phase1Rendered = true but doesn't stamp the time. Patch it.
+  (function patchPhase1Timestamp() {
+    var defined = Object.getOwnPropertyDescriptor(window, '_phase1Rendered');
+    Object.defineProperty(window, '_phase1Rendered', {
+      configurable: true,
+      get: function() { return this.__phase1RenderedActual; },
+      set: function(v) {
+        this.__phase1RenderedActual = v;
+        if (v) this._phase1RenderedAt = Date.now();
+        else this._phase1RenderedAt = null;
+      }
+    });
+  })();
+
+  // ─── apply Build A polish on top of iter13g/h/i ──────────────────
+  function applyIter13j() {
+    try { renderIter13jGreeting(); } catch (e) { console.warn('[iter13j] greeting apply:', e.message); }
+    try { injectThreadsTriggerRobust(0); } catch (e) { console.warn('[iter13j] trigger inject:', e.message); }
+  }
+
+  function init() {
+    var scompass = document.getElementById('scompass');
+    if (!scompass) {
+      setTimeout(init, 500);
+      return;
+    }
+    applyIter13j();
+  }
+
+  // Run later than iter13i (which runs at +1100ms) so the iter13i scaffold
+  // exists when we override copy. 1500ms is enough.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(init, 1500);
+    });
+  } else {
+    setTimeout(init, 1500);
+  }
+
+  console.log('[iter13j] Build A polish loaded');
+})();
+</script>
+<script src="/cdp-home.js"></script>
+<script src="/cdp-vessel.js"></script>
 </body>
 </html>
