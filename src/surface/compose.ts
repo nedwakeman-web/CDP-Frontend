@@ -3,23 +3,26 @@
  *
  * The surface composes nothing itself. It speaks to an Orchestrator and never
  * to a concrete composer, the same discipline the data layer applies to the
- * Store. Today the concrete composer is local and plain (LocalOrchestrator).
- * At step three of the Volume 16 sequence it becomes the real composition
- * engine over the Railway server and the resource layer (ApiOrchestrator),
- * and not one line of home.ts, thread.ts, or vessel.ts changes, because none
- * of them ever knew where the composing happened.
+ * Store. Two concrete composers live here. LocalOrchestrator is the browser
+ * side placeholder: plain, grounded, honest, and offline. ApiOrchestrator is
+ * the real composition over the Railway server, round tripping summoned depth
+ * to /api/compose/depth, and it is the one used by default. Neither home.ts,
+ * thread.ts, nor vessel.ts changes when the orchestrator is switched, because
+ * none of them ever knew where the composing happened.
  *
  * This is the boundary that keeps the surface honest. The surface owns
  * presentation and interaction. Composition of touches, living summaries, and
  * summoned depth is orchestration, and it lives behind this one interface.
  *
- * The LocalOrchestrator is a dignified placeholder, not filler. It reflects
- * what a person is holding in plain, grounded language, and where it names a
- * mechanism it names a real one and labels it empirical, per the Charter. It
- * does not fabricate computed coordinates (the numerology, the Kin, the moon,
- * the transits) and it does not pretend to be the cited, lens-distinct depth.
- * Those arrive when the resource layer connects. Where the depth is not yet
- * built, the placeholder says so rather than faking it.
+ * The calm, immediate reads (meet, firstHold, park, respond, summary) are local
+ * and synchronous on both composers, since they are the glance the surface
+ * shows at once. Only summoned depth round trips, because depth is bottomless
+ * and is composed on the server against the verified coordinates and the
+ * person's continuity. When the endpoint is unreachable, the ApiOrchestrator
+ * degrades to an honest held state rather than breaking.
+ *
+ * House style holds in this file: no em dashes, no en dashes, no exclamation
+ * marks, in code and in comments alike.
  */
 
 /* ---- types (staged, inline for now) ---------------------------------------- */
@@ -45,17 +48,16 @@ export interface Composed {
 
 /**
  * The composition contract. The surface calls these and renders the result.
- * Every method is shaped so the API-backed implementation can be asynchronous
- * and resource-drawing without the surface changing: meet and summary are
- * synchronous reads used for the calm glance, while depth is a Promise because
- * summoned depth is bottomless and will round-trip to the server.
+ * meet and summary are synchronous reads used for the calm glance, while depth
+ * is a Promise because summoned depth is bottomless and round trips to the
+ * server.
  */
 export interface Orchestrator {
   /** The quiet line the home shows: a plain reflection of what is held now. */
   meet(state: VesselState, brightest: HeldIntention | null, now?: number): string;
   /** The first vessel touch when a thread is held to dwell with. */
   firstHold(it: HeldIntention, lens: Lens, now?: number): Composed;
-  /** The single sufficient hold that lets an intruding concern recede. */
+  /** The single sufficient hold that lets an intruding thread recede. */
   park(it: HeldIntention, lens: Lens): Composed;
   /** A light reflective continuation inside a thread. */
   respond(it: HeldIntention, personText: string, lens: Lens): Composed;
@@ -94,15 +96,21 @@ function clause(text: string): string {
   return cut.charAt(0).toLowerCase() + cut.slice(1);
 }
 
+/** Today as YYYY-MM-DD in UTC, the date discipline used everywhere else. */
+function todayUTC(now: number): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+/* ---- the local placeholder composer ---------------------------------------- */
+
 /**
  * Browser-side placeholder composer. Plain, grounded, lens-shaped, honest.
  *
  * The three lenses are shaped lightly here, by what each foregrounds, not by
- * faked depth: Everyday foregrounds the plain next presence, Science names the
- * real cognitive mechanism and labels it empirical, Tradition speaks in the
- * register of holding and timing and is labelled symbolic. They become
- * genuinely distinct, drawing on the computed coordinates and the cited
- * retrieval, only when the resource layer connects at step four.
+ * faked depth. They become genuinely distinct, drawing on the computed
+ * coordinates and the cited retrieval, on the server through the ApiOrchestrator.
+ * In local mode the depth reflection says plainly that depth is composed on the
+ * server, rather than pretending to be it.
  */
 export class LocalOrchestrator implements Orchestrator {
   meet(state: VesselState, brightest: HeldIntention | null, now = Date.now()): string {
@@ -121,39 +129,163 @@ export class LocalOrchestrator implements Orchestrator {
     const lensLabel = lens === 'everyday' ? 'everyday' : lens === 'science' ? 'neuroscience' : 'archetypal';
     return {
       text: `Holding "${it.text}" in the ${lensLabel} lens.`,
-      summary: `Held: ${clause(it.text)}.`
+      summary: `Held: ${clause(it.text)}.`,
     };
   }
 
-  park(it: HeldIntention, lens: Lens): Composed {
+  park(it: HeldIntention, _lens: Lens): Composed {
     return {
       text: `"${it.text}" is parked and waiting. You can return to it whenever.`,
-      summary: `Parked.`
+      summary: 'Parked.',
     };
   }
 
-  respond(it: HeldIntention, personText: string, lens: Lens): Composed {
+  respond(_it: HeldIntention, personText: string, _lens: Lens): Composed {
     return {
       text: `You offered: "${personText}". The thread continues.`,
-      summary: `Responded.`
+      summary: 'Responded.',
     };
   }
 
-  summary(it: HeldIntention, lens: Lens, now = Date.now()): string {
+  summary(it: HeldIntention, _lens: Lens, _now = Date.now()): string {
     const kind = it.kind === 'acute' ? 'pressing' : it.kind === 'chronic' ? 'ongoing' : 'unfolding';
     return `${kind}: ${clause(it.text)}`;
   }
 
-  async depth(it: HeldIntention, lens: Lens): Promise<Composed> {
-    // Placeholder. At step four, this rounds-trip to /api/vessel/depth.
+  async depth(_it: HeldIntention, _lens: Lens): Promise<Composed> {
     return {
-      text: 'Depth retrieval not yet connected. This will round-trip to the server when the resource layer is live.',
-      summary: 'Depth staged.'
+      text: [
+        'The deeper reflection is composed on the server.',
+        'This is local mode, so it is not reachable here.',
+        'What you are holding is still held.',
+      ].join('\n\n'),
+      summary: 'Held. Depth is composed on the server.',
     };
   }
 }
 
+/* ---- the server-backed composer -------------------------------------------- */
+
+/** Optional per-call context the server uses to ground the reflection. */
+export interface DepthContext {
+  dateStr?: string;
+  continuity?: Array<{ label: string; summary: string }>;
+  recentTouches?: Array<{ role: string; text: string }>;
+}
+
+export interface ApiOrchestratorOptions {
+  /** Milliseconds before a depth request is aborted and the fallback is used. */
+  timeoutMs?: number;
+  /** Supplies date and continuity for a depth call. Defaults to today, no continuity. */
+  contextProvider?: (it: HeldIntention, lens: Lens) => DepthContext;
+  /** Injectable fetch, for testing. Defaults to the global fetch. */
+  fetchImpl?: typeof fetch;
+  /** Injectable clock, for testing. Defaults to Date.now. */
+  now?: () => number;
+}
+
 /**
- * Export the composed surface as a singleton instance.
+ * The real composer. The calm reads delegate to a local instance, since they
+ * are immediate and need no server. Summoned depth posts to /api/compose/depth
+ * and renders the returned reflection. Any failure, a missing endpoint, an
+ * upstream error, or a timeout, degrades to an honest held state, so a server
+ * problem is degraded and never broken.
  */
-export const orchestrator = new LocalOrchestrator();
+export class ApiOrchestrator implements Orchestrator {
+  private readonly base: string;
+  private readonly local: Orchestrator;
+  private readonly timeoutMs: number;
+  private readonly contextProvider: (it: HeldIntention, lens: Lens) => DepthContext;
+  private readonly fetchImpl: typeof fetch;
+  private readonly now: () => number;
+
+  constructor(base: string, local: Orchestrator, opts: ApiOrchestratorOptions = {}) {
+    // Normalise the base so a trailing slash never doubles up against the path.
+    this.base = (base || '').replace(/\/+$/, '');
+    this.local = local;
+    this.timeoutMs = opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : 30000;
+    this.contextProvider = opts.contextProvider || (() => ({}));
+    this.fetchImpl = opts.fetchImpl || ((...args: Parameters<typeof fetch>) => fetch(...args));
+    this.now = opts.now || (() => Date.now());
+  }
+
+  // The calm glance is local on both composers.
+  meet(state: VesselState, brightest: HeldIntention | null, now?: number): string {
+    return this.local.meet(state, brightest, now);
+  }
+  firstHold(it: HeldIntention, lens: Lens, now?: number): Composed {
+    return this.local.firstHold(it, lens, now);
+  }
+  park(it: HeldIntention, lens: Lens): Composed {
+    return this.local.park(it, lens);
+  }
+  respond(it: HeldIntention, personText: string, lens: Lens): Composed {
+    return this.local.respond(it, personText, lens);
+  }
+  summary(it: HeldIntention, lens: Lens, now?: number): string {
+    return this.local.summary(it, lens, now);
+  }
+
+  /** The honest degraded reflection used when the server cannot be reached. */
+  private fallback(): Composed {
+    return {
+      text: [
+        'The deeper reflection could not be reached just now.',
+        'What you are holding is still held, and nothing is lost.',
+        'Try again in a moment.',
+      ].join('\n\n'),
+      summary: 'Held. Reach again in a moment.',
+    };
+  }
+
+  async depth(it: HeldIntention, lens: Lens): Promise<Composed> {
+    const ctx = this.contextProvider(it, lens) || {};
+    const dateStr = ctx.dateStr || todayUTC(this.now());
+
+    const intention: { text: string; anchor?: { label: string } } = { text: it.text };
+    if (it.anchor) intention.anchor = { label: it.anchor };
+
+    const body = {
+      lens,
+      intention,
+      dateStr,
+      continuity: Array.isArray(ctx.continuity) ? ctx.continuity : [],
+      recentTouches: Array.isArray(ctx.recentTouches) ? ctx.recentTouches : [],
+    };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const res = await this.fetchImpl(this.base + '/api/compose/depth', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) return this.fallback();
+
+      const data = (await res.json()) as { text?: unknown; summary?: unknown };
+      if (data && typeof data.text === 'string' && data.text.trim().length > 0) {
+        const composed: Composed = { text: data.text.trim() };
+        if (typeof data.summary === 'string' && data.summary.trim().length > 0) {
+          composed.summary = data.summary.trim();
+        }
+        return composed;
+      }
+      return this.fallback();
+    } catch (_e) {
+      // Network error or timeout abort. Degrade, do not break.
+      return this.fallback();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/**
+ * A default local instance, for any caller that wants a composer without
+ * choosing one. The boot path in main.ts constructs the ApiOrchestrator.
+ */
+export const orchestrator: Orchestrator = new LocalOrchestrator();
