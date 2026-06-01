@@ -6804,7 +6804,7 @@ async function loadReading(dateStr, tier) {
     // server had already errored but client kept polling. Now the client
     // surfaces server errors promptly and only times out if the server is
     // genuinely unreachable.
-    const _serverDeadlines = { free: 90, seeker: 90, initiate: 180, mystic: 240, oracle: 240 };
+    const _serverDeadlines = { free: 60, seeker: 90, initiate: 150, mystic: 210, oracle: 300 };
     const _serverDeadlineSec = _serverDeadlines[activeTier] || 240;
     const maxWait = (_serverDeadlineSec + 15) * 1000;
     console.log('[iter12d reading] tier=' + activeTier + ' serverDeadline=' + _serverDeadlineSec + 's clientMaxWait=' + (_serverDeadlineSec + 15) + 's');
