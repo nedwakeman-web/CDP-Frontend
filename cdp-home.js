@@ -444,6 +444,43 @@
       row.appendChild(btn);
     });
     foot.appendChild(row);
+
+    // Settings: the three controls that used to live only in the old menu,
+    // brought into the one Account surface so there is no separate menu. Each
+    // calls the same global the old menu called, so behaviour is unchanged.
+    var settings = el('div');
+    settings.style.cssText = 'margin-top:14px;padding-top:12px;border-top:1px solid rgba(201,160,80,0.10);';
+    var stitle = el('div', null, 'Settings');
+    stitle.style.cssText = 'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,186,160,0.55);margin-bottom:9px;';
+    settings.appendChild(stitle);
+
+    var openLabel = el('div', null, 'Open the app on');
+    openLabel.style.cssText = 'font-size:11px;color:rgba(201,186,160,0.55);margin-bottom:5px;';
+    settings.appendChild(openLabel);
+    var sel = el('select');
+    sel.style.cssText = 'width:100%;box-sizing:border-box;background:#0e1f38;border:1px solid rgba(201,160,80,0.18);border-radius:3px;padding:7px 10px;color:#F0E6CC;font-family:Georgia,serif;font-size:13px;cursor:pointer;outline:none;margin-bottom:10px;';
+    [['scompass', 'Compass (default)'], ['sr', 'Reading']].forEach(function (o) {
+      var opt = el('option'); opt.value = o[0]; opt.textContent = o[1]; sel.appendChild(opt);
+    });
+    try { var orig = document.getElementById('v65OpenScreenSelect'); if (orig && orig.value) sel.value = orig.value; } catch (e) {}
+    sel.addEventListener('change', function () {
+      if (typeof window.v65SetOpenScreen === 'function') window.v65SetOpenScreen(sel.value);
+      try { var o2 = document.getElementById('v65OpenScreenSelect'); if (o2) o2.value = sel.value; } catch (e) {}
+    });
+    settings.appendChild(sel);
+
+    var srow = el('div', 'cdph-account-row');
+    [
+      { label: 'Toggle theme', fn: function () { call('toggleTheme'); } },
+      { label: 'Pin current voice', fn: function () { var v = window.cdpGetVoice && window.cdpGetVoice(); if (v && window.cdpSetPreferredVoice) window.cdpSetPreferredVoice(v); } }
+    ].forEach(function (l) {
+      var b = el('button', 'cdph-account-link', escapeHtml(l.label));
+      b.type = 'button'; b.addEventListener('click', l.fn);
+      srow.appendChild(b);
+    });
+    settings.appendChild(srow);
+    foot.appendChild(settings);
+
     return foot;
   }
 
@@ -549,6 +586,7 @@
     });
   }
   window.cdpHomeRefresh = cdpHomeRefresh;
+  window.cdpOpenHome = function (side) { try { openDrawer(side === 'left' ? 'left' : 'right'); } catch (e) {} };
 
   /* ----- mount ----- */
   function mount() {

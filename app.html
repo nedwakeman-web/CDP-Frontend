@@ -3681,7 +3681,7 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
     <div id="authBtnArea">
       <button class="signin-btn" onclick="openAuth()">Sign In</button>
     </div>
-    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="openQuietMenu()" aria-label="Open menu" title="Menu: settings, profiles, calendar, tiers, history, feedback, theme">
+    <button class="quiet-menu-btn quiet-menu-btn-right" onclick="if(window.cdpOpenHome){cdpOpenHome(&apos;right&apos;)}else{openQuietMenu()}" aria-label="Open menu" title="Open your people, readings, and account">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/>
         <line x1="4" y1="12" x2="20" y2="12"/>
