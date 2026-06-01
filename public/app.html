@@ -3645,7 +3645,8 @@ select.entry-input option{background:#0D1E33;color:#E8EDF4}
   <div class="nav nav-iter10d" style="display:flex;gap:8px;align-items:center">
     <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)">Compass</button>
     <button class="npill" onclick="showScreen(&apos;sr&apos;,this);if(!currentReading)showModeSelector()">Reading</button>
-    <button class="npill" onclick="window.location.href=&apos;/&apos;" title="The Two Telescopes overview">Home</button>
+    <button class="npill" onclick="if(window.openVessel)openVessel()" title="Your intentions and the live compass">Vessel</button>
+    <button class="npill" data-v19-nav="static" onclick="showScreen(&apos;scompass&apos;,this)" title="Your daily compass, home">Home</button>
   </div>
   <!-- Mobile hamburger (Sonia #50) -->
   <button class="nav-hamburger" onclick="toggleMobileNav()" id="navHamburger">
@@ -17121,7 +17122,7 @@ document.addEventListener('cdp:reading-ready', function() {
   font-size: 14px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--v19-gold);
+  color: #C9A050;
   margin: 0 0 4px 0;
 }
 
@@ -22968,8 +22969,8 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
   margin: 6px auto 0;
   font-family: 'EB Garamond', Georgia, serif;
   font-style: italic;
-  font-size: 12.5px;
-  color: rgba(201, 160, 80, 0.72);
+  font-size: 13px;
+  color: rgba(201, 160, 80, 0.95);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -23728,7 +23729,7 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
    telescopes meet" link container) is also fine to keep readable. */
 #scompass .v6-compass-helper {
   font-size: 14px !important;
-  color: rgba(245, 228, 196, 0.78) !important;
+  color: rgba(245, 228, 196, 0.92) !important;
   line-height: 1.55 !important;
 }
 #scompass .v6-compass-helper a {
@@ -24160,5 +24161,6 @@ body.cdp-v6-active #scompass[data-engagement-state="engaged"] .v11-voice-toggle 
 })();
 </script>
 <script src="/cdp-home.js"></script>
+<script src="/cdp-vessel.js"></script>
 </body>
 </html>
