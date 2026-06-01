@@ -63,8 +63,9 @@ export interface Orchestrator {
   respond(it: HeldIntention, personText: string, lens: Lens): Composed;
   /** A one-line living read of where the thread stands now. */
   summary(it: HeldIntention, lens: Lens, now?: number): string;
-  /** Summoned depth, bottomless on demand. Async because the real one round-trips. */
-  depth(it: HeldIntention, lens: Lens): Promise<Composed>;
+  /** Summoned depth, bottomless on demand. Async because the real one round-trips.
+   * An optional context carries the thread so far, so a follow-up continues it. */
+  depth(it: HeldIntention, lens: Lens, ctx?: DepthContext): Promise<Composed>;
 }
 
 /* ---- small grounded helpers ------------------------------------------------ */
@@ -152,7 +153,7 @@ export class LocalOrchestrator implements Orchestrator {
     return `${kind}: ${clause(it.text)}`;
   }
 
-  async depth(_it: HeldIntention, _lens: Lens): Promise<Composed> {
+  async depth(_it: HeldIntention, _lens: Lens, _ctx?: DepthContext): Promise<Composed> {
     return {
       text: [
         'The deeper reflection is composed on the server.',
@@ -238,9 +239,10 @@ export class ApiOrchestrator implements Orchestrator {
     };
   }
 
-  async depth(it: HeldIntention, lens: Lens): Promise<Composed> {
-    const ctx = this.contextProvider(it, lens) || {};
-    const dateStr = ctx.dateStr || todayUTC(this.now());
+  async depth(it: HeldIntention, lens: Lens, ctx?: DepthContext): Promise<Composed> {
+    const base = this.contextProvider(it, lens) || {};
+    const merged: DepthContext = { ...base, ...(ctx || {}) };
+    const dateStr = merged.dateStr || todayUTC(this.now());
 
     const intention: { text: string; anchor?: { label: string } } = { text: it.text };
     if (it.anchor) intention.anchor = { label: it.anchor };
@@ -249,8 +251,8 @@ export class ApiOrchestrator implements Orchestrator {
       lens,
       intention,
       dateStr,
-      continuity: Array.isArray(ctx.continuity) ? ctx.continuity : [],
-      recentTouches: Array.isArray(ctx.recentTouches) ? ctx.recentTouches : [],
+      continuity: Array.isArray(merged.continuity) ? merged.continuity : [],
+      recentTouches: Array.isArray(merged.recentTouches) ? merged.recentTouches : [],
     };
 
     const controller = new AbortController();

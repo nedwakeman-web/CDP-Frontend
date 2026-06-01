@@ -87,6 +87,21 @@ const intention = { text: 'whether to ship the redesign this week', kind: 'acute
     check('null anchor omits the anchor field', seenBody.intention.anchor === undefined);
   }
 
+
+  // 8. Per-call context: a follow-up's thread reaches the body, and overrides the provider.
+  {
+    let body=null;
+    const f=async(_u,init)=>{body=JSON.parse(init.body);return{ok:true,json:async()=>({text:'ok'})};};
+    const api=new ApiOrchestrator('',new LocalOrchestrator(),{fetchImpl:f,contextProvider:()=>({dateStr:'2099-01-01'})});
+    await api.depth(intention,'tradition',{recentTouches:[{role:'person',text:'first line'},{role:'oracle',text:'a reflection'}],continuity:[{label:'Series A',summary:'raising'}]});
+    check('per-call recentTouches reach the body',body.recentTouches.length===2&&body.recentTouches[0].text==='first line');
+    check('per-call continuity reaches the body',body.continuity.length===1&&body.continuity[0].label==='Series A');
+    await api.depth(intention,'science',{dateStr:'2026-03-31'});
+    check('per-call dateStr overrides the provider',body.dateStr==='2026-03-31');
+    await api.depth(intention,'everyday');
+    check('two-argument depth still works (back-compat)',body.dateStr==='2099-01-01'&&body.lens==='everyday');
+  }
+
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);
 })();
