@@ -1,33 +1,31 @@
 /**
- * Vessel: the CDP home, built to the agreed FiveYear May31 design.
+ * Vessel: the CDP home.
  *
- * A quiet centre (the meet-line, the real compass, one ask) with two
- * edge-revealed, pinnable, draggable drawers. Left, "Vault and patterns":
- * What is live now, Patterns emerging, My year in review, Seasonal maps,
- * This is working, the month calendar. Right, "People and reach": Today's
- * reading, The year long view, Profiles, Compatibility, Family oracles,
- * Shared family context, What it knows, The vault.
+ * The compass and everything above it are a faithful port of the app(19)
+ * surface in its settled state: the breathing two telescopes cipher, the date
+ * set in EB Garamond italic, the voice aware cycling line, the voice toggle,
+ * and the large landscape compass in its painted star field. The page sky is
+ * the same navy the compass asset is painted on, so the image edges merge.
  *
- * What is wired to real state: the meet-line (your brightest held intention),
- * What is live now (your held and resting intentions), the vault count, today's
- * coordinates in Today's reading, and the ask, which composes a real reflection
- * through the orchestrator and the live /api/compose/depth endpoint. The
- * remaining cards render as the agreed design and open as their stage lands.
+ * Below the compass sit two things the founder asked for. A left sidebar of
+ * running intentions and themes, grouped Active now, Held and exploring, and
+ * Themes, read from real state. And directly under the compass, the Naked Eye
+ * line: what is alive in this moment, with remind, re-engage and hold on each.
  *
  * The data layer underneath (VesselRepository over a Store) is untouched, so
- * what you hold persists across a closed tab. Module order persists per rail.
+ * what you hold persists across a closed tab. The ask composes a real
+ * reflection through the orchestrator and the live compose endpoint, and
+ * degrades to an honest held state when the endpoint cannot be reached.
  *
- * House style: no em dashes, no en dashes, no exclamation marks, in code and in
- * anything a person reads. Palette and layout follow the FiveYear file; fonts
- * follow CDP canon, Georgia body with Cinzel display.
+ * House style: no em dashes, no en dashes, no exclamation marks, and no spaced
+ * hyphens, in code and in anything a person reads. Palette and fonts follow the
+ * app: EB Garamond and Cormorant for body, Cinzel for display.
  */
 
-import type { Lens, HeldIntention, Touch } from '../data/model';
+import type { Lens, HeldIntention } from '../data/model';
 import type { Orchestrator, DepthContext } from './compose';
 import { VesselRepository } from '../data/repository';
 import { trackEvent } from '../data/analytics';
-import { dayCoordinates } from '../coordinates-core';
-import type { Coordinate } from '../coordinates-core';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -46,13 +44,13 @@ function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
   return node;
 }
 function clear(node: HTMLElement): void { while (node.firstChild) node.removeChild(node.firstChild); }
-function lineEl(text: string, meta?: string, teal?: boolean): HTMLElement {
-  const d = el('div', { class: teal ? 'line teal' : 'line' }, text);
-  if (meta) d.appendChild(el('span', { class: 'meta' }, meta));
-  return d;
+function paragraphs(into: HTMLElement, text: string): void {
+  const blocks = String(text || '').split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  if (blocks.length === 0) { into.appendChild(el('p', {}, '')); return; }
+  for (const b of blocks) into.appendChild(el('p', {}, b));
 }
 
-/* ---- date and labels ------------------------------------------------------ */
+/* ---- date, lens, greeting ------------------------------------------------- */
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -65,731 +63,429 @@ function longDate(dateStr: string): string {
 function lensLabel(lens: Lens): string {
   return lens === 'tradition' ? 'Tradition' : lens === 'science' ? 'Science' : 'Everyday';
 }
-function latestVesselTouch(it: HeldIntention): Touch | null {
+function greeting(name?: string): string {
+  const h = new Date().getHours();
+  const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return name && name.trim() ? part + ', ' + name.trim() : part;
+}
+function latestVesselTouch(it: HeldIntention) {
   for (let i = it.touches.length - 1; i >= 0; i -= 1) if (it.touches[i].role === 'vessel') return it.touches[i];
   return null;
 }
 
-/* ---- styles, ported from the FiveYear file, scoped under .cdp-surface ------ */
+/* ---- voice aware cycling line (per app(19)) ------------------------------- */
+
+const CYCLES: Record<Lens, string[]> = {
+  tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
+  science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Interoception as compass'],
+  everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits'],
+};
+
+/* The breathing two telescopes cipher, copied from the app. Constant markup. */
+const CIPHER_SVG =
+  '<svg class="v6-cipher" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+  '<circle cx="22" cy="18" r="13" fill="none" stroke="#A58459" stroke-width="1.4" stroke-linecap="round"/>' +
+  '<circle cx="38" cy="18" r="13" fill="none" stroke="#A58459" stroke-width="1.4" stroke-linecap="round"/>' +
+  '</svg>';
+
+const COMPASS_ASSET = '/compass-no-text-telescope-navy.jpg';
+const ROOM_DEFAULT = 'What I am carrying';
+
+/* ---- fonts and styles, injected once -------------------------------------- */
+
+function injectFonts(): void {
+  if (document.getElementById('cdp-vessel-fonts')) return;
+  const pre = el('link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' });
+  const css = el('link', {
+    id: 'cdp-vessel-fonts',
+    rel: 'stylesheet',
+    href: 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap',
+  });
+  document.head.appendChild(pre);
+  document.head.appendChild(css);
+}
 
 const STYLES = `
-.cdp-surface {
-  --bg:#031831; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
-  --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
-  --text-light:#F0E6CC; --text-muted:#D4C8AE; --text-dim:#9E9282; --teal:#81CDB6; --master:#C8A0FF;
-  background:var(--bg); color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
-  min-height:100vh; overflow:hidden;
+.cdp-vessel, .cdp-vessel * { box-sizing: border-box; }
+.cdp-vessel {
+  --bg:#031831; --bg2:#122440; --bg3:#192E4A; --bg4:#08131F;
+  --gold:#C9A050; --gold-bright:#E8C878; --gold-line:#A58459;
+  --teal:#81CDB6; --purple:#C8A0FF;
+  --text:#F0E6CC; --text-dim:#D4C8AE; --text-faint:#9E9282;
+  background: var(--bg); color: var(--text);
+  font-family: 'EB Garamond', Georgia, serif;
+  min-height: 100vh;
 }
-.cdp-surface * { margin:0; padding:0; box-sizing:border-box; }
-.cdp-surface .display { font-family:Cinzel, Georgia, serif; }
-.cdp-surface[data-theme="light"] {
-  --bg:#F5F0E8; --navy:#EDE6D6; --raised:#E4DBC8; --raised2:#F8F4EC;
-  --gold:#9A7B22; --gold-soft:#B8942A; --gold-line:rgba(120,95,40,0.25);
-  --text-light:#1A1208; --text-muted:#3D3220; --text-dim:#7A6A50; --teal:#2E8A6B; --master:#7A5BC8;
+.cdp-shell { display: flex; align-items: stretch; min-height: 100vh; }
+
+/* sidebar, running intentions and themes */
+.cdp-sidebar { width: 280px; flex: 0 0 280px; background: rgba(8,26,45,0.55); border-right: 1px solid rgba(201,160,80,0.16); display: flex; flex-direction: column; }
+.cdp-sidebar-head { padding: 18px 16px 12px; border-bottom: 1px solid rgba(201,160,80,0.14); }
+.cdp-sidebar-title { font-family: 'Cinzel', Georgia, serif; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
+.cdp-sidebar-sub { margin-top: 4px; font-size: 12px; font-style: italic; color: var(--text-faint); }
+.cdp-sidebar-body { flex: 1; overflow-y: auto; padding: 10px 8px 16px; }
+.cdp-group { margin-bottom: 18px; }
+.cdp-group-title { font-family: 'Cinzel', Georgia, serif; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-line); padding: 6px 10px; border-bottom: 1px solid rgba(201,160,80,0.12); margin-bottom: 6px; }
+.cdp-item { padding: 9px 10px; margin-bottom: 5px; background: rgba(25,46,74,0.35); border-left: 2px solid transparent; border-radius: 3px; cursor: pointer; transition: background .25s ease, border-color .25s ease, color .25s ease; }
+.cdp-item:hover { background: rgba(25,46,74,0.6); border-left-color: var(--gold); }
+.cdp-item.active { background: rgba(201,160,80,0.14); border-left-color: var(--gold); }
+.cdp-item-text { display: block; font-style: italic; font-size: 14px; color: var(--text-dim); line-height: 1.35; }
+.cdp-item.active .cdp-item-text { color: var(--gold); }
+.cdp-item-meta { display: block; margin-top: 3px; font-size: 11px; color: var(--text-faint); }
+.cdp-sidebar-empty { padding: 8px 10px; font-size: 13px; font-style: italic; color: var(--text-faint); line-height: 1.5; }
+.cdp-sidebar-foot { padding: 12px 14px; border-top: 1px solid rgba(201,160,80,0.12); font-size: 11.5px; color: var(--text-faint); }
+
+/* main column */
+.cdp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cdp-topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; }
+.cdp-brand { font-family: 'Cinzel', Georgia, serif; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.cdp-nav { display: flex; gap: 8px; }
+.cdp-nav a { font-family: 'Cinzel', Georgia, serif; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); text-decoration: none; padding: 6px 12px; border: 1px solid rgba(201,160,80,0.22); border-radius: 3px; transition: border-color .2s ease, color .2s ease; }
+.cdp-nav a:hover { color: var(--gold); border-color: rgba(201,160,80,0.5); }
+.cdp-center { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 22px 60px; }
+
+/* compass and above, ported from app(19) */
+.v6-compass-frame { width: 100%; max-width: 720px; margin: 14px auto 24px; padding: 0 22px; text-align: center; }
+.v6-cipher-wrap { position: relative; height: 60px; margin: 8px auto 4px; display: flex; align-items: center; justify-content: center; }
+.v6-cipher { width: 60px; height: 36px; animation: v6CipherBreathe 6s ease-in-out infinite; }
+@keyframes v6CipherBreathe { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+.v6-compass-date { font-family: 'EB Garamond', Georgia, serif; font-size: 13px; font-style: italic; color: rgba(245,228,196,0.7); margin: 6px 0; letter-spacing: 0.06em; }
+.v6-cycling-words { font-family: 'Cinzel', Georgia, serif; font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(201,160,80,0.85); margin: 0 auto 20px; height: 14px; position: relative; overflow: hidden; }
+.v6-cycling-word { position: absolute; top: 0; left: 50%; transform: translateX(-50%); white-space: nowrap; opacity: 0; animation: v6CycleWord 18s linear infinite; }
+@keyframes v6CycleWord { 0%, 100% { opacity: 0; transform: translateX(-50%) translateY(8px); } 3% { opacity: 1; transform: translateX(-50%) translateY(0); } 20% { opacity: 1; transform: translateX(-50%) translateY(0); } 23% { opacity: 0; transform: translateX(-50%) translateY(-8px); } }
+.v11-voice-toggle { display: flex; gap: 0; margin: 12px auto 18px; max-width: 340px; background: rgba(8,26,45,0.6); border: 1px solid rgba(165,132,89,0.30); border-radius: 4px; padding: 3px; }
+.v11-voice-btn { flex: 1; padding: 7px 12px; background: transparent; border: none; border-radius: 3px; color: rgba(245,228,196,0.65); font-family: 'Cinzel', Georgia, serif; font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; transition: background .2s ease, color .2s ease; }
+.v11-voice-btn:hover { color: var(--gold); }
+.v11-voice-btn.active { background: rgba(201,160,80,0.18); color: var(--gold); }
+.v11-voice-btn[data-voice="science"].active { background: rgba(129,205,198,0.16); color: var(--teal); }
+.v11-voice-btn[data-voice="everyday"].active { background: rgba(245,228,196,0.12); color: var(--text); }
+.v6-compass-image-wrap { position: relative; margin: 8px auto 14px; width: clamp(320px, 64vw, 720px); max-width: 100%; aspect-ratio: 2048 / 1536; border: 1px solid transparent; border-radius: 2px; transition: border-color .25s ease, transform .25s ease; }
+.v6-compass-image-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
+
+/* Naked Eye, what is alive in this moment */
+.cdp-nakedeye { width: 100%; max-width: 620px; margin: 4px auto 26px; text-align: center; }
+.cdp-nakedeye-label { font-family: 'Cinzel', Georgia, serif; font-size: 9.5px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(201,160,80,0.7); margin-bottom: 10px; }
+.cdp-ne-item { padding: 12px 6px; border-top: 1px solid rgba(201,160,80,0.12); }
+.cdp-ne-item:first-of-type { border-top: none; }
+.cdp-ne-text { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-size: 18px; color: var(--text); line-height: 1.4; }
+.cdp-ne-summary { margin-top: 5px; font-size: 13.5px; color: var(--text-faint); line-height: 1.5; }
+.cdp-ne-actions { margin-top: 9px; display: flex; gap: 16px; justify-content: center; }
+.cdp-ne-action { background: none; border: none; cursor: pointer; font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); transition: color .2s ease; padding: 2px 0; }
+.cdp-ne-action:hover { color: var(--gold); }
+.cdp-ne-empty { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-size: 16px; color: var(--text-faint); line-height: 1.5; }
+
+/* the ask */
+.cdp-ask { width: 100%; max-width: 560px; margin: 0 auto; text-align: center; }
+.cdp-greet { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-size: 20px; color: var(--gold); margin-bottom: 6px; }
+.v6-compass-prompt { font-family: 'EB Garamond', Georgia, serif; font-size: 16px; font-style: italic; color: rgba(245,228,196,0.85); margin: 6px auto 14px; max-width: 520px; line-height: 1.5; }
+.cdp-ask-hint { font-size: 12.5px; font-style: italic; color: var(--gold); margin: 0 auto 10px; max-width: 520px; display: none; }
+.cdp-ask-hint.show { display: block; }
+.v6-compass-input-wrap { position: relative; max-width: 520px; margin: 0 auto 14px; }
+.v6-compass-input-wrap input { width: 100%; background: rgba(8,26,45,0.5); border: 1px solid rgba(165,132,89,0.35); border-radius: 4px; padding: 14px 18px; font-family: Georgia, serif; font-size: 15px; color: rgba(245,228,196,0.96); outline: none; transition: border-color .2s ease, background .2s ease; }
+.v6-compass-input-wrap input:focus { border-color: rgba(201,160,80,0.65); background: rgba(8,26,45,0.7); }
+.v6-compass-input-wrap input::placeholder { color: rgba(245,228,196,0.4); font-style: italic; }
+.cdp-ask-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.v11-cta-primary { display: inline-flex; align-items: center; gap: 10px; padding: 11px 26px; background: rgba(201,160,80,0.16); border: 1.5px solid var(--gold); border-radius: 3px; color: var(--gold); font-family: 'Cinzel', Georgia, serif; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; transition: background .2s ease, transform .15s ease; }
+.v11-cta-primary:hover { background: rgba(201,160,80,0.28); transform: translateY(-1px); }
+.v11-cta-primary:disabled { opacity: 0.55; cursor: default; transform: none; }
+.v11-cta-secondary { background: transparent; border: 1px solid rgba(165,132,89,0.25); border-radius: 3px; padding: 9px 22px; color: rgba(245,228,196,0.75); font-family: 'EB Garamond', Georgia, serif; font-size: 13px; font-style: italic; cursor: pointer; transition: border-color .2s ease, color .2s ease; }
+.v11-cta-secondary:hover { border-color: rgba(201,160,80,0.55); color: var(--gold); }
+
+/* reply */
+.cdp-reply { width: 100%; max-width: 560px; margin: 20px auto 0; text-align: left; background: rgba(8,26,45,0.4); border: 1px solid rgba(201,160,80,0.18); border-radius: 4px; padding: 18px 20px; }
+.cdp-reply-voice { font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.cdp-reply-text p { font-family: 'EB Garamond', Georgia, serif; font-size: 15.5px; line-height: 1.66; color: rgba(245,228,196,0.94); margin: 0 0 12px; }
+.cdp-reply-text p:last-child { margin-bottom: 0; }
+.cdp-reply.thinking .cdp-reply-text p { font-style: italic; color: var(--text-faint); }
+
+/* mobile: compass first, intentions below, simple and elegant */
+@media (max-width: 860px) {
+  .cdp-shell { flex-direction: column; }
+  .cdp-main { order: 1; }
+  .cdp-sidebar { order: 2; width: 100%; flex: none; border-right: none; border-top: 1px solid rgba(201,160,80,0.16); }
+  .cdp-sidebar-body { max-height: none; }
 }
-
-.cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; }
-.cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
-.cdp-surface .daystrip .date { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
-.cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
-.cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
-.cdp-surface .pillglyph { font-size:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
-.cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
-@keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
-.cdp-surface .coords { position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:65; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; padding:10px 12px; min-width:236px; display:none; box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:left; }
-.cdp-surface .coords.open { display:block; }
-.cdp-surface .coords .crow { display:flex; justify-content:space-between; gap:14px; padding:5px 0; border-bottom:1px solid var(--gold-line); }
-.cdp-surface .coords .crow:last-child { border-bottom:none; }
-.cdp-surface .coords .cl { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .coords .cv { font-family:Georgia, serif; font-size:13px; color:var(--text-light); text-align:right; }
-.cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
-
-.cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
-.cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
-.cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
-.cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:5px; min-height:12px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
-.cdp-surface .voice-toggle { display:flex; gap:2px; background:var(--raised); border:1px solid var(--text-dim); border-radius:2px; padding:4px; }
-.cdp-surface .voice-btn { padding:6px 13px; background:transparent; color:var(--text-muted); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:1px; font-weight:500; cursor:pointer; transition:background .2s, color .2s; }
-.cdp-surface .voice-btn.active { background:var(--gold); color:var(--navy); }
-.cdp-surface .voice-note { font-size:10px; color:var(--text-dim); letter-spacing:.3px; max-width:380px; text-align:center; height:0; overflow:hidden; opacity:0; transition:opacity .2s; }
-.cdp-surface .voice-note.show { height:auto; opacity:1; margin-top:1px; }
-.cdp-surface .header-right { display:flex; gap:8px; align-items:center; }
-.cdp-surface .icon-btn { background:transparent; border:1px solid var(--text-dim); color:var(--text-muted); width:32px; height:32px; border-radius:2px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; }
-.cdp-surface .icon-btn:hover { border-color:var(--gold); color:var(--gold); }
-
-.cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; overflow-y:auto; }
-.cdp-surface .meet-line { font-size:19px; font-style:italic; font-weight:300; max-width:560px; margin-bottom:6px; }
-.cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:min(46vmin, 320px); height:auto; display:block; margin:6px auto 16px; }
-.cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(90vw, 520px); }
-.cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
-.cdp-surface .ask-input:focus { border-color:var(--gold); }
-.cdp-surface .ask-input::placeholder { color:var(--text-dim); }
-.cdp-surface .ask-row { display:flex; gap:12px; justify-content:center; margin-top:14px; }
-.cdp-surface .btn { padding:10px 26px; background:var(--gold); color:var(--navy); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; font-weight:600; letter-spacing:1px; cursor:pointer; border-radius:2px; transition:background .2s; }
-.cdp-surface .btn:hover { background:var(--gold-soft); }
-.cdp-surface .btn:disabled { opacity:.5; cursor:default; }
-.cdp-surface .btn.ghost { background:transparent; color:var(--text-light); border:1px solid var(--gold-line); }
-.cdp-surface .meet-context { margin-top:20px; font-size:12px; color:var(--text-dim); letter-spacing:.5px; background:transparent; border:none; cursor:pointer; border-bottom:1px solid var(--gold-line); padding-bottom:2px; }
-.cdp-surface .meet-context:hover { color:var(--gold); border-color:var(--gold); }
-
-.cdp-surface .reply { width:min(90vw, 560px); margin:22px auto 0; text-align:left; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:var(--raised); padding:16px 18px; position:relative; }
-.cdp-surface .reply .corner { position:absolute; top:10px; right:12px; font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .reply .person { font-style:italic; color:var(--text-muted); margin-bottom:10px; }
-.cdp-surface .reply p { font-size:14px; line-height:1.7; margin-bottom:10px; }
-.cdp-surface .reply p:last-child { margin-bottom:0; }
-.cdp-surface .reply p.keel { color:var(--gold); }
-.cdp-surface .reply .living { font-style:italic; font-size:12px; color:var(--text-dim); margin-top:10px; }
-.cdp-surface .reply .busy { font-style:italic; color:var(--text-muted); }
-
-.cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
-.cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:32px; min-height:176px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; cursor:pointer; color:var(--gold); background:linear-gradient(180deg, var(--raised2), var(--raised)); border:1px solid var(--gold); box-shadow:0 0 18px rgba(0,0,0,0.40); transition:background .2s, box-shadow .2s, color .2s; }
-.cdp-surface .handle:hover { background:var(--gold); color:var(--navy); box-shadow:0 0 22px rgba(201,160,80,0.35); }
-.cdp-surface .handle:hover span, .cdp-surface .handle:hover .chev { color:var(--navy); }
-.cdp-surface .handle-left { left:0; border-left:none; border-radius:0 6px 6px 0; }
-.cdp-surface .handle-right { right:0; border-right:none; border-radius:6px 0 0 6px; }
-.cdp-surface .handle span { writing-mode:vertical-rl; font-family:Cinzel, Georgia, serif; font-size:12px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--gold); }
-.cdp-surface .handle-left span { transform:rotate(180deg); }
-.cdp-surface .handle .chev { font-size:13px; line-height:1; color:var(--gold); }
-
-.cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
-.cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
-.cdp-surface .drawer-right { right:0; border-left:1px solid var(--gold-line); transform:translateX(100%); }
-.cdp-surface .drawer.open { transform:translateX(0); }
-.cdp-surface .drawer-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.cdp-surface .drawer-title { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
-.cdp-surface .pin { background:transparent; border:1px solid var(--text-dim); color:var(--text-dim); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
-.cdp-surface .pin.pinned { border-color:var(--gold); color:var(--gold); }
-
-.cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:var(--raised); }
-.cdp-surface .module.dragging { opacity:0.45; }
-.cdp-surface .module.drop-target { border-color:var(--gold); }
-.cdp-surface .module-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--gold-line); cursor:grab; }
-.cdp-surface .grip { color:var(--text-dim); font-size:10px; letter-spacing:1px; line-height:1; cursor:grab; text-transform:uppercase; }
-.cdp-surface .module-name { flex:1; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
-.cdp-surface .move { background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 4px; }
-.cdp-surface .move:hover { color:var(--gold); }
-.cdp-surface .module-body { padding:11px; }
-
-.cdp-surface .stat { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
-.cdp-surface .stat-num { font-family:Cinzel, Georgia, serif; font-size:22px; color:var(--gold); font-weight:bold; letter-spacing:.5px; }
-.cdp-surface .stat-label { font-size:12px; color:var(--text-muted); }
-.cdp-surface .line { font-size:13px; color:var(--text-light); padding:6px 0 6px 10px; border-left:2px solid var(--text-dim); margin-bottom:8px; }
-.cdp-surface .line:last-child { margin-bottom:0; }
-.cdp-surface .line.teal { border-left-color:var(--teal); }
-.cdp-surface .line .meta { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; }
-.cdp-surface .soft { font-size:11px; color:var(--text-dim); font-style:italic; margin-top:8px; }
-.cdp-surface .opp { font-size:12px; color:var(--text-muted); padding:8px 10px; background:rgba(29,158,117,0.08); border-left:2px solid var(--teal); border-radius:2px; margin-top:8px; }
-
-.cdp-surface .season { display:grid; grid-template-columns:repeat(12,1fr); gap:2px; margin:6px 0 4px; }
-.cdp-surface .season span { height:18px; border-radius:1px; }
-.cdp-surface .season .g { background:rgba(29,158,117,0.55); }
-.cdp-surface .season .c { background:rgba(201,160,80,0.40); }
-.cdp-surface .season .n { background:rgba(201,186,160,0.14); }
-.cdp-surface .season-key { font-size:10px; color:var(--text-dim); display:flex; gap:12px; }
-.cdp-surface .key-dot { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:4px; }
-
-.cdp-surface .fam { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--gold-line); }
-.cdp-surface .fam:last-child { border-bottom:none; }
-.cdp-surface .fam-name { font-size:13px; color:var(--text-light); }
-.cdp-surface .fam-name span { display:block; font-size:11px; color:var(--text-dim); }
-.cdp-surface .fam-count { font-size:11px; color:var(--text-muted); text-align:right; }
-.cdp-surface .src { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; color:var(--text-light); }
-.cdp-surface .src .dot { width:7px; height:7px; border-radius:50%; background:var(--teal); flex:none; }
-.cdp-surface .src .way { margin-left:auto; font-size:10px; color:var(--text-dim); letter-spacing:.5px; text-transform:uppercase; }
-
-.cdp-surface .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
-.cdp-surface .cal .dow { font-size:9px; color:var(--text-dim); text-align:center; }
-.cdp-surface .cal .day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; font-size:11px; color:var(--text-muted); border:1px solid transparent; border-radius:2px; cursor:pointer; }
-.cdp-surface .cal .day:hover { border-color:var(--gold-line); color:var(--text-light); }
-.cdp-surface .cal .day.today { border-color:var(--gold); color:var(--gold); }
-.cdp-surface .cal .day .badge { position:absolute; bottom:1px; font-size:7px; line-height:1; color:var(--gold); }
-
-.cdp-surface .scrim { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:70; opacity:0; pointer-events:none; transition:opacity .25s; }
-.cdp-surface .scrim.show { opacity:1; pointer-events:auto; }
-.cdp-surface .scrim-drawer { z-index:45; background:rgba(0,0,0,0.45); }
-.cdp-surface .world { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-48%); width:min(92vw, 720px); max-height:84vh; overflow-y:auto; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; box-shadow:0 18px 70px rgba(0,0,0,0.6); padding:26px 28px 28px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
-.cdp-surface .world.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
-.cdp-surface .world-head { font-size:18px; font-style:italic; font-weight:300; color:var(--text-light); margin-bottom:4px; }
-.cdp-surface .world-sub { font-size:12px; color:var(--text-dim); margin-bottom:20px; }
-.cdp-surface .world-close { position:absolute; top:16px; right:18px; background:transparent; border:1px solid var(--text-dim); color:var(--text-muted); width:30px; height:30px; border-radius:2px; cursor:pointer; }
-.cdp-surface .world-close:hover { border-color:var(--gold); color:var(--gold); }
-.cdp-surface .cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-.cdp-surface .col-title { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:10px; }
-.cdp-surface .col-item { font-size:13px; color:var(--text-light); padding:8px 0 8px 10px; border-left:2px solid var(--text-dim); margin-bottom:9px; }
-.cdp-surface .col-item.held { border-left-color:var(--teal); }
-
-.cdp-surface .menu { position:fixed; top:58px; right:0; width:min(18rem, 86vw); max-height:calc(100vh - 58px); overflow-y:auto; background:var(--navy); border-left:1px solid var(--gold-line); box-shadow:0 0 40px rgba(0,0,0,0.45); z-index:75; transform:translateX(100%); transition:transform .24s; padding:14px 14px 24px; }
-.cdp-surface .menu.open { transform:none; }
-.cdp-surface .menu-row { display:flex; width:100%; justify-content:space-between; align-items:center; gap:10px; text-align:left; background:transparent; border:none; border-bottom:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; padding:11px 2px; cursor:pointer; }
-.cdp-surface .menu-row:hover { color:var(--gold); }
-.cdp-surface .menu-val { font-size:11px; color:var(--text-dim); font-style:italic; }
-.cdp-surface .menu-note { font-size:12px; color:var(--text-dim); font-style:italic; margin-top:8px; }
-
-@media (max-width:820px) {
-  .cdp-surface .meet-line { font-size:17px; }
-  .cdp-surface .drawer { width:90vw; } .cdp-surface .handle { height:96px; } .cdp-surface .cols { grid-template-columns:1fr; }
-  .cdp-surface .voice-note { display:none; }
+@media (max-width: 480px) {
+  .cdp-topbar { padding: 12px 14px; }
+  .cdp-center { padding: 4px 14px 48px; }
+  .v6-compass-frame { padding: 0 12px; margin: 10px auto 16px; }
+  .v6-compass-image-wrap { width: clamp(240px, 84vw, 380px); }
+  .cdp-ne-text { font-size: 16px; }
+  .cdp-greet { font-size: 18px; }
 }
 `;
 
-/* ---- the fallback compass, used only if cdp-compass.svg is absent --------- */
-
-const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-  + '<circle cx="100" cy="100" r="92" fill="none" stroke="#A58459" stroke-width="1.5"/>'
-  + '<circle cx="100" cy="100" r="72" fill="none" stroke="#A58459" stroke-width="0.8"/>'
-  + '<circle cx="100" cy="100" r="6" fill="none" stroke="#C9A050" stroke-width="1.2"/>'
-  + '<circle cx="100" cy="100" r="2.5" fill="#C9A050"/>'
-  + '<line x1="100" y1="14" x2="100" y2="34" stroke="#A58459" stroke-width="0.8"/>'
-  + '<line x1="100" y1="166" x2="100" y2="186" stroke="#A58459" stroke-width="0.8"/>'
-  + '<line x1="14" y1="100" x2="34" y2="100" stroke="#A58459" stroke-width="0.8"/>'
-  + '<line x1="166" y1="100" x2="186" y2="100" stroke="#A58459" stroke-width="0.8"/>'
-  + '<text x="100" y="12" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#A58459">N</text>'
-  + '<text x="194" y="104" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#A58459">E</text>'
-  + '<text x="100" y="198" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#A58459">S</text>'
-  + '<text x="6" y="104" text-anchor="middle" font-family="Cinzel, serif" font-size="10" fill="#A58459">W</text>'
-  + '</svg>';
-
-/* ---- constants ------------------------------------------------------------ */
-
-const MENU_ITEMS = ['Tiers', 'Guide', 'Streak', 'Feedback', 'Share', 'Toggle theme', 'Account', 'Sign in'];
-const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
-const ROOM_DEFAULT = 'What I am carrying';
-const ORDER_KEY = 'cdp-rail-order';
-
-const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
-const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
-const ICON_TELESCOPES = '<svg width="48" height="27" viewBox="0 0 48 27" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="19" cy="13.5" r="10.5"></circle><circle cx="29" cy="13.5" r="10.5"></circle></svg>';
-const CYCLING_PHRASES: Record<Lens, string[]> = {
-  tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
-  science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
-  everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits', 'Whichever helps you most'],
-};
+function injectStyles(): void {
+  if (document.getElementById('cdp-vessel-styles')) return;
+  const tag = el('style', { id: 'cdp-vessel-styles' });
+  tag.textContent = STYLES;
+  document.head.appendChild(tag);
+}
 
 /* ---- mount ---------------------------------------------------------------- */
 
-export async function mountVessel(options: VesselOptions): Promise<void> {
-  const { root, orchestrator, repo } = options;
-  const profile = options.profile;
+export async function mountVessel(opts: VesselOptions): Promise<void> {
+  const { root, orchestrator, repo } = opts;
+  const profile = opts.profile || {};
+
+  await repo.init();
+  let lens: Lens = repo.getLens();
+  let composing = false;
+  let focusedId: string | null = null;
+  let activeReplyId: string | null = null;
+
+  injectFonts();
+  injectStyles();
+
   const now = Date.now();
   const dateStr = todayUTCDateStr(now);
 
-  if (!repo.isLoaded) await repo.init();
-  let lens: Lens = repo.getLens();
-
-  const pinned: Record<string, boolean> = { left: false, right: false };
-  let closeTimer: ReturnType<typeof setTimeout> | null = null;
-  let activeReplyId: string | null = null;
-  let composing = false;
-
-  if (!document.getElementById('cdp-vessel-styles')) {
-    const style = el('style', { id: 'cdp-vessel-styles' });
-    style.textContent = STYLES;
-    document.head.appendChild(style);
-  }
-
-  let theme: 'dark' | 'light' = 'dark';
-  try { const t = window.localStorage.getItem('cdp-theme'); if (t === 'dark' || t === 'light') theme = t; } catch (_e) { /* presentation only */ }
-
+  /* skeleton */
+  const vessel = el('div', { class: 'cdp-vessel' });
+  const shell = el('div', { class: 'cdp-shell' });
+  const sidebar = el('aside', { class: 'cdp-sidebar' });
+  const main = el('div', { class: 'cdp-main' });
+  shell.appendChild(sidebar);
+  shell.appendChild(main);
+  vessel.appendChild(shell);
   clear(root);
-  const surface = el('div', { class: 'cdp-surface', 'data-theme': theme });
-  root.appendChild(surface);
-  function setTheme(next: 'dark' | 'light'): void {
-    theme = next;
-    surface.setAttribute('data-theme', theme);
-    try { window.localStorage.setItem('cdp-theme', theme); } catch (_e) { /* presentation only */ }
+  root.appendChild(vessel);
+
+  /* topbar */
+  const topbar = el('div', { class: 'cdp-topbar' });
+  topbar.appendChild(el('div', { class: 'cdp-brand' }, 'Cosmic Daily Planner'));
+  const nav = el('div', { class: 'cdp-nav' });
+  nav.appendChild(el('a', { href: '/app?mode=quick' }, 'Reading'));
+  nav.appendChild(el('a', { href: '/app' }, 'Planner'));
+  topbar.appendChild(nav);
+  main.appendChild(topbar);
+
+  const center = el('div', { class: 'cdp-center' });
+  main.appendChild(center);
+
+  /* compass frame */
+  const frame = el('div', { class: 'v6-compass-frame' });
+
+  const cipherWrap = el('div', { class: 'v6-cipher-wrap' });
+  cipherWrap.innerHTML = CIPHER_SVG;
+  frame.appendChild(cipherWrap);
+
+  frame.appendChild(el('p', { class: 'v6-compass-date' }, longDate(dateStr)));
+
+  const cycling = el('div', { class: 'v6-cycling-words' });
+  frame.appendChild(cycling);
+
+  const toggle = el('div', { class: 'v11-voice-toggle', role: 'tablist', 'aria-label': 'Voice' });
+  const VOICES: Lens[] = ['tradition', 'science', 'everyday'];
+  const voiceBtns: Record<string, HTMLElement> = {};
+  for (const v of VOICES) {
+    const b = el('button', { type: 'button', 'data-voice': v, class: 'v11-voice-btn' }, lensLabel(v));
+    b.addEventListener('click', () => { void setLens(v); });
+    voiceBtns[v] = b;
+    toggle.appendChild(b);
+  }
+  frame.appendChild(toggle);
+
+  const imageWrap = el('div', { class: 'v6-compass-image-wrap' });
+  const img = el('img', { src: COMPASS_ASSET, alt: '', loading: 'eager' });
+  imageWrap.appendChild(img);
+  frame.appendChild(imageWrap);
+
+  center.appendChild(frame);
+
+  /* Naked Eye */
+  const nakedEye = el('div', { class: 'cdp-nakedeye' });
+  center.appendChild(nakedEye);
+
+  /* the ask */
+  const ask = el('div', { class: 'cdp-ask' });
+  ask.appendChild(el('div', { class: 'cdp-greet' }, greeting(profile.name)));
+  ask.appendChild(el('p', { class: 'v6-compass-prompt' }, 'A line, a question, a need, an intention. The Oracle replies in the voice you choose.'));
+  const hint = el('div', { class: 'cdp-ask-hint' });
+  ask.appendChild(hint);
+  const inputWrap = el('div', { class: 'v6-compass-input-wrap' });
+  const input = el('input', { type: 'text', maxlength: '240', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind at the moment' }) as HTMLInputElement;
+  inputWrap.appendChild(input);
+  ask.appendChild(inputWrap);
+  const actions = el('div', { class: 'cdp-ask-actions' });
+  const continueBtn = el('button', { type: 'button', class: 'v11-cta-primary' }, 'Continue') as HTMLButtonElement;
+  const deeperBtn = el('button', { type: 'button', class: 'v11-cta-secondary' }, 'Go deeper here') as HTMLButtonElement;
+  actions.appendChild(continueBtn);
+  actions.appendChild(deeperBtn);
+  ask.appendChild(actions);
+  center.appendChild(ask);
+
+  const replyArea = el('div', {});
+  center.appendChild(replyArea);
+
+  /* ---- renders ----------------------------------------------------------- */
+
+  function applyVoice(): void {
+    for (const v of VOICES) {
+      if (v === lens) voiceBtns[v].classList.add('active');
+      else voiceBtns[v].classList.remove('active');
+    }
+    renderCycling();
   }
 
-  const day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
-  function coordValue(key: string): string {
-    const c = day.coordinates.find((x: Coordinate) => x.key === key);
-    return c && !c.unknown ? c.display : '';
+  function renderCycling(): void {
+    clear(cycling);
+    const words = CYCLES[lens];
+    const span = 18 / words.length;
+    words.forEach((w, i) => {
+      const node = el('span', { class: 'v6-cycling-word' }, w);
+      node.style.animationDelay = (i * span).toFixed(2) + 's';
+      cycling.appendChild(node);
+    });
   }
 
-  /* ===== header ===== */
-  const header = el('header', { class: 'header' });
-  header.appendChild(el('div', { class: 'brand' }, 'COSMIC DAILY PLANNER'));
-
-  const voiceWrap = el('div', { class: 'voice-wrap' });
-  const voiceCycle = el('div', { class: 'voice-cycle', 'aria-hidden': 'true' });
-  voiceWrap.appendChild(voiceCycle);
-  const voiceToggle = el('div', { class: 'voice-toggle' });
-  const voiceDefs: Lens[] = ['tradition', 'everyday', 'science'];
-  const voiceButtons: Record<string, HTMLElement> = {};
-  for (const v of voiceDefs) {
-    const b = el('button', { type: 'button', class: 'voice-btn', 'data-voice': v }, lensLabel(v).toUpperCase());
-    b.addEventListener('click', () => setVoice(v));
-    voiceButtons[v] = b;
-    voiceToggle.appendChild(b);
-  }
-  voiceWrap.appendChild(voiceToggle);
-  const voiceNote = el('div', { class: 'voice-note' }, 'Everyday is the reading. Turn to Tradition or Science to check it against the register you trust.');
-  voiceWrap.appendChild(voiceNote);
-
-  const headerRight = el('div', { class: 'header-right' });
-  const noteBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'About the voices', title: 'About the voices' }, '?');
-  noteBtn.addEventListener('click', () => voiceNote.classList.toggle('show'));
-  const calBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Calendar', title: 'Calendar' });
-  calBtn.innerHTML = ICON_CALENDAR;
-  calBtn.addEventListener('click', () => openDrawer('left'));
-  const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' });
-  profBtn.innerHTML = ICON_PROFILE;
-  profBtn.addEventListener('click', () => menu.classList.toggle('open'));
-  headerRight.appendChild(noteBtn);
-  headerRight.appendChild(calBtn);
-  headerRight.appendChild(profBtn);
-  header.appendChild(headerRight);
-  surface.appendChild(header);
-
-  /* the cycling tagline: rotates through the current voice's framings of the
-     two telescopes, and resets to that voice's set whenever the voice changes */
-  let cycleIdx = 0;
-  function paintCycle(): void {
-    const set = CYCLING_PHRASES[lens] || CYCLING_PHRASES.everyday;
-    if (cycleIdx >= set.length) cycleIdx = 0;
-    voiceCycle.textContent = set[cycleIdx];
-  }
-  function resetCycle(): void {
-    cycleIdx = 0;
-    voiceCycle.style.opacity = '0';
-    window.setTimeout(() => { paintCycle(); voiceCycle.style.opacity = '0.85'; }, 200);
-  }
-  paintCycle();
-  window.setInterval(() => {
-    voiceCycle.style.opacity = '0';
-    window.setTimeout(() => {
-      const set = CYCLING_PHRASES[lens] || CYCLING_PHRASES.everyday;
-      cycleIdx = (cycleIdx + 1) % set.length;
-      paintCycle();
-      voiceCycle.style.opacity = '0.85';
-    }, 450);
-  }, 4800);
-
-  /* ===== home (centre) ===== */
-  const home = el('main', { class: 'home' });
-
-  const emblem = el('div', { class: 'emblem', 'aria-hidden': 'true' });
-  emblem.innerHTML = ICON_TELESCOPES;
-  home.appendChild(emblem);
-
-  // a quiet date with a silent coordinate pill, opening on a tap
-  const daystrip = el('div', { class: 'daystrip' });
-  daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
-  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today\u2019s coordinates', 'aria-expanded': 'false' });
-  pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
-  const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today\u2019s coordinates' });
-  for (const c of day.coordinates) {
-    const crow = el('div', { class: 'crow' });
-    crow.appendChild(el('span', { class: 'cl' }, c.label));
-    crow.appendChild(el('span', { class: c.unknown ? 'cv pending' : 'cv' }, c.display));
-    coords.appendChild(crow);
-  }
-  pill.appendChild(coords);
-  let coordsOpen = false;
-  pill.addEventListener('click', (e: Event) => {
-    e.stopPropagation();
-    coordsOpen = !coordsOpen;
-    pill.classList.toggle('open', coordsOpen);
-    coords.classList.toggle('open', coordsOpen);
-    pill.setAttribute('aria-expanded', coordsOpen ? 'true' : 'false');
-  });
-  document.addEventListener('click', () => { if (coordsOpen) { coordsOpen = false; pill.classList.remove('open'); coords.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); } });
-  daystrip.appendChild(pill);
-  home.appendChild(daystrip);
-
-  // the voice repertoire sits under the date, as on the compass surface:
-  // emblem, date, the cycling line, then the toggle
-  home.appendChild(voiceWrap);
-
-  const compass = el('img', { class: 'compass-svg', src: '/cdp-compass.svg', alt: 'Cosmic Daily Planner compass' }) as HTMLImageElement;
-  compass.addEventListener('error', () => {
-    const holder = el('div');
-    holder.innerHTML = COMPASS_FALLBACK;
-    const svg = holder.firstChild;
-    if (svg && compass.parentNode) compass.parentNode.replaceChild(svg, compass);
-  });
-  home.appendChild(compass);
-
-  // the brightest intention sits just under the compass, with an open line to
-  // respond to it directly
-  const brightest = repo.live()[0];
-  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : 'What is alive for you right now.');
-  home.appendChild(meetLine);
-  home.appendChild(el('div', { class: 'meet-sub' }, brightest ? 'Respond to this, or ask something else.' : 'Ask when you are ready, or sit a while with the compass.'));
-
-  const ask = el('div', { class: 'ask' });
-  const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
-  ask.appendChild(input);
-  const askRow = el('div', { class: 'ask-row' });
-  const continueBtn = el('button', { type: 'button', class: 'btn' }, 'CONTINUE') as HTMLButtonElement;
-  const sitBtn = el('button', { type: 'button', class: 'btn ghost' }, 'SIT WITH THIS');
-  askRow.appendChild(continueBtn);
-  askRow.appendChild(sitBtn);
-  ask.appendChild(askRow);
-  home.appendChild(ask);
-
-  const replyArea = el('div', { 'aria-live': 'polite' });
-  home.appendChild(replyArea);
-
-  const worldOpenBtn = el('button', { type: 'button', class: 'meet-context' }, 'See how this year is taking shape');
-  home.appendChild(worldOpenBtn);
-  surface.appendChild(home);
-
-  /* ===== edges, handles, scrims ===== */
-  surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
-  surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
-  const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left' });
-  handleLeft.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u203A'));
-  handleLeft.appendChild(el('span', {}, 'Vault and patterns'));
-  const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right' });
-  handleRight.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u2039'));
-  handleRight.appendChild(el('span', {}, 'People and reach'));
-  surface.appendChild(handleLeft);
-  surface.appendChild(handleRight);
-  const drawerScrim = el('div', { class: 'scrim scrim-drawer' });
-  surface.appendChild(drawerScrim);
-
-  /* ===== modules ===== */
-  function moduleEl(name: string, body: HTMLElement): HTMLElement {
-    const section = el('section', { class: 'module', draggable: 'true', 'data-name': name });
-    const head = el('div', { class: 'module-head' });
-    head.appendChild(el('span', { class: 'grip' }, 'drag'));
-    head.appendChild(el('span', { class: 'module-name' }, name));
-    head.appendChild(el('button', { type: 'button', class: 'move up' }, 'up'));
-    head.appendChild(el('button', { type: 'button', class: 'move down' }, 'down'));
-    section.appendChild(head);
-    const bodyWrap = el('div', { class: 'module-body' });
-    bodyWrap.appendChild(body);
-    section.appendChild(bodyWrap);
-    return section;
-  }
-  function body(...children: HTMLElement[]): HTMLElement {
-    const wrap = el('div');
-    children.forEach((c) => wrap.appendChild(c));
-    return wrap;
+  function itemMeta(it: HeldIntention): string {
+    const touches = it.touches.filter((t) => t.role === 'vessel').length;
+    const when = new Date(it.lastTendedAt || it.createdAt);
+    const day = WEEKDAYS[when.getDay()];
+    if (touches === 0) return 'Held, not yet read';
+    return touches === 1 ? 'One reading, ' + day : touches + ' readings, ' + day;
   }
 
-  // Left rail, What is live now, wired to the repository.
-  const liveBody = el('div');
-  function renderLive(): void {
-    clear(liveBody);
-    const live = repo.live();
+  function renderSidebar(): void {
+    clear(sidebar);
+    const head = el('div', { class: 'cdp-sidebar-head' });
+    head.appendChild(el('div', { class: 'cdp-sidebar-title' }, 'Intentions'));
+    head.appendChild(el('div', { class: 'cdp-sidebar-sub' }, 'What you are carrying'));
+    sidebar.appendChild(head);
+
+    const body = el('div', { class: 'cdp-sidebar-body' });
+    const live = repo.live().slice().sort((a, b) => repo.gravity(b) - repo.gravity(a));
     const resting = repo.resting();
-    if (live.length === 0 && resting.length === 0) {
-      liveBody.appendChild(el('div', { class: 'soft' }, 'Nothing is held yet. What you name in the compass is kept, and it is here when you return.'));
+    const themes = repo.themes();
+
+    body.appendChild(groupNode('Active now', live, 'Nothing active yet. Add a line below and it begins here.'));
+    body.appendChild(groupNode('Held and exploring', resting, 'Nothing set aside.'));
+
+    const themeGroup = el('div', { class: 'cdp-group' });
+    themeGroup.appendChild(el('div', { class: 'cdp-group-title' }, 'Themes'));
+    if (themes.length === 0) {
+      themeGroup.appendChild(el('div', { class: 'cdp-sidebar-empty' }, 'Themes emerge as threads gather.'));
+    } else {
+      for (const t of themes) {
+        const item = el('div', { class: 'cdp-item' });
+        item.appendChild(el('span', { class: 'cdp-item-text' }, t.label));
+        const n = t.threadIds.length;
+        item.appendChild(el('span', { class: 'cdp-item-meta' }, n === 1 ? 'One intention' : n + ' intentions'));
+        themeGroup.appendChild(item);
+      }
+    }
+    body.appendChild(themeGroup);
+    sidebar.appendChild(body);
+
+    const total = live.length + resting.length;
+    const foot = el('div', { class: 'cdp-sidebar-foot' }, total === 0 ? 'Your intentions gather here over time.' : total + ' held, themes auto emerging');
+    sidebar.appendChild(foot);
+  }
+
+  function groupNode(title: string, items: HeldIntention[], empty: string): HTMLElement {
+    const group = el('div', { class: 'cdp-group' });
+    group.appendChild(el('div', { class: 'cdp-group-title' }, title));
+    if (items.length === 0) {
+      group.appendChild(el('div', { class: 'cdp-sidebar-empty' }, empty));
+      return group;
+    }
+    for (const it of items) {
+      const item = el('div', { class: focusedId === it.id ? 'cdp-item active' : 'cdp-item' });
+      item.appendChild(el('span', { class: 'cdp-item-text' }, it.text));
+      item.appendChild(el('span', { class: 'cdp-item-meta' }, itemMeta(it)));
+      item.addEventListener('click', () => { reengage(it.id); });
+      group.appendChild(item);
+    }
+    return group;
+  }
+
+  function renderNakedEye(): void {
+    clear(nakedEye);
+    nakedEye.appendChild(el('div', { class: 'cdp-nakedeye-label' }, 'What is alive now'));
+    const live = repo.live().slice().sort((a, b) => repo.gravity(b) - repo.gravity(a));
+    const present = live.slice(0, 2);
+    if (present.length === 0) {
+      nakedEye.appendChild(el('div', { class: 'cdp-ne-empty' }, 'Nothing is pressing in this moment. When something is, add a line below.'));
       return;
     }
-    live.forEach((it, i) => liveBody.appendChild(lineEl(it.text, i === 0 ? 'Now' : 'Held', i === 0)));
-    resting.slice(0, 3).forEach((it) => liveBody.appendChild(lineEl(it.text, 'Resting, recoverable')));
-    liveBody.appendChild(el('div', { class: 'soft' }, live.length + ' held now, ' + resting.length + ' resting'));
-  }
-  renderLive();
-
-  function patternsBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'Patterns surface here as you hold more, drawn from your own readings and outcomes, never a forecast.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
-  }
-  function yearBody(): HTMLElement {
-    const b = el('div');
-    const py = coordValue('personalYear') || coordValue('personal_year');
-    const stat = el('div', { class: 'stat' });
-    stat.appendChild(el('span', { class: 'stat-num' }, py ? py : 'Year'));
-    stat.appendChild(el('span', { class: 'stat-label' }, 'of the current cycle'));
-    b.appendChild(stat);
-    b.appendChild(el('div', { class: 'line' }, 'A seven year arc, the long pattern beneath the daily one.'));
-    b.appendChild(el('div', { class: 'soft' }, 'Trends, review and synthesis. The year as a reading lives on the right. Arrives as its stage lands.'));
-    return b;
-  }
-  function seasonBody(): HTMLElement {
-    const b = el('div');
-    const grid = el('div', { class: 'season' });
-    SEASON_PATTERN.forEach((cls) => grid.appendChild(el('span', { class: cls })));
-    b.appendChild(grid);
-    const key = el('div', { class: 'season-key' });
-    const g = el('span', {}); g.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(29,158,117,0.55)' })); g.appendChild(document.createTextNode('Growth'));
-    const c = el('span', {}); c.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(201,160,80,0.40)' })); c.appendChild(document.createTextNode('Consolidation'));
-    key.appendChild(g); key.appendChild(c);
-    b.appendChild(key);
-    b.appendChild(el('div', { class: 'soft' }, 'Summers run as growth, winters as consolidation, drawn from your record. Arrives as its stage lands.'));
-    return b;
-  }
-  function workingBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'What you have resolved, and what is sitting untouched, surface here as your record builds.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
-  }
-  function calBody(): HTMLElement {
-    const b = el('div');
-    const cal = el('div', { class: 'cal' });
-    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((d) => cal.appendChild(el('div', { class: 'dow' }, d)));
-    const d0 = new Date(dateStr + 'T00:00:00Z');
-    const year = d0.getUTCFullYear();
-    const month = d0.getUTCMonth();
-    const first = new Date(Date.UTC(year, month, 1));
-    const jsDow = first.getUTCDay();           // 0 Sun .. 6 Sat
-    const lead = (jsDow + 6) % 7;              // Monday-first offset
-    const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    for (let i = 0; i < lead; i += 1) cal.appendChild(el('div', {}));
-    for (let dnum = 1; dnum <= days; dnum += 1) {
-      const isToday = dnum === d0.getUTCDate();
-      const cell = el('div', { class: isToday ? 'day today' : 'day' }, String(dnum));
-      cal.appendChild(cell);
+    for (const it of present) {
+      const wrap = el('div', { class: 'cdp-ne-item' });
+      wrap.appendChild(el('div', { class: 'cdp-ne-text' }, it.text));
+      const summary = it.summary && it.summary.trim() ? it.summary : 'A quiet thread, not yet read. Remind shows where it stands.';
+      wrap.appendChild(el('div', { class: 'cdp-ne-summary' }, summary));
+      const acts = el('div', { class: 'cdp-ne-actions' });
+      const remind = el('button', { type: 'button', class: 'cdp-ne-action' }, 'Remind');
+      remind.addEventListener('click', () => { void remindOf(it.id); });
+      const re = el('button', { type: 'button', class: 'cdp-ne-action' }, 'Re-engage');
+      re.addEventListener('click', () => { reengage(it.id); });
+      const hold = el('button', { type: 'button', class: 'cdp-ne-action' }, 'Hold');
+      hold.addEventListener('click', () => { void holdAway(it.id); });
+      acts.appendChild(remind);
+      acts.appendChild(re);
+      acts.appendChild(hold);
+      wrap.appendChild(acts);
+      nakedEye.appendChild(wrap);
     }
-    b.appendChild(cal);
-    b.appendChild(el('div', { class: 'soft' }, MONTHS[month] + '. Portal, master-number and moon badges arrive with the calendar.'));
-    return b;
   }
 
-  // Right rail, Today's reading, with real coordinates.
-  function todayBody(): HTMLElement {
-    const b = el('div');
-    b.appendChild(lineEl('The honest read on today: open it with the compass, and the reading composes around what you are holding.', longDate(dateStr)));
-    b.appendChild(el('div', { class: 'soft' }, 'The day\u2019s coordinates sit in the pill by the date. Opens to the full card: the planetary weather and your signature. Arrives as its stage lands.'));
-    return b;
-  }
-  function longViewBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'The backdrop, not the daily forecast: the universal year, your fixed signature, and the slow planetary weather.'),
-      el('div', { class: 'soft' }, 'Read once, return when something shifts. Arrives as its stage lands.')
-    );
-  }
-  function profilesBody(): HTMLElement {
-    return body(
-      lineEl('People in your world', 'Each one a context the oracle can read with you'),
-      el('div', { class: 'soft' }, 'Each profile private by default. Arrives as its stage lands.')
-    );
-  }
-  function compatBody(): HTMLElement {
-    return body(
-      lineEl('Read a relationship through both telescopes.', 'Pick two people and a reading composes around the bond'),
-      el('div', { class: 'soft' }, 'Summoned around the relationship, not a fixed page. Arrives as its stage lands.')
-    );
-  }
-  function familyBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'A private oracle for each person you keep on record, shared only when everyone opts in.'),
-      el('div', { class: 'soft' }, 'Each oracle private by default. Arrives as its stage lands.')
-    );
-  }
-  function sharedBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'The threads a family holds together surface here, shared only when everyone opts in.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
-  }
-  function knowsBody(): HTMLElement {
-    const b = el('div');
-    b.appendChild(lineEl('The library it draws on', 'The four frameworks and the cited bibliography behind them'));
-    [['Calendar', 'in and out'], ['Messages', 'out'], ['Health and wearables', 'in'], ['Documents you add', 'in']].forEach((s) => {
-      const row = el('div', { class: 'src' });
-      row.appendChild(el('span', { class: 'dot' }));
-      row.appendChild(document.createTextNode(s[0]));
-      row.appendChild(el('span', { class: 'way' }, s[1]));
-      b.appendChild(row);
-    });
-    b.appendChild(el('div', { class: 'soft' }, 'Nothing is consulted that you have not given it. Arrives as its stage lands.'));
-    return b;
-  }
-  function vaultBody(): HTMLElement {
-    const total = repo.live().length + repo.resting().length;
-    const b = el('div');
-    const stat = el('div', { class: 'stat' });
-    stat.appendChild(el('span', { class: 'stat-num' }, String(total)));
-    stat.appendChild(el('span', { class: 'stat-label' }, total === 1 ? 'intention on record' : 'intentions on record'));
-    b.appendChild(stat);
-    b.appendChild(el('div', { class: 'soft' }, 'Everything you have held and tended, kept and searchable.'));
-    return b;
-  }
-
-  const leftSpec: Array<[string, HTMLElement]> = [
-    ['What is live now', liveBody],
-    ['Patterns emerging', patternsBody()],
-    ['My year in review', yearBody()],
-    ['Seasonal maps', seasonBody()],
-    ['This is working', workingBody()],
-    ['May calendar', calBody()]
-  ];
-  const rightSpec: Array<[string, HTMLElement]> = [
-    ['Today\u2019s reading', todayBody()],
-    ['The year, the long view', longViewBody()],
-    ['Profiles', profilesBody()],
-    ['Compatibility', compatBody()],
-    ['Family oracles', familyBody()],
-    ['Shared family context', sharedBody()],
-    ['What it knows', knowsBody()],
-    ['The vault', vaultBody()]
-  ];
-
-  function buildDrawer(side: 'left' | 'right', title: string, spec: Array<[string, HTMLElement]>): { drawer: HTMLElement; list: HTMLElement } {
-    const drawer = el('aside', { class: 'drawer drawer-' + side, 'data-side': side });
-    const top = el('div', { class: 'drawer-top' });
-    top.appendChild(el('div', { class: 'drawer-title' }, title));
-    const pin = el('button', { type: 'button', class: 'pin', 'data-side': side }, 'PIN');
-    top.appendChild(pin);
-    drawer.appendChild(top);
-    const list = el('div', { class: 'modules' });
-    let order = spec.map((s) => s[0]);
-    try {
-      const saved = window.localStorage.getItem(ORDER_KEY + '-' + side);
-      if (saved) {
-        const arr = JSON.parse(saved) as string[];
-        const known = new Set(order);
-        const reordered = arr.filter((n) => known.has(n));
-        spec.map((s) => s[0]).forEach((n) => { if (reordered.indexOf(n) < 0) reordered.push(n); });
-        order = reordered;
-      }
-    } catch (_e) { /* presentation only */ }
-    const byName: Record<string, HTMLElement> = {};
-    spec.forEach((s) => { byName[s[0]] = moduleEl(s[0], s[1]); });
-    order.forEach((n) => { if (byName[n]) list.appendChild(byName[n]); });
-    drawer.appendChild(list);
-
-    pin.addEventListener('click', () => {
-      pinned[side] = !pinned[side];
-      pin.classList.toggle('pinned', pinned[side]);
-      pin.textContent = pinned[side] ? 'PINNED' : 'PIN';
-      if (pinned[side]) openDrawer(side); else closeDrawer(side);
-    });
-    wireReorder(list, side);
-    return { drawer, list };
-  }
-
-  function persistOrder(list: HTMLElement, side: string): void {
-    const names: string[] = [];
-    list.querySelectorAll('.module').forEach((m) => { const n = (m as HTMLElement).getAttribute('data-name'); if (n) names.push(n); });
-    try { window.localStorage.setItem(ORDER_KEY + '-' + side, JSON.stringify(names)); } catch (_e) { /* presentation only */ }
-  }
-
-  function wireReorder(list: HTMLElement, side: string): void {
-    let dragEl: HTMLElement | null = null;
-    list.querySelectorAll('.module').forEach((node) => {
-      const m = node as HTMLElement;
-      m.addEventListener('dragstart', () => { dragEl = m; m.classList.add('dragging'); });
-      m.addEventListener('dragend', () => {
-        m.classList.remove('dragging');
-        list.querySelectorAll('.module').forEach((x) => x.classList.remove('drop-target'));
-        dragEl = null;
-        persistOrder(list, side);
-      });
-      m.addEventListener('dragover', (e: Event) => { e.preventDefault(); if (m !== dragEl) m.classList.add('drop-target'); });
-      m.addEventListener('dragleave', () => m.classList.remove('drop-target'));
-      m.addEventListener('drop', (e: Event) => {
-        e.preventDefault();
-        m.classList.remove('drop-target');
-        if (dragEl && m !== dragEl) {
-          const items = Array.from(list.querySelectorAll('.module'));
-          if (items.indexOf(dragEl) < items.indexOf(m)) list.insertBefore(dragEl, m.nextSibling);
-          else list.insertBefore(dragEl, m);
-          persistOrder(list, side);
-        }
-      });
-    });
-    list.querySelectorAll('.move.up').forEach((b) => {
-      b.addEventListener('click', () => {
-        const m = (b as HTMLElement).closest('.module');
-        if (m && m.previousElementSibling) { list.insertBefore(m, m.previousElementSibling); persistOrder(list, side); }
-      });
-    });
-    list.querySelectorAll('.move.down').forEach((b) => {
-      b.addEventListener('click', () => {
-        const m = (b as HTMLElement).closest('.module');
-        if (m && m.nextElementSibling) { list.insertBefore(m.nextElementSibling, m); persistOrder(list, side); }
-      });
-    });
-  }
-
-  const leftBuilt = buildDrawer('left', 'Vault and patterns', leftSpec);
-  const rightBuilt = buildDrawer('right', 'People and reach', rightSpec);
-  surface.appendChild(leftBuilt.drawer);
-  surface.appendChild(rightBuilt.drawer);
-  const drawers: Record<string, HTMLElement> = { left: leftBuilt.drawer, right: rightBuilt.drawer };
-
-  /* ===== drawer reveal mechanics ===== */
-  function refreshDrawerScrim(): void {
-    const anyOpen = drawers.left.classList.contains('open') || drawers.right.classList.contains('open');
-    drawerScrim.classList.toggle('show', anyOpen && !(pinned.left || pinned.right));
-  }
-  function openDrawer(side: string): void { drawers[side].classList.add('open'); refreshDrawerScrim(); }
-  function closeDrawer(side: string): void { if (!pinned[side]) { drawers[side].classList.remove('open'); refreshDrawerScrim(); } }
-
-  surface.querySelectorAll('.edge').forEach((z) => {
-    z.addEventListener('mouseenter', () => { if (closeTimer) clearTimeout(closeTimer); openDrawer((z as HTMLElement).dataset.side as string); });
-  });
-  (['left', 'right'] as const).forEach((side) => {
-    drawers[side].addEventListener('mouseenter', () => { if (closeTimer) clearTimeout(closeTimer); });
-    drawers[side].addEventListener('mouseleave', () => { closeTimer = setTimeout(() => closeDrawer(side), 220); });
-  });
-  handleLeft.addEventListener('click', () => { drawers.left.classList.contains('open') ? closeDrawer('left') : openDrawer('left'); });
-  handleRight.addEventListener('click', () => { drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
-  drawerScrim.addEventListener('click', () => { drawers.left.classList.remove('open'); drawers.right.classList.remove('open'); refreshDrawerScrim(); });
-
-  /* ===== world modal ===== */
-  const worldScrim = el('div', { class: 'scrim' });
-  const world = el('div', { class: 'world', role: 'dialog', 'aria-label': 'This year' });
-  const worldClose = el('button', { type: 'button', class: 'world-close', 'aria-label': 'Close' }, '\u00d7');
-  world.appendChild(worldClose);
-  world.appendChild(el('div', { class: 'world-head' }, 'How this year is taking shape'));
-  world.appendChild(el('div', { class: 'world-sub' }, 'The long view, the slow patterns, and what is alive now.'));
-  const cols = el('div', { class: 'cols' });
-  const col1 = el('div');
-  col1.appendChild(el('div', { class: 'col-title' }, 'Held now'));
-  const live = repo.live();
-  if (live.length === 0) col1.appendChild(el('div', { class: 'col-item' }, 'Nothing held yet.'));
-  else live.forEach((it) => col1.appendChild(el('div', { class: 'col-item held' }, it.text)));
-  const col2 = el('div');
-  col2.appendChild(el('div', { class: 'col-title' }, 'The backdrop'));
-  col2.appendChild(el('div', { class: 'col-item' }, 'The universal year, your fixed signature, and the slow planetary weather, as the long view fills in.'));
-  cols.appendChild(col1);
-  cols.appendChild(col2);
-  world.appendChild(cols);
-  surface.appendChild(worldScrim);
-  surface.appendChild(world);
-  function openWorld(): void { world.classList.add('open'); worldScrim.classList.add('show'); }
-  function closeWorld(): void { world.classList.remove('open'); worldScrim.classList.remove('show'); }
-  worldOpenBtn.addEventListener('click', openWorld);
-  worldClose.addEventListener('click', closeWorld);
-  worldScrim.addEventListener('click', closeWorld);
-
-  /* ===== lean menu (behind the header menu icon) ===== */
-  const menu = el('div', { class: 'menu', role: 'dialog', 'aria-label': 'Menu' });
-  const menuNote = el('div', { class: 'menu-note' });
-  for (const label of MENU_ITEMS) {
-    const row = el('button', { type: 'button', class: 'menu-row' });
-    row.appendChild(el('span', {}, label));
-    if (label === 'Toggle theme') {
-      const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
-      row.appendChild(val);
-      row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
-    } else {
-      row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
+  function renderReply(it: HeldIntention | null, thinking?: string): void {
+    clear(replyArea);
+    if (!it && !thinking) return;
+    const card = el('div', { class: thinking ? 'cdp-reply thinking' : 'cdp-reply' });
+    card.appendChild(el('div', { class: 'cdp-reply-voice' }, lensLabel(lens)));
+    const textWrap = el('div', { class: 'cdp-reply-text' });
+    if (thinking) {
+      textWrap.appendChild(el('p', {}, thinking));
+    } else if (it) {
+      const vt = latestVesselTouch(it);
+      paragraphs(textWrap, vt ? vt.text : '');
     }
-    menu.appendChild(row);
+    card.appendChild(textWrap);
+    replyArea.appendChild(card);
   }
-  menu.appendChild(menuNote);
-  surface.appendChild(menu);
 
-  /* ===== voice ===== */
-  function reflectVoice(): void {
-    for (const v of voiceDefs) voiceButtons[v].classList.toggle('active', v === lens);
-  }
-  function setVoice(next: Lens): void {
+  /* ---- actions ----------------------------------------------------------- */
+
+  async function setLens(next: Lens): Promise<void> {
     if (next === lens) return;
     lens = next;
-    reflectVoice();
-    resetCycle();
-    void repo.setLens(next);
+    await repo.setLens(next);
+    applyVoice();
     trackEvent('voice_changed', { lens: next });
-    if (activeReplyId) void revoice(activeReplyId);
+    if (activeReplyId) { void revoice(activeReplyId); }
   }
-  reflectVoice();
 
-  /* ===== the reading ===== */
+  function setHint(text: string | null): void {
+    if (text) { hint.textContent = text; hint.classList.add('show'); }
+    else { hint.textContent = ''; hint.classList.remove('show'); }
+  }
+
+  function reengage(intentionId: string): void {
+    const it = repo.byId(intentionId);
+    if (!it) return;
+    focusedId = intentionId;
+    setHint('Continuing: ' + it.text);
+    renderSidebar();
+    input.focus();
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function remindOf(intentionId: string): Promise<void> {
+    const it = repo.byId(intentionId);
+    if (!it) return;
+    const line = orchestrator.summary(it, lens);
+    if (line) await repo.setSummary(intentionId, line);
+    renderNakedEye();
+  }
+
+  async function holdAway(intentionId: string): Promise<void> {
+    await repo.rest(intentionId);
+    if (focusedId === intentionId) { focusedId = null; setHint(null); }
+    renderNakedEye();
+    renderSidebar();
+  }
+
   function recentTouches(beforeId: string): NonNullable<DepthContext['recentTouches']> {
     const snap = repo.snapshot();
     const target = snap.intentions.find((i) => i.id === beforeId);
@@ -799,32 +495,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (target && it.createdAt >= target.createdAt) break;
       out.push({ role: 'person', text: it.text });
       const vt = latestVesselTouch(it);
-      if (vt) out.push({ role: 'oracle', text: vt.text });
+      if (vt) out.push({ role: 'vessel', text: vt.text });
     }
     return out;
-  }
-
-  function paragraphs(into: HTMLElement, text: string): void {
-    const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p.length > 0);
-    paras.forEach((p, i) => into.appendChild(el('p', i === paras.length - 1 ? { class: 'keel' } : {}, p)));
-  }
-
-  function renderReply(it: HeldIntention, busyText?: string): void {
-    clear(replyArea);
-    const card = el('div', { class: 'reply' });
-    card.appendChild(el('div', { class: 'person' }, it.text));
-    if (busyText) {
-      card.appendChild(el('p', { class: 'busy' }, busyText));
-      replyArea.appendChild(card);
-      return;
-    }
-    card.appendChild(el('span', { class: 'corner' }, lensLabel(lens)));
-    const vt = latestVesselTouch(it);
-    const bodyWrap = el('div');
-    paragraphs(bodyWrap, vt ? vt.text : '');
-    card.appendChild(bodyWrap);
-    if (it.summary) card.appendChild(el('div', { class: 'living' }, it.summary));
-    replyArea.appendChild(card);
   }
 
   async function revoice(intentionId: string): Promise<void> {
@@ -833,51 +506,74 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const current = latestVesselTouch(it);
     if (current && current.lens === lens) { renderReply(it); return; }
     renderReply(it, 'Hearing it again in the ' + lensLabel(lens) + ' voice.');
-    const composed = await orchestrator.depth(it, lens, { recentTouches: recentTouches(intentionId) });
+    const composed = await orchestrator.depth(it, lens, { dateStr, recentTouches: recentTouches(intentionId) });
     await repo.addTouch(intentionId, { role: 'vessel', text: composed.text, lens });
     if (composed.summary) await repo.setSummary(intentionId, composed.summary);
     const fresh = repo.byId(intentionId);
     if (fresh) renderReply(fresh);
+    renderNakedEye();
   }
 
-  async function compose(text: string): Promise<void> {
-    const reflectionFor = text.trim();
-    if (reflectionFor.length === 0 || composing) { input.focus(); return; }
+  async function compose(): Promise<void> {
+    const line = input.value.trim();
+    if (composing) return;
+    if (line.length === 0 && !focusedId) { input.focus(); return; }
     composing = true;
     continueBtn.disabled = true;
     trackEvent('reply_requested', { lens });
-    const room = await repo.ensureRoom(ROOM_DEFAULT);
-    const held = await repo.hold({ text: reflectionFor, roomId: room.id, kind: 'acute' });
-    activeReplyId = held.id;
-    trackEvent('intention_held', {});
-    meetLine.textContent = held.text;
-    renderLive();
-    renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.');
+
+    let it: HeldIntention | null = null;
+    if (focusedId && repo.byId(focusedId)) {
+      it = repo.byId(focusedId);
+      if (it && line.length > 0) await repo.addTouch(it.id, { role: 'person', text: line, lens });
+    } else {
+      const room = await repo.ensureRoom(ROOM_DEFAULT);
+      it = await repo.hold({ text: line, roomId: room.id, kind: 'acute' });
+      trackEvent('intention_held', {});
+    }
+    if (!it) { composing = false; continueBtn.disabled = false; return; }
+
+    activeReplyId = it.id;
+    renderSidebar();
+    renderNakedEye();
+    renderReply(it, 'Composing in the ' + lensLabel(lens) + ' voice.');
     const started = Date.now();
     try {
-      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id) });
-      await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
-      if (composed.summary) await repo.setSummary(held.id, composed.summary);
+      const composed = await orchestrator.depth(it, lens, { dateStr, recentTouches: recentTouches(it.id) });
+      await repo.addTouch(it.id, { role: 'vessel', text: composed.text, lens });
+      if (composed.summary) await repo.setSummary(it.id, composed.summary);
       trackEvent('reply_delivered', { lens, ms: Date.now() - started });
-      const fresh = repo.byId(held.id);
+      const fresh = repo.byId(it.id);
       if (fresh) renderReply(fresh);
+    } catch (e) {
+      trackEvent('reply_degraded', { lens });
+      renderReply(it, 'Held for now. The reading could not be reached, so it waits with you.');
     } finally {
       composing = false;
       continueBtn.disabled = false;
-      renderLive();
+      input.value = '';
+      focusedId = null;
+      setHint(null);
+      renderSidebar();
+      renderNakedEye();
     }
   }
 
-  continueBtn.addEventListener('click', () => { const t = input.value; input.value = ''; void compose(t); });
-  sitBtn.addEventListener('click', () => { clear(replyArea); input.value = ''; input.blur(); });
-  input.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = input.value; input.value = ''; void compose(t); }
-  });
+  function goDeeper(): void {
+    const line = input.value.trim();
+    const q = line.length > 0 ? '&q=' + encodeURIComponent(line) : '';
+    trackEvent('deep_reading_opened', { lens });
+    window.location.href = '/app?mode=quick' + q;
+  }
 
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { closeWorld(); menu.classList.remove('open'); }
-  });
+  continueBtn.addEventListener('click', () => { void compose(); });
+  deeperBtn.addEventListener('click', goDeeper);
+  input.addEventListener('keydown', (ev: KeyboardEvent) => { if (ev.key === 'Enter') { ev.preventDefault(); void compose(); } });
 
-  trackEvent('session_start', {});
-  trackEvent('surface_view', {});
+  /* ---- first paint ------------------------------------------------------- */
+
+  applyVoice();
+  renderSidebar();
+  renderNakedEye();
+  renderReply(null);
 }
