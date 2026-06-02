@@ -291,13 +291,119 @@ export function personalNumerology(birthDate: string, dateStr: string): Personal
 
 export interface LunarWindow {
   phase: string;
+  meaning: string;
+  cyclePct: number;
+  daysToNew: number;
+  daysToFull: number;
   black: boolean;
   shiva: boolean;
+  isNew: boolean;
+  isFull: boolean;
   register: 'astronomical';
 }
 
-export function lunarWindow(_dateStr: string): LunarWindow | null {
-  return null; // wired from USNO timestamps in the lunar pass
+/*
+ * The lunar window is sourced from the USNO 2026 phase table, ported from the
+ * monolith. A naive synodic calculation there read two days early and was
+ * flagged, so the verified table replaced it. The table is cross referenced
+ * against the USNO ephemeris, timeanddate, and the Royal Observatory, and it is
+ * extended each year. Black Moon is the two days before a new moon, a tricky
+ * window. Shiva Moon is the days just after a new moon, a blissful one. Both are
+ * CDP defined terms; the mainstream astronomical Black Moon is a different thing.
+ */
+const LUNAR_SYNODIC = 29.53058867;
+
+const NEW_MOONS_2026: readonly string[] = [
+  '2026-01-18T19:52:00Z', '2026-02-17T12:01:00Z', '2026-03-19T01:23:00Z',
+  '2026-04-17T11:51:00Z', '2026-05-16T20:01:00Z', '2026-06-15T02:54:00Z',
+  '2026-07-14T09:43:00Z', '2026-08-12T17:36:00Z', '2026-09-11T03:27:00Z',
+  '2026-10-10T15:50:00Z', '2026-11-09T07:01:00Z', '2026-12-09T00:51:00Z',
+];
+const FIRST_QUARTERS_2026: readonly string[] = [
+  '2026-01-26T05:48:00Z', '2026-02-24T15:28:00Z', '2026-03-26T01:18:00Z',
+  '2026-04-24T11:32:00Z', '2026-05-23T22:53:00Z', '2026-06-22T11:55:00Z',
+  '2026-07-22T02:55:00Z', '2026-08-20T20:40:00Z', '2026-09-19T16:46:00Z',
+  '2026-10-18T13:13:00Z', '2026-11-17T08:48:00Z', '2026-12-17T03:09:00Z',
+];
+const FULL_MOONS_2026: readonly string[] = [
+  '2026-01-03T10:02:00Z', '2026-02-01T22:09:00Z', '2026-03-03T11:38:00Z',
+  '2026-04-02T01:11:00Z', '2026-05-01T16:23:00Z', '2026-05-31T08:45:00Z',
+  '2026-06-29T23:57:00Z', '2026-07-29T13:36:00Z', '2026-08-28T03:18:00Z',
+  '2026-09-26T16:49:00Z', '2026-10-26T07:12:00Z', '2026-11-24T15:53:00Z',
+  '2026-12-24T01:28:00Z',
+];
+const LAST_QUARTERS_2026: readonly string[] = [
+  '2026-01-10T15:48:00Z', '2026-02-09T07:43:00Z', '2026-03-10T19:25:00Z',
+  '2026-04-09T05:51:00Z', '2026-05-09T16:11:00Z', '2026-06-08T03:01:00Z',
+  '2026-07-07T15:30:00Z', '2026-08-06T05:51:00Z', '2026-09-04T22:33:00Z',
+  '2026-10-04T17:12:00Z', '2026-11-03T11:20:00Z', '2026-12-03T03:54:00Z',
+];
+const FALLBACK_PRE2026_NEW = Date.parse('2025-12-20T01:43:00Z');
+
+function sameUTCDay(aMs: number, bMs: number): boolean {
+  const a = new Date(aMs);
+  const b = new Date(bMs);
+  return a.getUTCFullYear() === b.getUTCFullYear()
+    && a.getUTCMonth() === b.getUTCMonth()
+    && a.getUTCDate() === b.getUTCDate();
+}
+
+function moonResult(phase: string, meaning: string, cyc: number, cycLength?: number, fraction?: number): LunarWindow {
+  const len = cycLength != null ? cycLength : LUNAR_SYNODIC;
+  const frac = fraction != null ? fraction : (cyc / len);
+  const daysToNew = (1 - frac) * len;
+  const daysToFull = frac <= 0.5 ? (0.5 - frac) * len : (1.5 - frac) * len;
+  const black = daysToNew >= 0 && daysToNew <= 2.0 && frac > 0.9;
+  const shiva = cyc >= 1.0 && cyc <= 2.5 && frac < 0.1;
+  return {
+    phase,
+    meaning,
+    cyclePct: Math.round(frac * 100),
+    daysToNew: Math.round(daysToNew * 10) / 10,
+    daysToFull: Math.round(daysToFull * 10) / 10,
+    black,
+    shiva,
+    isNew: phase === 'New Moon',
+    isFull: phase === 'Full Moon',
+    register: 'astronomical',
+  };
+}
+
+export function lunarWindow(dateStr: string): LunarWindow {
+  const dMs = Date.parse(dateStr + 'T12:00:00Z');
+
+  for (const ns of NEW_MOONS_2026) if (sameUTCDay(Date.parse(ns), dMs)) return moonResult('New Moon', 'Dark time, seed intention in silence', 0);
+  for (const fs of FULL_MOONS_2026) if (sameUTCDay(Date.parse(fs), dMs)) return moonResult('Full Moon', 'Illumination, what is real becomes visible', 14.77);
+  for (const fq of FIRST_QUARTERS_2026) if (sameUTCDay(Date.parse(fq), dMs)) return moonResult('First Quarter', 'Decisive action, push through resistance', 7.38);
+  for (const lq of LAST_QUARTERS_2026) if (sameUTCDay(Date.parse(lq), dMs)) return moonResult('Last Quarter', 'Reassess, release what no longer serves', 22.15);
+
+  let lastNew = NaN;
+  let nextNew = NaN;
+  for (const ns of NEW_MOONS_2026) {
+    const n = Date.parse(ns);
+    if (n <= dMs) lastNew = n;
+    else { nextNew = n; break; }
+  }
+  if (Number.isNaN(lastNew)) lastNew = FALLBACK_PRE2026_NEW;
+  if (Number.isNaN(nextNew)) nextNew = lastNew + LUNAR_SYNODIC * 86400000;
+
+  const cyc = (dMs - lastNew) / 86400000;
+  const cycLength = (nextNew - lastNew) / 86400000;
+  const fraction = cyc / cycLength;
+
+  let phase: string;
+  let meaning: string;
+  if (fraction < 0.06) { phase = 'New Moon'; meaning = 'Dark time, seed intention in silence'; }
+  else if (fraction < 0.225) { phase = 'Waxing Crescent'; meaning = 'Build momentum, plant seeds'; }
+  else if (fraction < 0.275) { phase = 'First Quarter'; meaning = 'Decisive action, push through resistance'; }
+  else if (fraction < 0.475) { phase = 'Waxing Gibbous'; meaning = 'Refine, polish, prepare for release'; }
+  else if (fraction < 0.525) { phase = 'Full Moon'; meaning = 'Illumination, what is real becomes visible'; }
+  else if (fraction < 0.725) { phase = 'Waning Gibbous'; meaning = 'Harvest, integrate, share wisdom'; }
+  else if (fraction < 0.775) { phase = 'Last Quarter'; meaning = 'Reassess, release what no longer serves'; }
+  else if (fraction < 0.94) { phase = 'Waning Crescent'; meaning = 'Rest, reflect, prepare for rebirth'; }
+  else { phase = 'New Moon'; meaning = 'Dark time, seed intention in silence'; }
+
+  return moonResult(phase, meaning, cyc, cycLength, fraction);
 }
 
 /* ============================================================================
@@ -359,15 +465,18 @@ export function dayCoordinates(dateStr: string, profile?: Profile): DayCoordinat
   });
 
   const lunar = lunarWindow(dateStr);
+  let lunarDisplay = lunar.phase;
+  if (lunar.black) lunarDisplay = lunar.phase + ', Black Moon window, a tricky time';
+  else if (lunar.shiva) lunarDisplay = lunar.phase + ', Shiva Moon window, a blissful time';
   out.push({
     key: 'lunar',
     label: 'Lunar',
-    display: lunar ? lunar.phase : 'not yet available',
+    display: lunarDisplay,
     value: lunar,
     register: 'astronomical',
     chip: 'lunar',
     claimTag: 'lunar_phase_timing',
-    unknown: lunar === null,
+    unknown: false,
   });
 
   return { date: dateStr, coordinates: out };
