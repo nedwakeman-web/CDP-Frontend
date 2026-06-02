@@ -106,7 +106,7 @@ const STYLES = `
 .cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
 
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
-.cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
+.cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; text-decoration:none; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
 .cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,160,80,0.85); margin:0 0 4px; min-height:14px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
@@ -119,7 +119,12 @@ const STYLES = `
 .cdp-surface .voice-note.show { height:auto; opacity:1; margin-top:1px; }
 .cdp-surface .header-right { display:flex; gap:8px; align-items:center; }
 .cdp-surface .icon-btn { background:transparent; border:1px solid var(--text-dim); color:var(--text-muted); width:32px; height:32px; border-radius:2px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; }
-.cdp-surface .icon-btn:hover { border-color:var(--gold); color:var(--gold); }
+    .cdp-surface .icon-btn:hover { border-color:var(--gold); color:var(--gold); }
+.cdp-surface .topnav { display:flex; gap:18px; }
+.cdp-surface .topnav-link { background:none; cursor:pointer; border:none; border-bottom:1px solid transparent; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); text-decoration:none; padding:3px 2px; }
+.cdp-surface .topnav-link:hover { color:var(--gold); }
+.cdp-surface .topnav-link.active { color:var(--gold); border-bottom-color:var(--gold); }
+.cdp-surface .rdg-list { padding:2px 0; }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -248,6 +253,7 @@ const STYLES = `
   .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
   .cdp-surface .handle span:not(.chev) { display:none; }
   .cdp-surface .coords { width:86vw; }
+  .cdp-surface .topnav { display:none; }
 }
 `;
 
@@ -272,11 +278,12 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Share', 'Toggle theme', 'Account', 'Sign in'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme', 'Account', 'Sign in'];
 const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
+const ICON_SHARE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line></svg>';
 const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
 const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
 const ICON_TELESCOPES = '<svg width="48" height="27" viewBox="0 0 48 27" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="19" cy="13.5" r="10.5"></circle><circle cx="29" cy="13.5" r="10.5"></circle></svg>';
@@ -328,7 +335,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   /* ===== header ===== */
   const header = el('header', { class: 'header' });
-  header.appendChild(el('div', { class: 'brand' }, 'COSMIC DAILY PLANNER'));
+  header.appendChild(el('a', { class: 'brand', href: '/' }, 'COSMIC DAILY PLANNER'));
+  const topnav = el('nav', { class: 'topnav', 'aria-label': 'Primary' });
+  const aboutLink = el('button', { type: 'button', class: 'topnav-link' }, 'About');
+  aboutLink.addEventListener('click', () => voiceNote.classList.toggle('show'));
+  topnav.appendChild(aboutLink);
+  header.appendChild(topnav);
 
   const voiceWrap = el('div', { class: 'voice-wrap' });
   const voiceCycle = el('div', { class: 'voice-cycle', 'aria-hidden': 'true' });
@@ -343,19 +355,25 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     voiceToggle.appendChild(b);
   }
   voiceWrap.appendChild(voiceToggle);
-  const voiceNote = el('div', { class: 'voice-note' }, 'CDP reads the day through tradition and through current science, two instruments trained on the same sky. Tradition names the pattern in symbol, science names it in mechanism. You choose the language; the coordinates are the same.');
+  const voiceNote = el('div', { class: 'voice-note' }, 'Spiritual traditions and neuroscience are not competing explanations. They are written in different languages, built in different centuries, and arrive at the same coordinates. Cosmic Daily Planner is where they meet, daily, in one reading for you.');
   voiceWrap.appendChild(voiceNote);
 
   const headerRight = el('div', { class: 'header-right' });
-  const noteBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'About the voices', title: 'About the voices' }, '?');
-  noteBtn.addEventListener('click', () => voiceNote.classList.toggle('show'));
+  const shareBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Share', title: 'Share' });
+  shareBtn.innerHTML = ICON_SHARE;
+  shareBtn.addEventListener('click', () => {
+    const url = window.location.href;
+    const n = window.navigator as Navigator & { share?: (data: { title?: string; url?: string }) => Promise<void> };
+    if (typeof n.share === 'function') { void n.share({ title: 'Cosmic Daily Planner', url: url }); }
+    else if (n.clipboard && typeof n.clipboard.writeText === 'function') { void n.clipboard.writeText(url); }
+  });
   const calBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Calendar', title: 'Calendar' });
   calBtn.innerHTML = ICON_CALENDAR;
   calBtn.addEventListener('click', () => openDrawer('left'));
   const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' });
   profBtn.innerHTML = ICON_PROFILE;
   profBtn.addEventListener('click', () => menu.classList.toggle('open'));
-  headerRight.appendChild(noteBtn);
+  headerRight.appendChild(shareBtn);
   headerRight.appendChild(calBtn);
   headerRight.appendChild(profBtn);
   header.appendChild(headerRight);
@@ -625,12 +643,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     return b;
   }
 
-  function readingLinkBody(desc: string, screen: string): HTMLElement {
-    const b = el('div');
-    b.appendChild(el('div', { class: 'soft' }, desc));
-    b.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + screen }, 'Open in the planner'));
-    return b;
-  }
   const leftSpec: Array<[string, HTMLElement]> = [
     ['What is live now', liveBody],
     ['Patterns emerging', patternsBody()],
@@ -638,13 +650,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     ['Seasonal maps', seasonBody()],
     ['This is working', workingBody()],
     ['May calendar', calBody()]
-  ];
-  const rightSpec: Array<[string, HTMLElement]> = [
-    ['Daily card', readingLinkBody('The quick daily read.', 'scard')],
-    ['Full reading', readingLinkBody('The full Oracle reading.', 'sr')],
-    ['My year', readingLinkBody('Your year, the long arc.', 'sctx')],
-    ['Compatibility', readingLinkBody('How two charts meet.', 'scompat')],
-    ['Profiles', readingLinkBody('People you read for.', 'sp')]
   ];
 
   function buildDrawer(side: 'left' | 'right', title: string, spec: Array<[string, HTMLElement]>): { drawer: HTMLElement; list: HTMLElement } {
@@ -727,7 +732,29 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
 
   const leftBuilt = buildDrawer('left', 'Emerging patterns', leftSpec);
-  const rightBuilt = buildDrawer('right', 'Readings', rightSpec);
+  function buildReadingsDrawer(): { drawer: HTMLElement } {
+    const drawer = el('aside', { class: 'drawer drawer-right', 'data-side': 'right' });
+    const top = el('div', { class: 'drawer-top' });
+    top.appendChild(el('div', { class: 'drawer-title' }, 'Readings'));
+    const pin = el('button', { type: 'button', class: 'pin', 'data-side': 'right' }, 'PIN');
+    top.appendChild(pin);
+    drawer.appendChild(top);
+    const list = el('div', { class: 'rdg-list' });
+    const dests: Array<[string, string]> = [
+      ['Daily card', 'scard'], ['Full reading', 'sr'], ['My year', 'sctx'],
+      ['Compatibility', 'scompat'], ['Profiles', 'sp']
+    ];
+    for (const d of dests) { list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0])); }
+    drawer.appendChild(list);
+    pin.addEventListener('click', () => {
+      pinned.right = !pinned.right;
+      pin.classList.toggle('pinned', pinned.right);
+      pin.textContent = pinned.right ? 'PINNED' : 'PIN';
+      if (pinned.right) openDrawer('right'); else closeDrawer('right');
+    });
+    return { drawer };
+  }
+  const rightBuilt = buildReadingsDrawer();
   surface.appendChild(leftBuilt.drawer);
   surface.appendChild(rightBuilt.drawer);
   const drawers: Record<string, HTMLElement> = { left: leftBuilt.drawer, right: rightBuilt.drawer };
