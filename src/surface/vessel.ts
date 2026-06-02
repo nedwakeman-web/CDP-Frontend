@@ -91,7 +91,7 @@ const STYLES = `
 
 .cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; cursor:pointer; }
 .cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
-.cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:15px; font-style:italic; letter-spacing:0.04em; color:rgba(245,228,196,0.74); }
+.cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
 .cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
 .cdp-surface .pillglyph { font-size:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
@@ -109,25 +109,23 @@ const STYLES = `
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
-.cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:5px; min-height:12px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
-.cdp-surface .voice-toggle { display:flex; gap:2px; background:var(--raised); border:1px solid var(--text-dim); border-radius:2px; padding:4px; }
-.cdp-surface .voice-btn { padding:6px 13px; background:transparent; color:var(--text-muted); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:1px; font-weight:500; cursor:pointer; transition:background .2s, color .2s; }
-.cdp-surface .voice-btn.active { background:var(--gold); color:var(--navy); }
-.cdp-surface .voice-btn[data-voice="science"].active { background:var(--teal); color:#06231d; }
-.cdp-surface .voice-btn[data-voice="everyday"].active { background:var(--text-light); color:var(--navy); }
-.cdp-surface .tele-line { margin-top:7px; background:none; border:none; cursor:pointer; font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:13px; color:rgba(201,160,80,0.85); letter-spacing:.02em; border-bottom:1px solid rgba(201,160,80,0.0); transition:color .2s, border-color .2s; }
-.cdp-surface .tele-line:hover { color:var(--gold); border-bottom-color:rgba(201,160,80,0.5); }
+.cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,160,80,0.85); margin:0 0 4px; min-height:14px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
+.cdp-surface .voice-toggle { display:flex; gap:0; margin:12px auto 18px; max-width:340px; background:rgba(8,26,45,0.6); border:1px solid rgba(165,132,89,0.30); border-radius:4px; padding:3px; }
+.cdp-surface .voice-btn { flex:1; padding:7px 12px; background:transparent; border:none; border-radius:3px; color:rgba(245,228,196,0.65); font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; transition:background .2s ease, color .2s ease; }
+.cdp-surface .voice-btn.active { background:rgba(201,160,80,0.18); color:var(--gold); }
+.cdp-surface .voice-btn[data-voice="science"].active { background:rgba(129,205,198,0.16); color:var(--teal); }
+.cdp-surface .voice-btn[data-voice="everyday"].active { background:rgba(245,228,196,0.12); color:var(--text-light); }
 .cdp-surface .voice-note { font-size:11px; color:var(--text-dim); letter-spacing:.3px; max-width:380px; text-align:center; height:0; overflow:hidden; opacity:0; transition:opacity .2s; }
 .cdp-surface .voice-note.show { height:auto; opacity:1; margin-top:1px; }
 .cdp-surface .header-right { display:flex; gap:8px; align-items:center; }
 .cdp-surface .icon-btn { background:transparent; border:1px solid var(--text-dim); color:var(--text-muted); width:32px; height:32px; border-radius:2px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; }
 .cdp-surface .icon-btn:hover { border-color:var(--gold); color:var(--gold); }
 
-.cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; overflow-y:auto; }
-.cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:22px; font-style:italic; color:var(--text-light); max-width:600px; margin:4px auto 12px; line-height:1.4; }
+.cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
+.cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
 .cdp-surface .meet-line { font-size:18px; font-style:italic; font-weight:300; max-width:560px; margin-bottom:6px; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:clamp(320px, 62vw, 680px); max-width:100%; aspect-ratio:2048 / 1536; height:auto; object-fit:cover; display:block; margin:12px auto 18px; border-radius:2px; }
+.cdp-surface .compass-svg { width:clamp(280px, 60vw, 660px); max-width:100%; aspect-ratio:2048 / 1536; height:auto; object-fit:cover; display:block; margin:14px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
 .cdp-surface .ask { width:min(90vw, 520px); }
 .cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
@@ -240,9 +238,14 @@ const STYLES = `
 .cdp-surface .menu-note { font-size:12px; color:var(--text-dim); font-style:italic; margin-top:8px; }
 
 @media (max-width:820px) {
-  .cdp-surface .meet-line { font-size:17px; }
   .cdp-surface .drawer { width:90vw; } .cdp-surface .handle { min-height:auto; padding:16px 3px; } .cdp-surface .cols { grid-template-columns:1fr; }
-  .cdp-surface .voice-note { display:none; }
+}
+@media (max-width:560px) {
+  .cdp-surface .home { padding:22px 14px 48px; }
+  .cdp-surface .compass-svg { width:88vw; }
+  .cdp-surface .naked-eye { font-size:18px; max-width:90vw; }
+  .cdp-surface .meet-line { font-size:16px; max-width:90vw; }
+  .cdp-surface .voice-toggle { max-width:92vw; }
 }
 `;
 
@@ -329,7 +332,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const voiceCycle = el('div', { class: 'voice-cycle', 'aria-hidden': 'true' });
   voiceWrap.appendChild(voiceCycle);
   const voiceToggle = el('div', { class: 'voice-toggle' });
-  const voiceDefs: Lens[] = ['tradition', 'everyday', 'science'];
+  const voiceDefs: Lens[] = ['tradition', 'science', 'everyday'];
   const voiceButtons: Record<string, HTMLElement> = {};
   for (const v of voiceDefs) {
     const b = el('button', { type: 'button', class: 'voice-btn', 'data-voice': v }, lensLabel(v).toUpperCase());
@@ -338,10 +341,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     voiceToggle.appendChild(b);
   }
   voiceWrap.appendChild(voiceToggle);
-  const teleLine = el('button', { type: 'button', class: 'tele-line' }, 'Two telescopes, one sky');
   const voiceNote = el('div', { class: 'voice-note' }, 'CDP reads the day through tradition and through current science, two instruments trained on the same sky. Tradition names the pattern in symbol, science names it in mechanism. You choose the language; the coordinates are the same.');
-  teleLine.addEventListener('click', () => voiceNote.classList.toggle('show'));
-  voiceWrap.appendChild(teleLine);
   voiceWrap.appendChild(voiceNote);
 
   const headerRight = el('div', { class: 'header-right' });
