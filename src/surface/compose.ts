@@ -6,13 +6,13 @@
  * Store. Two concrete composers live here. LocalOrchestrator is the browser
  * side placeholder: plain, grounded, honest, and offline. ApiOrchestrator is
  * the real composition over the Railway server, round tripping summoned depth
- * to /api/compose/depth, and it is the one used by default. Neither home.ts,
- * thread.ts, nor vessel.ts changes when the orchestrator is switched, because
+ * to /api/compose/depth, and it is the one used by default. Neither the surface
+ * controller nor any view changes when the orchestrator is switched, because
  * none of them ever knew where the composing happened.
  *
- * This is the boundary that keeps the surface honest. The surface owns
- * presentation and interaction. Composition of touches, living summaries, and
- * summoned depth is orchestration, and it lives behind this one interface.
+ * The domain types are imported from the data layer model, not redeclared here.
+ * That single rule heals the type fork that opened when an earlier version of
+ * this file declared its own HeldIntention inline with a different kind union.
  *
  * The calm, immediate reads (meet, firstHold, park, respond, summary) are local
  * and synchronous on both composers, since they are the glance the surface
@@ -25,20 +25,9 @@
  * marks, in code and in comments alike.
  */
 
-/* ---- types (staged, inline for now) ---------------------------------------- */
+import type { Lens, HeldIntention, VesselState, Anchor } from '../data/model';
 
-export type Lens = 'everyday' | 'science' | 'tradition';
-
-export interface HeldIntention {
-  text: string;
-  kind: 'acute' | 'chronic' | 'developmental' | 'systemic';
-  anchor: string | null;
-}
-
-export interface VesselState {
-  intentions: HeldIntention[];
-  rooms: Record<string, unknown>;
-}
+export type { Lens, HeldIntention, VesselState, Anchor };
 
 /** A composed vessel touch, optionally carrying a refreshed living read. */
 export interface Composed {
@@ -64,7 +53,7 @@ export interface Orchestrator {
   /** A one-line living read of where the thread stands now. */
   summary(it: HeldIntention, lens: Lens, now?: number): string;
   /** Summoned depth, bottomless on demand. Async because the real one round-trips.
-   * An optional context carries the thread so far, so a follow-up continues it. */
+   *  An optional context carries the thread so far, so a follow-up continues it. */
   depth(it: HeldIntention, lens: Lens, ctx?: DepthContext): Promise<Composed>;
 }
 
@@ -79,8 +68,9 @@ function words(n: number): string {
 }
 
 /** A plain, non-promising description of when an anchored moment falls. */
-function whenPhrase(dateStr: string, now: number): string {
-  const target = new Date(dateStr + 'T00:00:00Z').getTime();
+function whenPhrase(anchor: Anchor, now: number): string {
+  if (!anchor.date) return anchor.label;
+  const target = new Date(anchor.date + 'T00:00:00Z').getTime();
   const days = Math.round((target - now) / DAY_MS);
   if (days < 0) return 'a moment now past';
   if (days === 0) return 'today';
@@ -120,37 +110,37 @@ export class LocalOrchestrator implements Orchestrator {
       if (held === 0) return 'This is a place to hold what matters to you.';
       return 'Nothing is pressing right now. What is here is held and waiting when you want it.';
     }
-    const clause_ = clause(brightest.text);
+    const c = clause(brightest.text);
     const when = brightest.anchor ? whenPhrase(brightest.anchor, now) : null;
-    if (when) return `You are holding: ${clause_} (${when}).`;
-    return `You are holding: ${clause_}.`;
+    if (when) return 'You are holding: ' + c + ' (' + when + ').';
+    return 'You are holding: ' + c + '.';
   }
 
   firstHold(it: HeldIntention, lens: Lens, _now = Date.now()): Composed {
     const lensLabel = lens === 'everyday' ? 'everyday' : lens === 'science' ? 'neuroscience' : 'archetypal';
     return {
-      text: `Holding "${it.text}" in the ${lensLabel} lens.`,
-      summary: `Held: ${clause(it.text)}.`,
+      text: 'Holding ' + clause(it.text) + ' in the ' + lensLabel + ' lens.',
+      summary: 'Held: ' + clause(it.text) + '.',
     };
   }
 
   park(it: HeldIntention, _lens: Lens): Composed {
     return {
-      text: `"${it.text}" is parked and waiting. You can return to it whenever.`,
+      text: clause(it.text) + ' is parked and waiting. You can return to it whenever.',
       summary: 'Parked.',
     };
   }
 
   respond(_it: HeldIntention, personText: string, _lens: Lens): Composed {
     return {
-      text: `You offered: "${personText}". The thread continues.`,
+      text: 'You offered: ' + clause(personText) + '. The thread continues.',
       summary: 'Responded.',
     };
   }
 
   summary(it: HeldIntention, _lens: Lens, _now = Date.now()): string {
-    const kind = it.kind === 'acute' ? 'pressing' : it.kind === 'chronic' ? 'ongoing' : 'unfolding';
-    return `${kind}: ${clause(it.text)}`;
+    const kind = it.kind === 'acute' ? 'pressing' : it.kind === 'standing' ? 'ongoing' : 'enduring';
+    return kind + ': ' + clause(it.text);
   }
 
   async depth(_it: HeldIntention, _lens: Lens, _ctx?: DepthContext): Promise<Composed> {
@@ -201,7 +191,6 @@ export class ApiOrchestrator implements Orchestrator {
   private readonly now: () => number;
 
   constructor(base: string, local: Orchestrator, opts: ApiOrchestratorOptions = {}) {
-    // Normalise the base so a trailing slash never doubles up against the path.
     this.base = (base || '').replace(/\/+$/, '');
     this.local = local;
     this.timeoutMs = opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : 30000;
@@ -210,7 +199,6 @@ export class ApiOrchestrator implements Orchestrator {
     this.now = opts.now || (() => Date.now());
   }
 
-  // The calm glance is local on both composers.
   meet(state: VesselState, brightest: HeldIntention | null, now?: number): string {
     return this.local.meet(state, brightest, now);
   }
@@ -244,8 +232,10 @@ export class ApiOrchestrator implements Orchestrator {
     const merged: DepthContext = { ...base, ...(ctx || {}) };
     const dateStr = merged.dateStr || todayUTC(this.now());
 
-    const intention: { text: string; anchor?: { label: string } } = { text: it.text };
-    if (it.anchor) intention.anchor = { label: it.anchor };
+    const intention: { text: string; anchor?: { label: string; date?: string } } = { text: it.text };
+    if (it.anchor) {
+      intention.anchor = it.anchor.date ? { label: it.anchor.label, date: it.anchor.date } : { label: it.anchor.label };
+    }
 
     const body = {
       lens,
@@ -278,7 +268,6 @@ export class ApiOrchestrator implements Orchestrator {
       }
       return this.fallback();
     } catch (_e) {
-      // Network error or timeout abort. Degrade, do not break.
       return this.fallback();
     } finally {
       clearTimeout(timer);

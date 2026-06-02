@@ -5,14 +5,18 @@
  * need, an intention, and the Oracle replies in the voice they choose. Each
  * reply can be re-heard in another voice in place, and a follow-up continues
  * the same thread, carrying the exchange so far to the server as context. A
- * sidebar holds what is alive, what is held, and the patterns that emerge. The
- * day's coordinates are shown as one converged view, drawn from the shared
- * coordinate core, never recomputed and never invented.
+ * sidebar holds what is alive and what is held, ordered by the gravity the
+ * repository computes. The day's coordinates are shown as one converged view,
+ * drawn from the shared coordinate core, never recomputed and never invented.
  *
- * One menu. Navigation, account, settings, and the deliberate reading door all
- * live in a single menu. The old pattern of a separate menu plus a duplicate
- * account strip is not reproduced. Items that are not built yet are gathered
- * here too, honestly marked, so there is one place for them rather than several.
+ * What changed in the re-seat, and why. The surface no longer holds its own
+ * state in memory. It reads and writes through the VesselRepository over a
+ * Store, the data layer of Strategic Foundation Volume 16. That single change
+ * makes what a person holds survive a closed tab and a returning visit, and it
+ * means the swap from the on-device store to the server store at scale touches
+ * nothing here. The domain types are imported from the model, not redeclared,
+ * which heals the fork that had two HeldIntentions with different kinds. The
+ * sidebar copy is now true: it persists across visits, so it says so.
  *
  * Discipline held here:
  *   - No coordinate is fabricated. The lunar window reads as not yet available
@@ -21,31 +25,41 @@
  *     Problem-framing vocabulary stays out of anything a person reads.
  *   - All dynamic and person-typed text is written with textContent, never
  *     interpolated into markup, so an apostrophe can never break a string.
+ *   - The surface never computes gravity or composes text; it reads the
+ *     repository and composes through the Orchestrator interface only.
  *   - House style: no em dashes, no en dashes, no exclamation marks, in code
  *     and in anything a person reads.
  *
  * Two themes are provided, dark by default to match the house aesthetic, and
- * both driven by CSS variables so the repo style tokens can replace them.
+ * both driven by CSS variables so the repo style tokens can replace them. The
+ * dark or light choice is a presentation preference and legitimately lives in
+ * localStorage, outside the vessel state, since it is not the substance of a life.
  */
 
-import type { Lens, HeldIntention, VesselState, Orchestrator, DepthContext } from './compose';
+import type { Lens, HeldIntention, Touch } from '../data/model';
+import type { Orchestrator, DepthContext } from './compose';
+import { VesselRepository } from '../data/repository';
+import { trackEvent } from '../data/analytics';
 import { dayCoordinates } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
 
 export interface VesselOptions {
   root: HTMLElement;
   orchestrator: Orchestrator;
+  /** The data layer. The surface reads and writes only through it. */
+  repo: VesselRepository;
   /** Optional profile. When a birth date is present, the personal layers show. */
   profile?: { birthDate?: string };
 }
 
-type Theme = 'dark' | 'light';
+type UiTheme = 'dark' | 'light';
 
-interface Entry {
+/** A thread entry as the surface renders it, derived from a held intention. */
+interface EntryVM {
+  id: string;
   personText: string;
-  intention: HeldIntention;
   oracleText: string;
-  oracleSummary?: string;
+  oracleSummary: string;
   lens: Lens;
 }
 
@@ -83,6 +97,13 @@ function longDate(dateStr: string): string {
 
 function lensLabel(lens: Lens): string {
   return lens === 'tradition' ? 'Tradition' : lens === 'science' ? 'Science' : 'Everyday';
+}
+
+function latestVesselTouch(it: HeldIntention): Touch | null {
+  for (let i = it.touches.length - 1; i >= 0; i -= 1) {
+    if (it.touches[i].role === 'vessel') return it.touches[i];
+  }
+  return null;
 }
 
 /* ---- the compass mark, static, no person data ----------------------------- */
@@ -279,23 +300,30 @@ const SOON_ITEMS = [
   'Tiers', 'Guide', 'Streak', 'Feedback', 'Share and invite', 'Account', 'Sign in',
 ];
 
+const THEME_KEY = 'cdp-theme';
+const ROOM_DEFAULT = 'What I am carrying';
+
 export async function mountVessel(options: VesselOptions): Promise<void> {
-  const { root, orchestrator } = options;
+  const { root, orchestrator, repo } = options;
   const profile = options.profile;
   const now = Date.now();
   const dateStr = todayUTCDateStr(now);
 
-  const state: VesselState = { intentions: [], rooms: {} };
-  const entries: Entry[] = [];
-  let lens: Lens = 'everyday';
-  let theme: Theme = 'dark';
+  // The data layer is the single source of held state. Load it before first paint.
+  if (!repo.isLoaded) await repo.init();
+
+  let lens: Lens = repo.getLens();
   let menuOpen = false;
 
-  // The default voice persists across visits when storage is available.
+  // A presentation preference only, so it legitimately lives outside vessel state.
+  let theme: UiTheme = 'dark';
   try {
-    const v = window.localStorage.getItem('cdp-default-voice');
-    if (v === 'tradition' || v === 'science' || v === 'everyday') lens = v;
-  } catch (_e) { /* storage unavailable, keep the session default */ }
+    const t = window.localStorage.getItem(THEME_KEY);
+    if (t === 'dark' || t === 'light') theme = t;
+  } catch (_e) { /* storage unavailable, keep the default */ }
+
+  // pending[intentionId] holds a transient busy line while a reply composes.
+  const pending: Record<string, string> = {};
 
   if (!document.getElementById('cdp-vessel-styles')) {
     const style = el('style', { id: 'cdp-vessel-styles' });
@@ -310,9 +338,41 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const layout = el('div', { class: 'cdp-layout' });
   surface.appendChild(layout);
 
-  function setTheme(next: Theme): void {
+  function setTheme(next: UiTheme): void {
     theme = next;
     surface.setAttribute('data-theme', theme);
+    try { window.localStorage.setItem(THEME_KEY, theme); } catch (_e) { /* presentation only */ }
+  }
+
+  /* ----- derive the thread and context from the repository ----- */
+
+  function entriesFromRepo(): EntryVM[] {
+    const snap = repo.snapshot();
+    const chrono = [...snap.intentions].sort((a, b) => a.createdAt - b.createdAt);
+    return chrono.map((it): EntryVM => {
+      const vt = latestVesselTouch(it);
+      return {
+        id: it.id,
+        personText: it.text,
+        oracleText: vt ? vt.text : '',
+        oracleSummary: it.summary || '',
+        lens: vt && vt.lens ? vt.lens : lens,
+      };
+    });
+  }
+
+  function recentTouches(beforeId: string): NonNullable<DepthContext['recentTouches']> {
+    const snap = repo.snapshot();
+    const target = snap.intentions.find(i => i.id === beforeId);
+    const chrono = [...snap.intentions].sort((a, b) => a.createdAt - b.createdAt);
+    const out: NonNullable<DepthContext['recentTouches']> = [];
+    for (const it of chrono) {
+      if (target && it.createdAt >= target.createdAt) break;
+      out.push({ role: 'person', text: it.text });
+      const vt = latestVesselTouch(it);
+      if (vt) out.push({ role: 'oracle', text: vt.text });
+    }
+    return out;
   }
 
   /* ----- sidebar ----- */
@@ -343,13 +403,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     clear(sideLists);
     const q = search.value.trim().toLowerCase();
     const match = (it: HeldIntention) => q.length === 0 || it.text.toLowerCase().indexOf(q) >= 0;
-    const visible = state.intentions.filter(match);
-    const activeNow = visible.slice(0, 1);
-    const held = visible.slice(1);
+
+    const live = repo.live().filter(match);
+    const resting = repo.resting().filter(match);
+
+    const activeNow = live.slice(0, 1);
+    const held = live.slice(1);
 
     const gActive = group('Active now');
     if (activeNow.length === 0) {
-      gActive.appendChild(el('p', { class: 'cdp-side-empty' }, 'Nothing is held yet. What you name is kept for this visit.'));
+      gActive.appendChild(el('p', { class: 'cdp-side-empty' }, 'Nothing is held yet. What you name here is kept, and it is here when you return.'));
     } else {
       activeNow.forEach((it, i) => gActive.appendChild(sideItem(it, 'Now', i === 0)));
     }
@@ -357,19 +420,31 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
     if (held.length > 0) {
       const gHeld = group('Held');
-      held.forEach((it) => gHeld.appendChild(sideItem(it, 'Held this visit', false)));
+      held.forEach((it) => gHeld.appendChild(sideItem(it, 'Held', false)));
       sideLists.appendChild(gHeld);
     }
 
+    if (resting.length > 0) {
+      const gRest = group('Resting');
+      resting.forEach((it) => gRest.appendChild(sideItem(it, 'Resting, recoverable', false)));
+      sideLists.appendChild(gRest);
+    }
+
+    const themes = repo.themes();
     const gThemes = group('Themes and patterns');
-    gThemes.appendChild(el('p', { class: 'cdp-side-empty' }, state.intentions.length >= 5
-      ? 'Patterns will surface here as the vault grows across visits.'
-      : 'Themes emerge as you hold more, across visits.'));
+    if (themes.length > 0) {
+      themes.forEach((t) => {
+        const item = el('div', { class: 'cdp-side-item' });
+        item.appendChild(el('div', { class: 't' }, t.label));
+        sideLists.appendChild(item);
+      });
+    } else {
+      gThemes.appendChild(el('p', { class: 'cdp-side-empty' }, 'Themes emerge as you hold more, across your visits.'));
+    }
     sideLists.appendChild(gThemes);
 
-    sideFoot.textContent = state.intentions.length === 0
-      ? 'Held this visit: none'
-      : 'Held this visit: ' + state.intentions.length;
+    const total = repo.live().length + repo.resting().length;
+    sideFoot.textContent = total === 0 ? 'Held: none' : 'Held: ' + total;
   }
   search.addEventListener('input', renderSidebar);
 
@@ -414,10 +489,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const voices = el('div', { class: 'cdp-voices' });
   const voiceDefs: Array<{ key: Lens }> = [{ key: 'tradition' }, { key: 'science' }, { key: 'everyday' }];
   const voiceButtons: Record<string, HTMLElement> = {};
-  function setVoice(next: Lens): void {
-    lens = next;
+
+  function reflectVoice(): void {
     for (const def of voiceDefs) voiceButtons[def.key].setAttribute('aria-pressed', def.key === lens ? 'true' : 'false');
     voiceState.textContent = 'in the ' + lensLabel(lens) + ' voice';
+  }
+  function setVoice(next: Lens): void {
+    lens = next;
+    reflectVoice();
+    void repo.setLens(next);
+    trackEvent('voice_changed', { lens: next });
   }
   for (const def of voiceDefs) {
     const b = el('button', { type: 'button', class: 'cdp-voice', 'aria-pressed': 'false' }, lensLabel(def.key));
@@ -430,32 +511,30 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   askRow.appendChild(reply);
   ask.appendChild(askRow);
   main.appendChild(ask);
-  setVoice(lens); // respect the stored default
+  reflectVoice(); // reflect the stored default without re-persisting it
 
   const thread = el('div', { class: 'cdp-thread', 'aria-live': 'polite' });
   main.appendChild(thread);
 
   /* ----- thread mechanics ----- */
 
-  function touchesBefore(count: number): DepthContext['recentTouches'] {
-    const out: NonNullable<DepthContext['recentTouches']> = [];
-    for (let i = 0; i < count; i += 1) {
-      out.push({ role: 'person', text: entries[i].personText });
-      out.push({ role: 'oracle', text: entries[i].oracleText });
-    }
-    return out;
-  }
-
   function paragraphs(into: HTMLElement, text: string): void {
     const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p.length > 0);
     paras.forEach((p, i) => into.appendChild(el('p', i === paras.length - 1 ? { class: 'cdp-keel' } : {}, p)));
   }
 
-  function renderEntry(entry: Entry, index: number): HTMLElement {
+  function renderEntry(entry: EntryVM): HTMLElement {
     const wrap = el('div', { class: 'cdp-entry' });
     wrap.appendChild(el('p', { class: 'cdp-person' }, entry.personText));
 
     const card = el('div', { class: 'cdp-reply' });
+    const busy = pending[entry.id];
+    if (busy) {
+      card.appendChild(el('p', { class: 'cdp-busy' }, busy));
+      wrap.appendChild(card);
+      return wrap;
+    }
+
     card.appendChild(el('span', { class: 'cdp-voice-corner' }, lensLabel(entry.lens)));
     const bodyWrap = el('div');
     paragraphs(bodyWrap, entry.oracleText);
@@ -466,7 +545,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     rehear.appendChild(el('span', { class: 'lbl' }, 'hear in'));
     for (const def of voiceDefs) {
       const b = el('button', { type: 'button', class: 'cdp-voice', 'aria-pressed': def.key === entry.lens ? 'true' : 'false' }, lensLabel(def.key));
-      b.addEventListener('click', () => { void rehearEntry(index, def.key); });
+      b.addEventListener('click', () => { void rehearEntry(entry.id, def.key); });
       rehear.appendChild(b);
     }
     card.appendChild(rehear);
@@ -487,52 +566,56 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   function renderThread(): void {
     clear(thread);
-    entries.forEach((e, i) => thread.appendChild(renderEntry(e, i)));
+    entriesFromRepo().forEach((e) => thread.appendChild(renderEntry(e)));
   }
 
-  async function rehearEntry(index: number, newLens: Lens): Promise<void> {
-    const entry = entries[index];
-    if (entry.lens === newLens) return;
-    const node = thread.children[index] as HTMLElement | undefined;
-    if (node) {
-      const card = node.querySelector('.cdp-reply');
-      if (card) { clear(card as HTMLElement); (card as HTMLElement).appendChild(el('p', { class: 'cdp-busy' }, 'Hearing it again in the ' + lensLabel(newLens) + ' voice.')); }
-    }
-    const composed = await orchestrator.depth(entry.intention, newLens, { recentTouches: touchesBefore(index) });
-    entry.oracleText = composed.text;
-    entry.oracleSummary = composed.summary;
-    entry.lens = newLens;
+  function scrollToLast(): void {
+    const last = thread.lastElementChild as HTMLElement | null;
+    if (last && last.scrollIntoView) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function rehearEntry(intentionId: string, newLens: Lens): Promise<void> {
+    const it = repo.byId(intentionId);
+    if (!it) return;
+    const current = latestVesselTouch(it);
+    if (current && current.lens === newLens) return;
+    trackEvent('voice_reheard', { lens: newLens });
+    pending[intentionId] = 'Hearing it again in the ' + lensLabel(newLens) + ' voice.';
+    renderThread();
+    const composed = await orchestrator.depth(it, newLens, { recentTouches: recentTouches(intentionId) });
+    await repo.addTouch(intentionId, { role: 'vessel', text: composed.text, lens: newLens });
+    if (composed.summary) await repo.setSummary(intentionId, composed.summary);
+    delete pending[intentionId];
     renderThread();
   }
 
   async function compose(text: string): Promise<void> {
     const line = text.trim();
     if (line.length === 0) { textarea.focus(); return; }
-    const intention: HeldIntention = { text: line, kind: 'acute', anchor: null };
-    state.intentions.unshift(intention);
+
+    trackEvent('reply_requested', { lens });
+    const room = await repo.ensureRoom(ROOM_DEFAULT);
+    const held = await repo.hold({ text: line, roomId: room.id, kind: 'acute' });
+    trackEvent('intention_held', {});
+
+    pending[held.id] = 'Composing in the ' + lensLabel(lens) + ' voice.';
     renderSidebar();
-
-    const entry: Entry = { personText: line, intention, oracleText: '', lens };
-    const priorCount = entries.length;
-    entries.push(entry);
     renderThread();
-
-    const node = thread.children[entries.length - 1] as HTMLElement | undefined;
-    if (node) {
-      const card = node.querySelector('.cdp-reply');
-      if (card) { clear(card as HTMLElement); (card as HTMLElement).appendChild(el('p', { class: 'cdp-busy' }, 'Composing in the ' + lensLabel(lens) + ' voice.')); }
-    }
+    scrollToLast();
 
     reply.disabled = true;
+    const started = Date.now();
     try {
-      const composed = await orchestrator.depth(intention, lens, { recentTouches: touchesBefore(priorCount) });
-      entry.oracleText = composed.text;
-      entry.oracleSummary = composed.summary;
-      renderThread();
-      const last = thread.children[entries.length - 1] as HTMLElement | undefined;
-      if (last && last.scrollIntoView) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id) });
+      await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
+      if (composed.summary) await repo.setSummary(held.id, composed.summary);
+      trackEvent('reply_delivered', { lens, ms: Date.now() - started });
     } finally {
+      delete pending[held.id];
       reply.disabled = false;
+      renderSidebar();
+      renderThread();
+      scrollToLast();
     }
   }
 
@@ -541,7 +624,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = textarea.value; textarea.value = ''; void compose(t); }
   });
 
+  // First paint of the thread and sidebar from whatever the person already holds.
   renderSidebar();
+  renderThread();
 
   /* ----- the one menu ----- */
 
@@ -561,6 +646,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     backdrop.classList.add('open');
     drawer.classList.add('open');
     menuBtn.setAttribute('aria-expanded', 'true');
+    trackEvent('menu_opened', {});
   }
   backdrop.addEventListener('click', closeMenu);
   document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && menuOpen) closeMenu(); });
@@ -586,6 +672,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   readingRow.addEventListener('click', () => {
     clear(readingNote);
     readingNote.appendChild(el('span', {}, 'The deep reading is the long, cited reading drawn around your chart. It is composed in the next stage of the build, and it opens only from here, when you choose it.'));
+    trackEvent('deep_reading_opened', {});
   });
   daySect.appendChild(readingRow);
   daySect.appendChild(readingNote);
@@ -606,7 +693,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const pinVal = el('span', { class: 'cdp-menu-val' }, lensLabel(lens));
   pinRow.appendChild(pinVal);
   pinRow.addEventListener('click', () => {
-    try { window.localStorage.setItem('cdp-default-voice', lens); } catch (_e) { /* storage unavailable */ }
+    void repo.setLens(lens);
     pinVal.textContent = lensLabel(lens);
   });
   settings.appendChild(pinRow);
@@ -623,4 +710,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
   drawer.appendChild(soon);
   drawer.appendChild(el('p', { class: 'cdp-menu-foot' }, 'One menu, gathering what the old menus scattered. Each item lights up as its stage lands.'));
+
+  // The trial can be read from the first visit: a session has begun and the surface is seen.
+  trackEvent('session_start', {});
+  trackEvent('surface_view', {});
 }
