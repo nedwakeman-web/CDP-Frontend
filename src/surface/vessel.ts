@@ -97,12 +97,12 @@ const STYLES = `
 .cdp-surface .pillglyph { font-size:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
-.cdp-surface .coords { position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:65; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; padding:10px 12px; min-width:236px; display:none; box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:left; }
+.cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
 .cdp-surface .coords.open { display:block; }
-.cdp-surface .coords .crow { display:flex; justify-content:space-between; gap:14px; padding:5px 0; border-bottom:1px solid var(--gold-line); }
+.cdp-surface .coords .crow { display:flex; align-items:baseline; justify-content:space-between; gap:18px; padding:10px 0; border-bottom:1px solid var(--gold-line); }
 .cdp-surface .coords .crow:last-child { border-bottom:none; }
-.cdp-surface .coords .cl { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .coords .cv { font-family:Georgia, serif; font-size:13px; color:var(--text-light); text-align:right; }
+.cdp-surface .coords .cl { flex-shrink:0; font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .coords .cv { font-family:'EB Garamond', Georgia, serif; font-size:14px; color:var(--text-light); text-align:right; line-height:1.35; }
 .cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
 
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
@@ -123,11 +123,11 @@ const STYLES = `
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
-.cdp-surface .meet-line { font-size:18px; font-style:italic; font-weight:300; max-width:560px; margin-bottom:6px; }
+.cdp-surface .meet-line { font-size:14px; font-style:italic; color:var(--text-muted); max-width:560px; margin:16px auto 0; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:clamp(280px, 60vw, 660px); max-width:100%; aspect-ratio:2048 / 1536; height:auto; object-fit:cover; display:block; margin:14px auto 6px; border-radius:2px; }
+.cdp-surface .compass-svg { width:auto; max-width:clamp(280px, 60vw, 660px); max-height:52vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(90vw, 520px); }
+.cdp-surface .ask { width:min(90vw, 520px); margin-top:10px; }
 .cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
 .cdp-surface .ask-input:focus { border-color:var(--gold); }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
@@ -242,10 +242,12 @@ const STYLES = `
 }
 @media (max-width:560px) {
   .cdp-surface .home { padding:22px 14px 48px; }
-  .cdp-surface .compass-svg { width:88vw; }
-  .cdp-surface .naked-eye { font-size:18px; max-width:90vw; }
-  .cdp-surface .meet-line { font-size:16px; max-width:90vw; }
+  .cdp-surface .compass-svg { max-width:92vw; max-height:40vh; margin:10px auto 6px; }
+  .cdp-surface .meet-line { font-size:13px; max-width:90vw; }
   .cdp-surface .voice-toggle { max-width:92vw; }
+  .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
+  .cdp-surface .handle span:not(.chev) { display:none; }
+  .cdp-surface .coords { width:86vw; }
 }
 `;
 
@@ -270,7 +272,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'Streak', 'Feedback', 'Share', 'Toggle theme', 'Account', 'Sign in'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Share', 'Toggle theme', 'Account', 'Sign in'];
 const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
@@ -429,19 +431,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
   home.appendChild(compass);
 
-  // the brightest intention sits just under the compass, with an open line to
-  // respond to it directly
   const brightest = repo.live()[0];
-  // the Naked Eye: the open, present line, directly under the compass
-  home.appendChild(el('div', { class: 'naked-eye' }, 'What is alive in you, right now, in this moment.'));
-  // the brightest held intention sits below the Naked Eye line
-  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : '');
-  if (!brightest) meetLine.style.display = 'none';
-  home.appendChild(meetLine);
-  const meetSub = el('div', { class: 'meet-sub' }, 'Respond to this, or ask something else.');
-  if (!brightest) meetSub.style.display = 'none';
-  home.appendChild(meetSub);
-
+  // directly under the compass: the open line, where you say what is on your mind
   const ask = el('div', { class: 'ask' });
   const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
   ask.appendChild(input);
@@ -450,6 +441,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   askRow.appendChild(continueBtn);
   ask.appendChild(askRow);
   home.appendChild(ask);
+
+  // the brightest held intention rests quietly below the open line
+  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : '');
+  if (!brightest) meetLine.style.display = 'none';
+  home.appendChild(meetLine);
 
   const replyArea = el('div', { 'aria-live': 'polite' });
   home.appendChild(replyArea);
@@ -629,18 +625,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     return b;
   }
 
-  function readingsLinksBody(): HTMLElement {
+  function readingLinkBody(desc: string, screen: string): HTMLElement {
     const b = el('div');
-    const rows: Array<[string, string]> = [
-      ['Daily card', '/app?mode=quick&screen=scard'],
-      ['Full reading', '/app?mode=quick&screen=sr'],
-      ['Calendar', '/app?mode=quick&screen=sc'],
-      ['My year', '/app?mode=quick&screen=sctx'],
-      ['Compatibility', '/app?mode=quick&screen=scompat'],
-      ['Profiles', '/app?mode=quick&screen=sp']
-    ];
-    for (const row of rows) { b.appendChild(el('a', { class: 'rdg-link', href: row[1] }, row[0])); }
-    b.appendChild(el('div', { class: 'soft' }, 'Opens in the planner.'));
+    b.appendChild(el('div', { class: 'soft' }, desc));
+    b.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + screen }, 'Open in the planner'));
     return b;
   }
   const leftSpec: Array<[string, HTMLElement]> = [
@@ -652,15 +640,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     ['May calendar', calBody()]
   ];
   const rightSpec: Array<[string, HTMLElement]> = [
-    ['Open a reading', readingsLinksBody()],
-    ['Today\u2019s reading', todayBody()],
-    ['The year, the long view', longViewBody()],
-    ['Profiles', profilesBody()],
-    ['Compatibility', compatBody()],
-    ['Family oracles', familyBody()],
-    ['Shared family context', sharedBody()],
-    ['What it knows', knowsBody()],
-    ['The vault', vaultBody()]
+    ['Daily card', readingLinkBody('The quick daily read.', 'scard')],
+    ['Full reading', readingLinkBody('The full Oracle reading.', 'sr')],
+    ['My year', readingLinkBody('Your year, the long arc.', 'sctx')],
+    ['Compatibility', readingLinkBody('How two charts meet.', 'scompat')],
+    ['Profiles', readingLinkBody('People you read for.', 'sp')]
   ];
 
   function buildDrawer(side: 'left' | 'right', title: string, spec: Array<[string, HTMLElement]>): { drawer: HTMLElement; list: HTMLElement } {
@@ -804,6 +788,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
       row.appendChild(val);
       row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
+    } else if (label === 'About') {
+      row.addEventListener('click', () => { menu.classList.remove('open'); voiceNote.classList.add('show'); });
     } else {
       row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
     }
