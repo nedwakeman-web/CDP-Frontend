@@ -81,6 +81,24 @@ const STYLES = `
 }
 .cdp-surface * { margin:0; padding:0; box-sizing:border-box; }
 .cdp-surface .display { font-family:Cinzel, Georgia, serif; }
+.cdp-surface[data-theme="light"] {
+  --navy:#F2EDE3; --gold:#9A7B22; --gold-soft:#B8942A; --gold-line:rgba(120,95,40,0.25);
+  --text-light:#23303F; --text-muted:#4A5562; --text-dim:rgba(35,48,63,0.5); --teal:#1D7A5E;
+}
+
+.cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px; }
+.cdp-surface .daystrip .date { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
+.cdp-surface .pill { position:relative; width:13px; height:13px; border-radius:50%; border:1px solid var(--gold-line); background:transparent; cursor:pointer; padding:0; }
+.cdp-surface .pill:hover, .cdp-surface .pill.open { border-color:var(--gold); }
+.cdp-surface .pill::after { content:''; position:absolute; inset:3.5px; border-radius:50%; background:var(--gold); opacity:.45; }
+.cdp-surface .pill.open::after { opacity:1; }
+.cdp-surface .coords { position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:65; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; padding:10px 12px; min-width:236px; display:none; box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:left; }
+.cdp-surface .coords.open { display:block; }
+.cdp-surface .coords .crow { display:flex; justify-content:space-between; gap:14px; padding:5px 0; border-bottom:1px solid var(--gold-line); }
+.cdp-surface .coords .crow:last-child { border-bottom:none; }
+.cdp-surface .coords .cl { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .coords .cv { font-family:Cinzel, Georgia, serif; font-size:13px; color:var(--text-light); text-align:right; }
+.cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
 
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
@@ -229,7 +247,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'Streak', 'Feedback', 'Share', 'Account', 'Sign in'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'Streak', 'Feedback', 'Share', 'Toggle theme', 'Account', 'Sign in'];
 const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
@@ -256,9 +274,17 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     document.head.appendChild(style);
   }
 
+  let theme: 'dark' | 'light' = 'dark';
+  try { const t = window.localStorage.getItem('cdp-theme'); if (t === 'dark' || t === 'light') theme = t; } catch (_e) { /* presentation only */ }
+
   clear(root);
-  const surface = el('div', { class: 'cdp-surface' });
+  const surface = el('div', { class: 'cdp-surface', 'data-theme': theme });
   root.appendChild(surface);
+  function setTheme(next: 'dark' | 'light'): void {
+    theme = next;
+    surface.setAttribute('data-theme', theme);
+    try { window.localStorage.setItem('cdp-theme', theme); } catch (_e) { /* presentation only */ }
+  }
 
   const day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
   function coordValue(key: string): string {
@@ -300,6 +326,31 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   /* ===== home (centre) ===== */
   const home = el('main', { class: 'home' });
+
+  // a quiet date with a silent coordinate pill, opening on a tap
+  const daystrip = el('div', { class: 'daystrip' });
+  daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
+  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today\u2019s coordinates', 'aria-expanded': 'false' });
+  const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today\u2019s coordinates' });
+  for (const c of day.coordinates) {
+    const crow = el('div', { class: 'crow' });
+    crow.appendChild(el('span', { class: 'cl' }, c.label));
+    crow.appendChild(el('span', { class: c.unknown ? 'cv pending' : 'cv' }, c.display));
+    coords.appendChild(crow);
+  }
+  pill.appendChild(coords);
+  let coordsOpen = false;
+  pill.addEventListener('click', (e: Event) => {
+    e.stopPropagation();
+    coordsOpen = !coordsOpen;
+    pill.classList.toggle('open', coordsOpen);
+    coords.classList.toggle('open', coordsOpen);
+    pill.setAttribute('aria-expanded', coordsOpen ? 'true' : 'false');
+  });
+  document.addEventListener('click', () => { if (coordsOpen) { coordsOpen = false; pill.classList.remove('open'); coords.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); } });
+  daystrip.appendChild(pill);
+  home.appendChild(daystrip);
+
   const brightest = repo.live()[0];
   const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : 'What is alive for you right now.');
   home.appendChild(meetLine);
@@ -442,15 +493,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function todayBody(): HTMLElement {
     const b = el('div');
     b.appendChild(lineEl('The honest read on today: open it with the compass, and the reading composes around what you are holding.', longDate(dateStr)));
-    const ud = coordValue('universalDay') || coordValue('universal_day');
-    const kin = coordValue('kin');
-    const moon = coordValue('lunar');
-    const parts: string[] = [];
-    if (ud) parts.push('Universal day ' + ud);
-    if (kin) parts.push(kin);
-    if (moon) parts.push(moon);
-    b.appendChild(lineEl(parts.length > 0 ? parts.join('. ') : 'Today\u2019s coordinates compose with the reading.', undefined, true));
-    b.appendChild(el('div', { class: 'soft' }, 'Opens to the full card: the day\u2019s coordinates, the planetary weather, and your signature.'));
+    b.appendChild(el('div', { class: 'soft' }, 'The day\u2019s coordinates sit in the pill by the date. Opens to the full card: the planetary weather and your signature. Arrives as its stage lands.'));
     return b;
   }
   function longViewBody(): HTMLElement {
@@ -662,7 +705,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   for (const label of MENU_ITEMS) {
     const row = el('button', { type: 'button', class: 'menu-row' });
     row.appendChild(el('span', {}, label));
-    row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
+    if (label === 'Toggle theme') {
+      const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
+      row.appendChild(val);
+      row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
+    } else {
+      row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
+    }
     menu.appendChild(row);
   }
   menu.appendChild(menuNote);
