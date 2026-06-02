@@ -1,19 +1,26 @@
 /**
  * CDP: Bootstrap and mount the Vessel surface.
  *
- * The Vessel is the primary interaction surface. It holds intentions, threads
- * them through a composition orchestrator, and renders calm, grounded
- * reflections back. This is the entry point. It mounts Vessel to #app and wires
- * the orchestrator.
+ * The entry point. It constructs the data layer (a Store, chosen for the moment,
+ * wrapped in the VesselRepository), chooses the composition orchestrator, and
+ * mounts the Vessel to #app. The surface is handed a repository and an
+ * orchestrator and knows nothing about what is behind either, which is what lets
+ * the on-device store become the server store at scale with no surface change.
+ *
+ * Store choice. storeFor() returns the server store for a signed in person on a
+ * configured backend, and the on-device store otherwise. Until auth is wired the
+ * result is the on-device store, which persists across visits on this device.
+ * An explicit offline mode (VITE_OFFLINE) forces the on-device store even when a
+ * backend is configured, for safe local development.
  *
  * Orchestrator choice. The server-backed ApiOrchestrator is used by default,
  * because it already degrades to an honest held state when the endpoint is
- * unreachable, so it is safe even before or during a server problem. Gating on
- * a configured API base would be unsafe here: the production deploy proxies
- * /api to Railway with an empty VITE_API_BASE, so such a gate would silently
- * fall back to the local placeholder in production, the worst place for it.
- * The local placeholder is therefore selected only in an explicit offline mode,
- * VITE_OFFLINE set to true, or VITE_API_BASE set to the sentinel "local".
+ * unreachable, so it is safe even before or during a server problem. Gating on a
+ * configured API base would be unsafe: the production deploy proxies /api to
+ * Railway with an empty VITE_API_BASE, so such a gate would silently fall back to
+ * the local placeholder in production, the worst place for it. The local
+ * placeholder is selected only in an explicit offline mode, VITE_OFFLINE set to
+ * true, or VITE_API_BASE set to the sentinel "local".
  *
  * House style holds in this file: no em dashes, no en dashes, no exclamation
  * marks, in code and in comments alike.
@@ -22,6 +29,8 @@
 import { mountVessel } from './surface/vessel';
 import { LocalOrchestrator, ApiOrchestrator } from './surface/compose';
 import type { Orchestrator } from './surface/compose';
+import { VesselRepository } from './data/repository';
+import { storeFor } from './data/store';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || '';
 const OFFLINE = (import.meta.env.VITE_OFFLINE as string | undefined) === 'true' || API_BASE === 'local';
@@ -35,6 +44,13 @@ function chooseOrchestrator(): Orchestrator {
   return new ApiOrchestrator(base, local);
 }
 
+async function buildRepository(): Promise<VesselRepository> {
+  const store = await storeFor({ forceLocal: OFFLINE });
+  const repo = new VesselRepository(store);
+  await repo.init();
+  return repo;
+}
+
 async function bootstrap(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) {
@@ -43,7 +59,8 @@ async function bootstrap(): Promise<void> {
     return;
   }
   try {
-    await mountVessel({ root, orchestrator: chooseOrchestrator() });
+    const repo = await buildRepository();
+    await mountVessel({ root, orchestrator: chooseOrchestrator(), repo });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('CDP: vessel failed to mount', e);
