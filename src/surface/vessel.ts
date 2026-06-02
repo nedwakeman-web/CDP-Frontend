@@ -74,24 +74,25 @@ function latestVesselTouch(it: HeldIntention): Touch | null {
 
 const STYLES = `
 .cdp-surface {
-  --navy:#031731; --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
-  --text-light:#F0E6CC; --text-muted:#C8BAA0; --text-dim:rgba(201,186,160,0.55); --teal:#1D9E75;
-  background:var(--navy); color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
+  --bg:#031831; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
+  --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
+  --text-light:#F0E6CC; --text-muted:#D4C8AE; --text-dim:#9E9282; --teal:#81CDB6; --master:#C8A0FF;
+  background:var(--bg); color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
   min-height:100vh; overflow:hidden;
 }
 .cdp-surface * { margin:0; padding:0; box-sizing:border-box; }
 .cdp-surface .display { font-family:Cinzel, Georgia, serif; }
 .cdp-surface[data-theme="light"] {
-  --navy:#F2EDE3; --gold:#9A7B22; --gold-soft:#B8942A; --gold-line:rgba(120,95,40,0.25);
-  --text-light:#23303F; --text-muted:#4A5562; --text-dim:rgba(35,48,63,0.5); --teal:#1D7A5E;
+  --bg:#F5F0E8; --navy:#EDE6D6; --raised:#E4DBC8; --raised2:#F8F4EC;
+  --gold:#9A7B22; --gold-soft:#B8942A; --gold-line:rgba(120,95,40,0.25);
+  --text-light:#1A1208; --text-muted:#3D3220; --text-dim:#7A6A50; --teal:#2E8A6B; --master:#7A5BC8;
 }
 
 .cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px; }
 .cdp-surface .daystrip .date { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
-.cdp-surface .pill { position:relative; width:13px; height:13px; border-radius:50%; border:1px solid var(--gold-line); background:transparent; cursor:pointer; padding:0; }
-.cdp-surface .pill:hover, .cdp-surface .pill.open { border-color:var(--gold); }
-.cdp-surface .pill::after { content:''; position:absolute; inset:3.5px; border-radius:50%; background:var(--gold); opacity:.45; }
-.cdp-surface .pill.open::after { opacity:1; }
+.cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
+.cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
+.cdp-surface .pillglyph { font-size:16px; line-height:1; }
 .cdp-surface .coords { position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:65; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; padding:10px 12px; min-width:236px; display:none; box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:left; }
 .cdp-surface .coords.open { display:block; }
 .cdp-surface .coords .crow { display:flex; justify-content:space-between; gap:14px; padding:5px 0; border-bottom:1px solid var(--gold-line); }
@@ -103,7 +104,9 @@ const STYLES = `
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.cdp-surface .voice-toggle { display:flex; gap:2px; background:rgba(13,30,51,0.5); border:1px solid var(--text-dim); border-radius:2px; padding:4px; }
+.cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; }
+.cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:5px; min-height:12px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
+.cdp-surface .voice-toggle { display:flex; gap:2px; background:var(--raised); border:1px solid var(--text-dim); border-radius:2px; padding:4px; }
 .cdp-surface .voice-btn { padding:6px 13px; background:transparent; color:var(--text-muted); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:1px; font-weight:500; cursor:pointer; transition:background .2s, color .2s; }
 .cdp-surface .voice-btn.active { background:var(--gold); color:var(--navy); }
 .cdp-surface .voice-note { font-size:10px; color:var(--text-dim); letter-spacing:.3px; max-width:380px; text-align:center; height:0; overflow:hidden; opacity:0; transition:opacity .2s; }
@@ -118,7 +121,7 @@ const STYLES = `
 .cdp-surface .compass-svg { width:min(46vmin, 320px); height:auto; display:block; margin:6px auto 16px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
 .cdp-surface .ask { width:min(90vw, 520px); }
-.cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:rgba(13,30,51,0.55); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
+.cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
 .cdp-surface .ask-input:focus { border-color:var(--gold); }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
 .cdp-surface .ask-row { display:flex; gap:12px; justify-content:center; margin-top:14px; }
@@ -129,7 +132,7 @@ const STYLES = `
 .cdp-surface .meet-context { margin-top:20px; font-size:12px; color:var(--text-dim); letter-spacing:.5px; background:transparent; border:none; cursor:pointer; border-bottom:1px solid var(--gold-line); padding-bottom:2px; }
 .cdp-surface .meet-context:hover { color:var(--gold); border-color:var(--gold); }
 
-.cdp-surface .reply { width:min(90vw, 560px); margin:22px auto 0; text-align:left; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:rgba(13,30,51,0.4); padding:16px 18px; position:relative; }
+.cdp-surface .reply { width:min(90vw, 560px); margin:22px auto 0; text-align:left; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:var(--raised); padding:16px 18px; position:relative; }
 .cdp-surface .reply .corner { position:absolute; top:10px; right:12px; font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); }
 .cdp-surface .reply .person { font-style:italic; color:var(--text-muted); margin-bottom:10px; }
 .cdp-surface .reply p { font-size:14px; line-height:1.7; margin-bottom:10px; }
@@ -140,11 +143,11 @@ const STYLES = `
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:22px; height:120px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-dim); background:var(--navy); border:1px solid var(--gold-line); }
+.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:30px; height:158px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--gold); background:var(--raised); border:1px solid var(--gold-line); }
 .cdp-surface .handle:hover { color:var(--gold); border-color:var(--gold); }
 .cdp-surface .handle-left { left:0; border-left:none; border-radius:0 4px 4px 0; }
 .cdp-surface .handle-right { right:0; border-right:none; border-radius:4px 0 0 4px; }
-.cdp-surface .handle span { writing-mode:vertical-rl; font-size:10px; letter-spacing:2px; text-transform:uppercase; }
+.cdp-surface .handle span { writing-mode:vertical-rl; font-family:Cinzel, Georgia, serif; font-size:12px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--gold); }
 .cdp-surface .handle-left span { transform:rotate(180deg); }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
@@ -156,7 +159,7 @@ const STYLES = `
 .cdp-surface .pin { background:transparent; border:1px solid var(--text-dim); color:var(--text-dim); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
 .cdp-surface .pin.pinned { border-color:var(--gold); color:var(--gold); }
 
-.cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:rgba(13,30,51,0.32); }
+.cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:var(--raised); }
 .cdp-surface .module.dragging { opacity:0.45; }
 .cdp-surface .module.drop-target { border-color:var(--gold); }
 .cdp-surface .module-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--gold-line); cursor:grab; }
@@ -252,6 +255,14 @@ const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', '
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
+const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
+const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
+const CYCLING_PHRASES: Record<Lens, string[]> = {
+  tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
+  science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
+  everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits', 'Whichever helps you most'],
+};
+
 /* ---- mount ---------------------------------------------------------------- */
 
 export async function mountVessel(options: VesselOptions): Promise<void> {
@@ -297,6 +308,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   header.appendChild(el('div', { class: 'brand' }, 'COSMIC DAILY PLANNER'));
 
   const voiceWrap = el('div', { class: 'voice-wrap' });
+  const voiceCycle = el('div', { class: 'voice-cycle', 'aria-hidden': 'true' });
+  voiceWrap.appendChild(voiceCycle);
   const voiceToggle = el('div', { class: 'voice-toggle' });
   const voiceDefs: Lens[] = ['tradition', 'everyday', 'science'];
   const voiceButtons: Record<string, HTMLElement> = {};
@@ -314,15 +327,41 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const headerRight = el('div', { class: 'header-right' });
   const noteBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'About the voices', title: 'About the voices' }, '?');
   noteBtn.addEventListener('click', () => voiceNote.classList.toggle('show'));
-  const calBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Calendar', title: 'Calendar' }, 'C');
+  const calBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Calendar', title: 'Calendar' });
+  calBtn.innerHTML = ICON_CALENDAR;
   calBtn.addEventListener('click', () => openDrawer('left'));
-  const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' }, 'P');
+  const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' });
+  profBtn.innerHTML = ICON_PROFILE;
   profBtn.addEventListener('click', () => menu.classList.toggle('open'));
   headerRight.appendChild(noteBtn);
   headerRight.appendChild(calBtn);
   headerRight.appendChild(profBtn);
   header.appendChild(headerRight);
   surface.appendChild(header);
+
+  /* the cycling tagline: rotates through the current voice's framings of the
+     two telescopes, and resets to that voice's set whenever the voice changes */
+  let cycleIdx = 0;
+  function paintCycle(): void {
+    const set = CYCLING_PHRASES[lens] || CYCLING_PHRASES.everyday;
+    if (cycleIdx >= set.length) cycleIdx = 0;
+    voiceCycle.textContent = set[cycleIdx];
+  }
+  function resetCycle(): void {
+    cycleIdx = 0;
+    voiceCycle.style.opacity = '0';
+    window.setTimeout(() => { paintCycle(); voiceCycle.style.opacity = '0.85'; }, 200);
+  }
+  paintCycle();
+  window.setInterval(() => {
+    voiceCycle.style.opacity = '0';
+    window.setTimeout(() => {
+      const set = CYCLING_PHRASES[lens] || CYCLING_PHRASES.everyday;
+      cycleIdx = (cycleIdx + 1) % set.length;
+      paintCycle();
+      voiceCycle.style.opacity = '0.85';
+    }, 450);
+  }, 4800);
 
   /* ===== home (centre) ===== */
   const home = el('main', { class: 'home' });
@@ -331,6 +370,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
   const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today\u2019s coordinates', 'aria-expanded': 'false' });
+  pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
   const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today\u2019s coordinates' });
   for (const c of day.coordinates) {
     const crow = el('div', { class: 'crow' });
@@ -725,6 +765,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (next === lens) return;
     lens = next;
     reflectVoice();
+    resetCycle();
     void repo.setLens(next);
     trackEvent('voice_changed', { lens: next });
     if (activeReplyId) void revoice(activeReplyId);
