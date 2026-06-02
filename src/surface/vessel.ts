@@ -8,7 +8,7 @@
  * reading, The year long view, Profiles, Compatibility, Family oracles,
  * Shared family context, What it knows, The vault.
  *
- * What is wired to real state: the meet-line (your brightest held intention),
+ * What is wired to real state: the meet-line (composed from what is held,
  * What is live now (your held and resting intentions), the vault count, today's
  * coordinates in Today's reading, and the ask, which composes a real reflection
  * through the orchestrator and the live /api/compose/depth endpoint. The
@@ -549,7 +549,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (fb.firstElementChild) home.appendChild(fb.firstElementChild);
   }
 
-  const brightest = repo.live()[0];
   // directly under the compass: the open line, where you say what is on your mind
   const ask = el('div', { class: 'ask' });
   const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
@@ -560,9 +559,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   ask.appendChild(askRow);
   home.appendChild(ask);
 
-  // the brightest held intention rests quietly below the open line
-  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : '');
-  if (!brightest) meetLine.style.display = 'none';
+  // recognition, not echo: a line composed from what is held, today's coordinates,
+  // and the chosen voice. A local first cut until the backend composes it live.
+  const meetLine = el('div', { class: 'meet-line' }, composeMeetLine());
   home.appendChild(meetLine);
 
   const replyArea = el('div', { 'aria-live': 'polite' });
@@ -1038,10 +1037,41 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function reflectVoice(): void {
     for (const v of voiceDefs) voiceButtons[v].classList.toggle('active', v === lens);
   }
+  function composeMeetLine(): string {
+    const held = repo.live().length > 0;
+    const moon = lunarWindow(dateStr);
+    const master = universalDay(dateStr).isMaster;
+    if (!held) {
+      if (lens === 'tradition') return 'Nothing is held yet. Name what is alive, and the day\u2019s pattern reads around it.';
+      if (lens === 'science') return 'Nothing is held yet. Name what is alive, and the reading orients to it.';
+      return 'Nothing is held yet. Say what matters today, and the reading builds around it.';
+    }
+    if (moon.black) {
+      if (lens === 'tradition') return 'What you are holding meets a Black Moon window, the two days before the new moon, weighted to review rather than beginnings.';
+      if (lens === 'science') return 'What you are holding meets the dark of the cycle, a window that tends to favour consolidation over initiation.';
+      return 'What you are holding meets a tricky window, the two days before the new moon, better for review than for launching.';
+    }
+    if (moon.shiva) {
+      if (lens === 'tradition') return 'What you are holding meets a Shiva Moon window, the fertile days just after the new moon.';
+      if (lens === 'science') return 'What you are holding meets the reset just after the new moon, a window many find fresh for new starts.';
+      return 'What you are holding meets the days just after the new moon, a good window for a fresh start.';
+    }
+    if (master) {
+      if (lens === 'tradition') return 'What you are holding falls on a master-number day, high in signal and intensity.';
+      if (lens === 'science') return 'What you are holding falls on a numerology master day, which the system marks as high salience.';
+      return 'What you are holding falls on a master-number day, one that tends to run intense.';
+    }
+    if (lens === 'tradition') return 'What you are holding is still here, in the day\u2019s quieter weather.';
+    if (lens === 'science') return 'What you are holding is still here; the day carries no strong marker either way.';
+    return 'What you are holding is still here. A steady day to work with it.';
+  }
+  function paintMeetLine(): void { meetLine.textContent = composeMeetLine(); }
+
   function setVoice(next: Lens): void {
     if (next === lens) return;
     lens = next;
     reflectVoice();
+    paintMeetLine();
     resetCycle();
     void repo.setLens(next);
     trackEvent('voice_changed', { lens: next });
