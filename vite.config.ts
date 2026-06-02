@@ -7,6 +7,12 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
+    rollupOptions: {
+      input: {
+        index: 'index.html',
+        compass: 'compass.html',
+      },
+    },
   },
   server: {
     port: 3000,
