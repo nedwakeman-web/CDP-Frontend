@@ -26,7 +26,7 @@ import type { Lens, HeldIntention, Touch } from '../data/model';
 import type { Orchestrator, DepthContext } from './compose';
 import { VesselRepository } from '../data/repository';
 import { trackEvent } from '../data/analytics';
-import { dayCoordinates } from '../coordinates-core';
+import { dayCoordinates, kinDescriptor, universalDay, lunarWindow } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
 
 export interface VesselOptions {
@@ -78,6 +78,7 @@ const STYLES = `
   --bg:#0A1828; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
   --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
   --text-light:#F0E6CC; --text-muted:#D4C8AE; --text-dim:#9E9282; --teal:#81CDB6; --master:#C8A0FF;
+  --seal-red:#C56A5C; --seal-white:#E6DFC8; --seal-blue:#5F9BC0; --seal-yellow:#D8B24E;
   background:var(--bg); color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
   min-height:100vh; overflow:hidden;
 }
@@ -87,6 +88,7 @@ const STYLES = `
   --bg:#F5F0E8; --navy:#EDE6D6; --raised:#E4DBC8; --raised2:#F8F4EC;
   --gold:#9A7B22; --gold-soft:#B8942A; --gold-line:rgba(120,95,40,0.25);
   --text-light:#1A1208; --text-muted:#3D3220; --text-dim:#7A6A50; --teal:#2E8A6B; --master:#7A5BC8;
+  --seal-red:#B0432F; --seal-white:#9A8C66; --seal-blue:#3E6B8A; --seal-yellow:#9A7B22;
 }
 
 .cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; cursor:pointer; }
@@ -224,6 +226,55 @@ const STYLES = `
 .cdp-surface .scrim { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:70; opacity:0; pointer-events:none; transition:opacity .25s; }
 .cdp-surface .scrim.show { opacity:1; pointer-events:auto; }
 .cdp-surface .scrim-drawer { z-index:45; background:rgba(0,0,0,0.45); }
+.cdp-surface .calview { position:fixed; inset:58px 0 0 0; z-index:55; background:var(--bg); overflow-y:auto; padding:20px 18px 56px; display:none; }
+.cdp-surface .calview.open { display:block; }
+.cdp-surface .cv-head { display:flex; align-items:center; justify-content:center; gap:14px; max-width:560px; margin:0 auto 12px; position:relative; }
+.cdp-surface .cv-title { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:20px; letter-spacing:0.04em; color:var(--text-light); min-width:180px; text-align:center; }
+.cdp-surface .cv-nav { background:transparent; border:1px solid var(--gold-line); color:var(--gold); width:34px; height:34px; border-radius:2px; cursor:pointer; font-size:17px; line-height:1; }
+.cdp-surface .cv-nav:hover { border-color:var(--gold); }
+.cdp-surface .cv-close { position:absolute; right:0; top:2px; background:transparent; border:none; color:var(--text-dim); font-size:22px; line-height:1; cursor:pointer; }
+.cdp-surface .cv-close:hover { color:var(--gold); }
+.cdp-surface .cv-legend { display:flex; flex-wrap:wrap; justify-content:center; gap:13px; max-width:560px; margin:0 auto 14px; font-family:Cinzel, Georgia, serif; font-size:8.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .cv-legend span { display:inline-flex; align-items:center; gap:5px; }
+.cdp-surface .cv-sw { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.cdp-surface .cv-sw.portal { background:transparent; box-shadow:0 0 0 1.5px var(--gold); }
+.cdp-surface .cv-sw.master { background:var(--master); }
+.cdp-surface .cv-sw.new { background:var(--text-dim); }
+.cdp-surface .cv-sw.full { background:var(--text-light); }
+.cdp-surface .cv-sw.black { background:var(--seal-red); }
+.cdp-surface .cv-sw.shiva { background:var(--teal); }
+.cdp-surface .cv-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; max-width:560px; margin:0 auto; }
+.cdp-surface .cv-dow { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.1em; color:var(--text-dim); text-align:center; padding-bottom:4px; }
+.cdp-surface .cv-pad { aspect-ratio:1; }
+.cdp-surface .cv-cell { aspect-ratio:1; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:5px 0 0; background:var(--raised); border:1px solid transparent; border-radius:3px; cursor:pointer; color:var(--text-muted); font-family:'EB Garamond', Georgia, serif; }
+.cdp-surface .cv-cell:hover { border-color:var(--gold-line); color:var(--text-light); }
+.cdp-surface .cv-cell.today { border-color:var(--gold); }
+.cdp-surface .cv-cell.sel { background:var(--raised2); border-color:var(--gold); }
+.cdp-surface .cv-cell.master .cv-num { color:var(--master); }
+.cdp-surface .cv-num { font-size:14px; line-height:1; }
+.cdp-surface .cv-badges { display:flex; align-items:center; gap:3px; margin-top:4px; height:9px; }
+.cdp-surface .cv-seal { width:7px; height:7px; border-radius:50%; display:inline-block; }
+.cdp-surface .cv-seal.red { background:var(--seal-red); }
+.cdp-surface .cv-seal.white { background:var(--seal-white); }
+.cdp-surface .cv-seal.blue { background:var(--seal-blue); }
+.cdp-surface .cv-seal.yellow { background:var(--seal-yellow); }
+.cdp-surface .cv-cell.portal .cv-seal { box-shadow:0 0 0 1.5px var(--gold); }
+.cdp-surface .cv-moon { width:7px; height:7px; border-radius:50%; display:inline-block; }
+.cdp-surface .cv-moon.new { background:var(--text-dim); }
+.cdp-surface .cv-moon.full { background:var(--text-light); }
+.cdp-surface .cv-moon.black { background:var(--seal-red); }
+.cdp-surface .cv-moon.shiva { background:var(--teal); }
+.cdp-surface .cv-detail { max-width:560px; margin:22px auto 0; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:var(--raised); padding:16px 18px; }
+.cdp-surface .cv-ddate { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-light); }
+.cdp-surface .cv-dkin { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold); margin-top:5px; }
+.cdp-surface .cv-drows { margin-top:12px; }
+.cdp-surface .cv-drow { display:flex; align-items:baseline; justify-content:space-between; gap:18px; padding:9px 0; border-bottom:1px solid var(--gold-line); }
+.cdp-surface .cv-drow:last-child { border-bottom:none; }
+.cdp-surface .cv-dl { flex-shrink:0; font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .cv-dv { font-family:'EB Garamond', Georgia, serif; font-size:14px; color:var(--text-light); text-align:right; line-height:1.35; }
+.cdp-surface .cv-dv.pending { font-style:italic; color:var(--text-dim); }
+.cdp-surface .cv-dnote { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:13px; color:var(--text-muted); margin-top:12px; }
+@media (max-width:520px){ .cdp-surface .cv-num { font-size:12px; } .cdp-surface .cv-title { font-size:17px; min-width:128px; } .cdp-surface .calview { padding:16px 12px 48px; } }
 .cdp-surface .world { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-48%); width:min(92vw, 720px); max-height:84vh; overflow-y:auto; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; box-shadow:0 18px 70px rgba(0,0,0,0.6); padding:26px 28px 28px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
 .cdp-surface .world.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
 .cdp-surface .world-head { font-size:18px; font-style:italic; font-weight:300; color:var(--text-light); margin-bottom:4px; }
@@ -416,7 +467,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
   const calBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Calendar', title: 'Calendar' });
   calBtn.innerHTML = ICON_CALENDAR;
-  calBtn.addEventListener('click', () => openDrawer('left'));
+  calBtn.addEventListener('click', () => openCalendar());
   const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' });
   profBtn.innerHTML = ICON_PROFILE;
   profBtn.addEventListener('click', () => menu.classList.toggle('open'));
@@ -627,7 +678,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       cal.appendChild(cell);
     }
     b.appendChild(cal);
-    b.appendChild(el('div', { class: 'soft' }, MONTHS[month] + '. Portal, master-number and moon badges arrive with the calendar.'));
+    b.appendChild(el('div', { class: 'soft' }, MONTHS[month] + '. Tap to open the full calendar with portals, master-number days and the moon.'));
+    b.style.cursor = 'pointer';
+    b.addEventListener('click', () => openCalendar());
     return b;
   }
 
@@ -815,6 +868,113 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
   function openDrawer(side: string): void { drawers[side].classList.add('open'); refreshDrawerScrim(); }
   function closeDrawer(side: string): void { if (!pinned[side]) { drawers[side].classList.remove('open'); refreshDrawerScrim(); } }
+
+  /* ===== full calendar surface, on the verified coordinate core ===== */
+  const calview = el('div', { class: 'calview', role: 'dialog', 'aria-label': 'Calendar' });
+  const calHead = el('div', { class: 'cv-head' });
+  const calPrev = el('button', { type: 'button', class: 'cv-nav', 'aria-label': 'Previous month' }, '\u2039');
+  const calTitle = el('div', { class: 'cv-title' });
+  const calNext = el('button', { type: 'button', class: 'cv-nav', 'aria-label': 'Next month' }, '\u203A');
+  const calClose = el('button', { type: 'button', class: 'cv-close', 'aria-label': 'Close calendar' }, '\u00D7');
+  calHead.appendChild(calPrev);
+  calHead.appendChild(calTitle);
+  calHead.appendChild(calNext);
+  calHead.appendChild(calClose);
+  calview.appendChild(calHead);
+
+  const calLegend = el('div', { class: 'cv-legend' });
+  const legendItems: Array<[string, string]> = [
+    ['portal', 'Portal'], ['master', 'Master day'], ['new', 'New moon'],
+    ['full', 'Full moon'], ['black', 'Black'], ['shiva', 'Shiva'],
+  ];
+  for (const [cls, label] of legendItems) {
+    const chip = el('span');
+    chip.appendChild(el('i', { class: 'cv-sw ' + cls }));
+    chip.appendChild(document.createTextNode(label));
+    calLegend.appendChild(chip);
+  }
+  calview.appendChild(calLegend);
+
+  const calGrid = el('div', { class: 'cv-grid' });
+  calview.appendChild(calGrid);
+  const calDetail = el('div', { class: 'cv-detail' });
+  calview.appendChild(calDetail);
+  surface.appendChild(calview);
+
+  const calToday = new Date(dateStr + 'T00:00:00Z');
+  let viewYear = calToday.getUTCFullYear();
+  let viewMonth = calToday.getUTCMonth();
+  let selectedDay = dateStr;
+
+  function pad2(x: number): string { return x < 10 ? '0' + String(x) : String(x); }
+  function cellDateStr(y: number, m: number, d: number): string { return String(y) + '-' + pad2(m + 1) + '-' + pad2(d); }
+
+  function renderCalGrid(): void {
+    clear(calGrid);
+    calTitle.textContent = MONTHS[viewMonth] + ' ' + String(viewYear);
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((d) => calGrid.appendChild(el('div', { class: 'cv-dow' }, d)));
+    const first = new Date(Date.UTC(viewYear, viewMonth, 1));
+    const lead = (first.getUTCDay() + 6) % 7;
+    const days = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+    for (let i = 0; i < lead; i += 1) calGrid.appendChild(el('div', { class: 'cv-pad' }));
+    for (let dnum = 1; dnum <= days; dnum += 1) {
+      const ds = cellDateStr(viewYear, viewMonth, dnum);
+      const k = kinDescriptor(ds);
+      const ud = universalDay(ds);
+      const moon = lunarWindow(ds);
+      const cls = ['cv-cell'];
+      if (ds === dateStr) cls.push('today');
+      if (ds === selectedDay) cls.push('sel');
+      if (k.isGAP) cls.push('portal');
+      if (ud.isMaster) cls.push('master');
+      const cell = el('button', { type: 'button', class: cls.join(' '), 'data-date': ds });
+      cell.appendChild(el('span', { class: 'cv-num' }, String(dnum)));
+      const badges = el('span', { class: 'cv-badges' });
+      badges.appendChild(el('span', { class: 'cv-seal ' + k.colour.toLowerCase() }));
+      let moonClass = '';
+      if (moon.black) moonClass = 'black';
+      else if (moon.shiva) moonClass = 'shiva';
+      else if (moon.isFull) moonClass = 'full';
+      else if (moon.isNew) moonClass = 'new';
+      if (moonClass) badges.appendChild(el('span', { class: 'cv-moon ' + moonClass }));
+      cell.appendChild(badges);
+      cell.addEventListener('click', () => { selectedDay = ds; renderCalGrid(); renderCalDetail(); });
+      calGrid.appendChild(cell);
+    }
+  }
+
+  function renderCalDetail(): void {
+    clear(calDetail);
+    const dc = dayCoordinates(selectedDay, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
+    const k = kinDescriptor(selectedDay);
+    calDetail.appendChild(el('div', { class: 'cv-ddate' }, longDate(selectedDay)));
+    calDetail.appendChild(el('div', { class: 'cv-dkin' }, k.full + (k.isGAP ? ' (Galactic Activation Portal)' : '')));
+    const rows = el('div', { class: 'cv-drows' });
+    for (const c of dc.coordinates) {
+      const r = el('div', { class: 'cv-drow' });
+      r.appendChild(el('span', { class: 'cv-dl' }, c.label));
+      r.appendChild(el('span', { class: c.unknown ? 'cv-dv pending' : 'cv-dv' }, c.display));
+      rows.appendChild(r);
+    }
+    calDetail.appendChild(rows);
+    calDetail.appendChild(el('div', { class: 'cv-dnote' }, lunarWindow(selectedDay).meaning));
+  }
+
+  calPrev.addEventListener('click', () => { viewMonth -= 1; if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; } renderCalGrid(); });
+  calNext.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } renderCalGrid(); });
+  calClose.addEventListener('click', () => closeCalendar());
+
+  function openCalendar(): void {
+    closeDrawer('left');
+    closeDrawer('right');
+    selectedDay = dateStr;
+    viewYear = calToday.getUTCFullYear();
+    viewMonth = calToday.getUTCMonth();
+    renderCalGrid();
+    renderCalDetail();
+    calview.classList.add('open');
+  }
+  function closeCalendar(): void { calview.classList.remove('open'); }
 
   surface.querySelectorAll('.edge').forEach((z) => {
     z.addEventListener('mouseenter', () => { if (closeTimer) clearTimeout(closeTimer); openDrawer((z as HTMLElement).dataset.side as string); });
