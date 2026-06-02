@@ -88,23 +88,26 @@ const STYLES = `
   --text-light:#1A1208; --text-muted:#3D3220; --text-dim:#7A6A50; --teal:#2E8A6B; --master:#7A5BC8;
 }
 
-.cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px; }
+.cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; }
+.cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
 .cdp-surface .daystrip .date { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
 .cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
-.cdp-surface .pillglyph { font-size:16px; line-height:1; }
+.cdp-surface .pillglyph { font-size:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
+.cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
+@keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
 .cdp-surface .coords { position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:65; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; padding:10px 12px; min-width:236px; display:none; box-shadow:0 12px 36px rgba(0,0,0,0.5); text-align:left; }
 .cdp-surface .coords.open { display:block; }
 .cdp-surface .coords .crow { display:flex; justify-content:space-between; gap:14px; padding:5px 0; border-bottom:1px solid var(--gold-line); }
 .cdp-surface .coords .crow:last-child { border-bottom:none; }
 .cdp-surface .coords .cl { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .coords .cv { font-family:Cinzel, Georgia, serif; font-size:13px; color:var(--text-light); text-align:right; }
+.cdp-surface .coords .cv { font-family:Georgia, serif; font-size:13px; color:var(--text-light); text-align:right; }
 .cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
 
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
-.cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; }
+.cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
 .cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:5px; min-height:12px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
 .cdp-surface .voice-toggle { display:flex; gap:2px; background:var(--raised); border:1px solid var(--text-dim); border-radius:2px; padding:4px; }
 .cdp-surface .voice-btn { padding:6px 13px; background:transparent; color:var(--text-muted); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:1px; font-weight:500; cursor:pointer; transition:background .2s, color .2s; }
@@ -143,12 +146,14 @@ const STYLES = `
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:30px; height:158px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--gold); background:var(--raised); border:1px solid var(--gold-line); }
-.cdp-surface .handle:hover { color:var(--gold); border-color:var(--gold); }
-.cdp-surface .handle-left { left:0; border-left:none; border-radius:0 4px 4px 0; }
-.cdp-surface .handle-right { right:0; border-right:none; border-radius:4px 0 0 4px; }
+.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:32px; min-height:176px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; cursor:pointer; color:var(--gold); background:linear-gradient(180deg, var(--raised2), var(--raised)); border:1px solid var(--gold); box-shadow:0 0 18px rgba(0,0,0,0.40); transition:background .2s, box-shadow .2s, color .2s; }
+.cdp-surface .handle:hover { background:var(--gold); color:var(--navy); box-shadow:0 0 22px rgba(201,160,80,0.35); }
+.cdp-surface .handle:hover span, .cdp-surface .handle:hover .chev { color:var(--navy); }
+.cdp-surface .handle-left { left:0; border-left:none; border-radius:0 6px 6px 0; }
+.cdp-surface .handle-right { right:0; border-right:none; border-radius:6px 0 0 6px; }
 .cdp-surface .handle span { writing-mode:vertical-rl; font-family:Cinzel, Georgia, serif; font-size:12px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--gold); }
 .cdp-surface .handle-left span { transform:rotate(180deg); }
+.cdp-surface .handle .chev { font-size:13px; line-height:1; color:var(--gold); }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
 .cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
@@ -257,6 +262,7 @@ const ORDER_KEY = 'cdp-rail-order';
 
 const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
 const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
+const ICON_TELESCOPES = '<svg width="48" height="27" viewBox="0 0 48 27" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="19" cy="13.5" r="10.5"></circle><circle cx="29" cy="13.5" r="10.5"></circle></svg>';
 const CYCLING_PHRASES: Record<Lens, string[]> = {
   tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
   science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
@@ -322,7 +328,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   voiceWrap.appendChild(voiceToggle);
   const voiceNote = el('div', { class: 'voice-note' }, 'Everyday is the reading. Turn to Tradition or Science to check it against the register you trust.');
   voiceWrap.appendChild(voiceNote);
-  header.appendChild(voiceWrap);
 
   const headerRight = el('div', { class: 'header-right' });
   const noteBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'About the voices', title: 'About the voices' }, '?');
@@ -366,6 +371,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   /* ===== home (centre) ===== */
   const home = el('main', { class: 'home' });
 
+  const emblem = el('div', { class: 'emblem', 'aria-hidden': 'true' });
+  emblem.innerHTML = ICON_TELESCOPES;
+  home.appendChild(emblem);
+
   // a quiet date with a silent coordinate pill, opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
@@ -391,10 +400,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   daystrip.appendChild(pill);
   home.appendChild(daystrip);
 
-  const brightest = repo.live()[0];
-  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : 'What is alive for you right now.');
-  home.appendChild(meetLine);
-  home.appendChild(el('div', { class: 'meet-sub' }, 'Ask when you are ready, or sit with the compass.'));
+  // the voice repertoire sits under the date, as on the compass surface:
+  // emblem, date, the cycling line, then the toggle
+  home.appendChild(voiceWrap);
 
   const compass = el('img', { class: 'compass-svg', src: '/cdp-compass.svg', alt: 'Cosmic Daily Planner compass' }) as HTMLImageElement;
   compass.addEventListener('error', () => {
@@ -405,12 +413,19 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
   home.appendChild(compass);
 
+  // the brightest intention sits just under the compass, with an open line to
+  // respond to it directly
+  const brightest = repo.live()[0];
+  const meetLine = el('div', { class: 'meet-line' }, brightest ? brightest.text : 'What is alive for you right now.');
+  home.appendChild(meetLine);
+  home.appendChild(el('div', { class: 'meet-sub' }, brightest ? 'Respond to this, or ask something else.' : 'Ask when you are ready, or sit a while with the compass.'));
+
   const ask = el('div', { class: 'ask' });
   const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
   ask.appendChild(input);
   const askRow = el('div', { class: 'ask-row' });
   const continueBtn = el('button', { type: 'button', class: 'btn' }, 'CONTINUE') as HTMLButtonElement;
-  const sitBtn = el('button', { type: 'button', class: 'btn ghost' }, 'SIT WITH THE COMPASS');
+  const sitBtn = el('button', { type: 'button', class: 'btn ghost' }, 'SIT WITH THIS');
   askRow.appendChild(continueBtn);
   askRow.appendChild(sitBtn);
   ask.appendChild(askRow);
@@ -427,8 +442,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
   surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
   const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left' });
+  handleLeft.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u203A'));
   handleLeft.appendChild(el('span', {}, 'Vault and patterns'));
   const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right' });
+  handleRight.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u2039'));
   handleRight.appendChild(el('span', {}, 'People and reach'));
   surface.appendChild(handleLeft);
   surface.appendChild(handleRight);
