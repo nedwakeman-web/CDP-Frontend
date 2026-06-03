@@ -27,6 +27,7 @@
  */
 
 import { mountVessel } from './surface/vessel';
+import { prewarmReading } from './surface/reading';
 import { LocalOrchestrator, ApiOrchestrator } from './surface/compose';
 import type { Orchestrator } from './surface/compose';
 import { VesselRepository } from './data/repository';
@@ -99,6 +100,23 @@ async function bootstrap(): Promise<void> {
   try {
     const repo = await buildRepository();
     await mountVessel({ root, orchestrator: chooseOrchestrator(repo), repo });
+    // Pre start the reading the instant the app mounts, so the server is already
+    // composing the depth before the person opens the reading. Best effort and
+    // silent: a failure here never affects the surface. The computed scaffold
+    // renders instantly on open regardless, so the page is never blank.
+    if (!OFFLINE) {
+      const base = API_BASE === 'local' ? '' : API_BASE;
+      prewarmReading({
+        base,
+        tier: 'oracle',
+        getProfile: () => {
+          const p = repo.getProfile();
+          return p ? { birthDate: p.birthDate, birthTime: p.birthTime, birthPlace: p.birthPlace, name: p.name } : null;
+        },
+        getLens: () => repo.getLens(),
+        userId: null,
+      });
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('CDP: vessel failed to mount', e);
