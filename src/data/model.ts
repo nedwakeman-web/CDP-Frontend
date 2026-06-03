@@ -109,6 +109,16 @@ export interface Room {
   createdAt: number;
 }
 
+/** The person's birth coordinates, captured at Make it yours. The birth date
+ *  drives the personal numerology now; time and place are held for the natal
+ *  chart, which arrives with the transits. */
+export interface VesselProfile {
+  birthDate?: string;
+  birthTime?: string;
+  birthPlace?: string;
+  name?: string;
+}
+
 /** The whole of what the vessel holds for one person. The unit of persistence. */
 export interface VesselState {
   rooms: Room[];
@@ -116,6 +126,8 @@ export interface VesselState {
   intentions: HeldIntention[];
   /** The person's chosen default lens. */
   lens: Lens;
+  /** The person's birth profile, present once they have made it theirs. */
+  profile?: VesselProfile;
   /** Schema version, so migrations are explicit and safe. */
   version: number;
 }

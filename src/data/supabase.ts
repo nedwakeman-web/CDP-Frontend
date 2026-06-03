@@ -32,6 +32,9 @@ export interface SupabaseLike {
   };
   auth: {
     getUser: () => Promise<{ data: { user: { id: string } | null }; error: unknown }>;
+    signInWithOAuth: (params: { provider: string; options?: { redirectTo?: string } }) => Promise<{ data: unknown; error: unknown }>;
+    signInWithOtp: (params: { email: string; options?: { emailRedirectTo?: string } }) => Promise<{ data: unknown; error: unknown }>;
+    signOut: () => Promise<{ error: unknown }>;
   };
 }
 
@@ -77,5 +80,42 @@ export async function currentUserId(): Promise<string | null> {
     return res.data && res.data.user ? res.data.user.id : null;
   } catch (_e) {
     return null;
+  }
+}
+
+/** Begin Google sign in. The SDK redirects the browser to the provider and back
+ *  to redirectTo, where a fresh load picks up the session. A failure to start
+ *  leaves the person on the surface, signed out, never broken. */
+export async function signInWithGoogle(redirectTo: string): Promise<void> {
+  const client = await getSupabase();
+  if (!client) return;
+  try {
+    await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo } });
+  } catch (_e) {
+    // Degraded, not fatal.
+  }
+}
+
+/** Send a one-time sign in link by email. Returns whether the request was
+ *  accepted, so the surface can tell the person to check their inbox. */
+export async function signInWithMagicLink(email: string, redirectTo: string): Promise<{ ok: boolean }> {
+  const client = await getSupabase();
+  if (!client) return { ok: false };
+  try {
+    const res = await client.auth.signInWithOtp({ email: email, options: { emailRedirectTo: redirectTo } });
+    return { ok: !res.error };
+  } catch (_e) {
+    return { ok: false };
+  }
+}
+
+/** End the session. Callers reload afterwards so the store reverts to on-device. */
+export async function signOut(): Promise<void> {
+  const client = await getSupabase();
+  if (!client) return;
+  try {
+    await client.auth.signOut();
+  } catch (_e) {
+    // Already signed out or no backend; nothing to do.
   }
 }
