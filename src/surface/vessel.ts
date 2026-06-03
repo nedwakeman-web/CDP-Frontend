@@ -29,6 +29,8 @@ import { trackEvent } from '../data/analytics';
 import { dayCoordinates, kinDescriptor, universalDay, lunarWindow } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
+import { openReading } from './reading';
+import type { ReadingHandle } from './reading';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -413,6 +415,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   if (!repo.isLoaded) await repo.init();
   let lens: Lens = repo.getLens();
+  let readingHandle: ReadingHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -855,7 +858,27 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       ['Daily card', 'scard'], ['Full reading', 'sr'], ['My year', 'sctx'],
       ['Compatibility', 'scompat'], ['Profiles', 'sp']
     ];
-    for (const d of dests) { list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0])); }
+    for (const d of dests) {
+      if (d[1] === 'scard' || d[1] === 'sr') {
+        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+        const screenName = d[1];
+        link.addEventListener('click', () => {
+          closeDrawer('right');
+          if (readingHandle) readingHandle.close();
+          readingHandle = openReading({
+            container: surface,
+            getLens: () => lens,
+            getProfile: () => (profile ? { birthDate: profile.birthDate, name: profile.name } : null),
+            tier: 'oracle',
+            userId: null,
+            title: screenName === 'scard' ? 'Today\u2019s card' : 'Today\u2019s reading',
+          });
+        });
+        list.appendChild(link);
+      } else {
+        list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
+      }
+    }
     drawer.appendChild(list);
     pin.addEventListener('click', () => {
       pinned.right = !pinned.right;
@@ -1167,6 +1190,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     void repo.setLens(next);
     trackEvent('voice_changed', { lens: next });
     if (activeReplyId) void revoice(activeReplyId);
+    if (readingHandle) readingHandle.repaintVoice(next);
   }
   reflectVoice();
 
