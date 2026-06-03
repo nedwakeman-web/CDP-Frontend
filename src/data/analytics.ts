@@ -44,7 +44,8 @@ export type CdpEvent =
   | 'voice_changed'
   | 'voice_reheard'
   | 'menu_opened'
-  | 'deep_reading_opened';
+  | 'deep_reading_opened'
+  | 'best_day_searched';
 
 type Props = Record<string, string | number | boolean>;
 
