@@ -28,6 +28,7 @@ import { VesselRepository } from '../data/repository';
 import { trackEvent } from '../data/analytics';
 import { dayCoordinates, kinDescriptor, universalDay, lunarWindow } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
+import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -285,6 +286,7 @@ const STYLES = `
 .cdp-surface .signin input:focus { border-color:var(--gold); }
 .cdp-surface .signin .acts { display:flex; gap:10px; margin-top:18px; }
 .cdp-surface .signin .note { font-size:12px; color:var(--text-dim); line-height:1.5; margin-top:16px; }
+.cdp-surface .authbox { display:flex; flex-direction:column; gap:9px; margin-top:14px; padding-top:14px; border-top:1px solid var(--gold-line); }
 .cdp-surface .world { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-48%); width:min(92vw, 720px); max-height:84vh; overflow-y:auto; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; box-shadow:0 18px 70px rgba(0,0,0,0.6); padding:26px 28px 28px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
 .cdp-surface .world.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
 .cdp-surface .world-head { font-size:18px; font-style:italic; font-weight:300; color:var(--text-light); margin-bottom:4px; }
@@ -405,7 +407,7 @@ const CYCLING_PHRASES: Record<Lens, string[]> = {
 
 export async function mountVessel(options: VesselOptions): Promise<void> {
   const { root, orchestrator, repo } = options;
-  let profile = options.profile;
+  let profile = options.profile || repo.getProfile();
   const now = Date.now();
   const dateStr = todayUTCDateStr(now);
 
@@ -1036,7 +1038,38 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   signinActs.appendChild(makeMineBtn);
   signinActs.appendChild(notNowBtn);
   signin.appendChild(signinActs);
-  signin.appendChild(el('div', { class: 'note' }, 'Your birth time and place, for the full natal chart, arrive with the transits. Continue without signing in, or sign in to keep what you hold across your devices; signing in arrives with the next build, so for now your details stay on this device, for this visit.'));
+  signin.appendChild(el('div', { class: 'note' }, 'Your birth time and place, for the full natal chart, arrive with the transits.'));
+  const authBox = el('div', { class: 'authbox' });
+  if (!isSupabaseConfigured()) {
+    authBox.appendChild(el('div', { class: 'note' }, 'Continue without signing in, or sign in to keep what you hold across your devices. Sign in switches on once the backend is connected.'));
+  } else {
+    authBox.appendChild(el('div', { class: 'note' }, 'Sign in to keep what you hold across your devices, or simply continue without.'));
+    const gbtn = el('button', { type: 'button', class: 'btn' }, 'Continue with Google');
+    gbtn.addEventListener('click', () => { void signInWithGoogle(window.location.origin + window.location.pathname); });
+    authBox.appendChild(gbtn);
+    authBox.appendChild(el('label', { for: 'cdpSigninEmail' }, 'Or a sign-in link by email'));
+    const emailInput = el('input', { type: 'email', id: 'cdpSigninEmail', placeholder: 'you@example.com' }) as HTMLInputElement;
+    authBox.appendChild(emailInput);
+    const linkBtn = el('button', { type: 'button', class: 'btn ghost' }, 'Email me a link');
+    const linkMsg = el('div', { class: 'hint' });
+    linkBtn.addEventListener('click', () => {
+      if (!emailInput.value) return;
+      void signInWithMagicLink(emailInput.value, window.location.origin + window.location.pathname).then((r) => {
+        linkMsg.textContent = r.ok ? 'Check your inbox for the link.' : 'That did not send. Try again in a moment.';
+      });
+    });
+    authBox.appendChild(linkBtn);
+    authBox.appendChild(linkMsg);
+    void currentUserId().then((uid) => {
+      if (!uid) return;
+      clear(authBox);
+      authBox.appendChild(el('div', { class: 'note' }, 'You are signed in. What you hold is kept across your devices.'));
+      const outBtn = el('button', { type: 'button', class: 'btn ghost' }, 'Sign out');
+      outBtn.addEventListener('click', () => { void signOut().then(() => window.location.reload()); });
+      authBox.appendChild(outBtn);
+    });
+  }
+  signin.appendChild(authBox);
   surface.appendChild(signin);
   makeMineBtn.addEventListener('click', () => { if (bDate.value) applyProfile(bDate.value); signin.classList.remove('open'); });
   notNowBtn.addEventListener('click', () => signin.classList.remove('open'));
@@ -1108,6 +1141,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     day = dayCoordinates(dateStr, { birthDate: birthDate });
     paintCoords();
     paintMeetLine();
+    void repo.setProfile({ birthDate: birthDate });
   }
 
   function setVoice(next: Lens): void {
