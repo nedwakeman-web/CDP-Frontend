@@ -32,6 +32,7 @@ import {
   lunarWindow,
 } from '../coordinates-core';
 import { NUM_DATA } from '../data/numerology-content';
+import { citationsForClaim } from '../data/bibliography';
 
 /* ============================================================================
  * Options and handle
@@ -175,6 +176,7 @@ export interface CardModel {
   signature: { name: string; lifePath: { value: number; name: string; master: boolean } | null; personalYear: { value: number; name: string; master: boolean } | null; birthKin: { kin: number; full: string } | null };
   planets: Array<{ body: string; sign: string; degree: number }>;
   finalMessage: string;
+  sources: string[];
 }
 
 const SYNODIC = 29.53058867;
@@ -238,6 +240,13 @@ export function buildCardModel(dateStr: string, profile: CardProfile | null, len
     birthKin: hasBirth ? (() => { const bk = kinDescriptor(profile!.birthDate as string); return { kin: bk.kin, full: bk.full }; })() : null,
   };
 
+  const srcSet: string[] = [];
+  const seen = new Set<string>();
+  for (const claim of ['numerology_day_quality', 'dreamspell_count', 'lunar_phase_timing', 'pacing_circadian']) {
+    for (const c of citationsForClaim(claim)) { if (!c.counterweight && c.display && !seen.has(c.display)) { seen.add(c.display); srcSet.push(c.display); break; } }
+  }
+  const sources = srcSet.slice(0, 5);
+
   return {
     weekday,
     dateLong,
@@ -251,6 +260,7 @@ export function buildCardModel(dateStr: string, profile: CardProfile | null, len
     signature,
     planets,
     finalMessage,
+    sources,
   };
 }
 
@@ -272,8 +282,8 @@ function computedClosing(kd: { seal: string; toneName: string }, hook: string): 
  * The card SVG, pure. The on screen card and the saved image are this string.
  * ========================================================================== */
 
-const W = 760;
-const PAD = 44;
+const W = 720;
+const PAD = 56;
 
 function esc(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -297,175 +307,201 @@ class Layout {
   add(svg: string, dh: number): void { this.parts.push(svg); this.y += dh; }
 }
 
-function tspans(lines: string[], x: number, lineH: number): string {
-  return lines.map((ln, i) => '<tspan x="' + x + '" dy="' + (i === 0 ? 0 : lineH) + '">' + esc(ln) + '</tspan>').join('');
+function txt(lines: string[], x: number, y: number, size: number, colour: string, lineH: number, font: string, opts?: { italic?: boolean; anchor?: string; spacing?: number; weight?: string }): string {
+  const o = opts || {};
+  const a = o.anchor ? ' text-anchor="' + o.anchor + '"' : '';
+  const it = o.italic ? ' font-style="italic"' : '';
+  const ls = o.spacing != null ? ' letter-spacing="' + o.spacing + '"' : '';
+  const wt = o.weight ? ' font-weight="' + o.weight + '"' : '';
+  const ts = lines.map((ln, i) => '<tspan x="' + x + '" dy="' + (i === 0 ? 0 : lineH) + '">' + esc(ln) + '</tspan>').join('');
+  return '<text x="' + x + '" y="' + y + '"' + a + it + ls + wt + ' font-family="' + font + '" font-size="' + size + '" fill="' + colour + '">' + ts + '</text>';
 }
 
-function label(text: string, x: number, y: number, colour: string): string {
-  return '<text x="' + x + '" y="' + y + '" font-family="Cinzel, Georgia, serif" font-size="12" letter-spacing="3" fill="' + colour + '">' + esc(text.toUpperCase()) + '</text>';
-}
-function body(lines: string[], x: number, y: number, size: number, colour: string, lineH: number, italic?: boolean): string {
-  const style = italic ? ' font-style="italic" font-family="EB Garamond, Georgia, serif"' : ' font-family="Georgia, serif"';
-  return '<text x="' + x + '" y="' + y + '"' + style + ' font-size="' + size + '" fill="' + colour + '">' + tspans(lines, x, lineH) + '</text>';
-}
+const FONT = { sans: 'Helvetica Neue, Helvetica, Arial, sans-serif', serif: 'EB Garamond, Georgia, serif', caps: 'Cinzel, Georgia, serif' };
 
-/* palette */
+/* canonical palette, with a touch more contrast for the parchment body */
 const C = {
-  page: '#0A1828', panel: '#0D1E33', raised: '#122440', raised2: '#192E4A',
+  page: '#0A1828', panel: '#0D1E33', raised: '#13284A', raised2: '#192E4A',
   gold: '#C9A050', goldBright: '#E8C878', rule: '#BFA363', teal: '#81CDB6',
-  text: '#F0E6CC', dim: '#D4C8AE', faint: '#9E9282', master: '#C8A0FF',
+  text: '#F2EAD3', dim: '#C9BDA1', faint: '#8C826C', master: '#C8A0FF', glow: '#1A3658',
 };
+
+function capLabel(text: string, cx: number, y: number, colour: string): string {
+  return txt([text.toUpperCase()], cx, y, 12, colour, 0, FONT.caps, { anchor: 'middle', spacing: 4 });
+}
+function moonGlyph(cx: number, cy: number): string {
+  return '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="' + C.goldBright + '" opacity="0.92"/>'
+    + '<ellipse cx="' + (cx + 5) + '" cy="' + cy + '" rx="4.2" ry="9" fill="' + C.page + '" opacity="0.5"/>';
+}
+function ruleLine(y: number, x1: number, x2: number, op: number): string {
+  return '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="' + C.rule + '" stroke-opacity="' + op + '"/>';
+}
 
 export function buildCardSVG(m: CardModel, _lens: Lens): string {
   const L = new Layout();
-  const innerW = W - PAD * 2;
-  const maxBody = Math.floor(innerW / 8.4);
+  const inner = W - PAD * 2;
+  const cx = W / 2;
+  const wSans = Math.floor(inner / 10.2);
+  const wSerif = Math.floor(inner / 11.4);
 
-  // header band
-  L.add('', 30);
-  L.add('<text x="' + (W / 2) + '" y="' + L.y + '" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="15" letter-spacing="5" fill="' + C.goldBright + '">' + esc((m.weekday + ' \u00b7 ' + m.dateLong).toUpperCase()) + '</text>', 26);
-  if (m.place) L.add('<text x="' + (W / 2) + '" y="' + L.y + '" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="3" fill="' + C.faint + '">' + esc(m.place.toUpperCase()) + '</text>', 22);
-  L.add('<line x1="' + PAD + '" y1="' + (L.y + 14) + '" x2="' + (W - PAD) + '" y2="' + (L.y + 14) + '" stroke="' + C.rule + '" stroke-opacity="0.4"/>', 40);
+  // header, set in the glow
+  L.add('', 68);
+  L.add(txt([(m.weekday + '  \u00b7  ' + m.dateLong).toUpperCase()], cx, L.y, 17, C.goldBright, 0, FONT.caps, { anchor: 'middle', spacing: 5 }), 30);
+  if (m.place) L.add(txt([m.place.toUpperCase()], cx, L.y, 11, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 3 }), 0);
+  L.add('', 66);
+  L.add(ruleLine(L.y, PAD, W - PAD, 0.35), 54);
 
-  // current reflection (tappable)
+  // reflection (tappable)
   const reflWindow = m.windows.find((w) => w.key === m.currentWindow);
   const reflText = reflWindow ? reflWindow.reflection : computedReflection(m.currentWindow, m.personalDay ? m.personalDay.value : 1);
-  const reflLabel = m.currentWindow.toUpperCase() + ' REFLECTION';
-  const reflLines = wrap(reflText, maxBody);
+  const reflLines = wrap(reflText, wSans);
   const reflPrompt = 'It is ' + m.currentWindow + '. Read me my ' + m.currentWindow + ' reflection in depth for today.';
+  const rlHalf = (m.currentWindow + ' reflection').length * 5.7;
   L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc(reflPrompt) + '">', 0);
-  L.add(label(reflLabel, PAD, L.y, C.teal), 26);
-  L.add(body(reflLines, PAD, L.y, 17, C.text, 24), reflLines.length * 24 + 6);
-  L.add('<text x="' + (W - PAD) + '" y="' + L.y + '" text-anchor="end" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="2" fill="' + C.gold + '">' + esc('\u2197 ASK THE ORACLE') + '</text>', 18);
+  L.add(moonGlyph(cx - rlHalf - 14, L.y - 4), 0);
+  L.add(capLabel(m.currentWindow + ' Reflection', cx, L.y, C.teal), 40);
+  L.add(txt(reflLines, PAD, L.y, 19, C.text, 31, FONT.sans), reflLines.length * 31 + 14);
+  L.add(txt(['\u2197 Ask the Oracle'], W - PAD, L.y, 12, C.teal, 0, FONT.caps, { anchor: 'end', spacing: 1 }), 36);
   L.add('</g>', 0);
-  L.add('<circle cx="' + (W / 2) + '" cy="' + (L.y + 14) + '" r="2.5" fill="' + C.gold + '"/>', 40);
+  L.add(ruleLine(L.y, cx - 80, cx + 80, 0.22) + '<circle cx="' + cx + '" cy="' + L.y + '" r="2.5" fill="' + C.gold + '"/>', 50);
 
-  // FOR TODAY (the hold)
-  const maxFt = Math.floor(innerW / 11);
-  const ftLines = wrap(m.forToday, maxFt);
-  L.add(label('For Today', PAD, L.y, C.teal), 28);
-  L.add(body(ftLines, PAD, L.y, 19, C.text, 27, true), ftLines.length * 27 + 22);
+  // For Today, the hold
+  const ftLines = wrap(m.forToday, wSerif);
+  L.add(capLabel('For Today', cx, L.y, C.teal), 42);
+  L.add(txt(ftLines, PAD, L.y, 22, C.text, 35, FONT.serif), ftLines.length * 35 + 46);
 
   // Personal Day panel (tappable)
   if (m.personalDay) {
     const pd = m.personalDay;
-    const meaningLines = wrap(pd.meaning, maxBody - 8);
-    const panelH = Math.max(96, 56 + meaningLines.length * 22);
+    const meaningLines = wrap(pd.meaning, Math.floor((inner - 96) / 7.4));
+    const panelH = Math.max(122, 74 + meaningLines.length * 22);
     const top = L.y;
-    L.add('<rect x="' + (PAD - 16) + '" y="' + top + '" width="' + (innerW + 32) + '" height="' + panelH + '" rx="10" fill="' + C.raised + '"/>', 0);
     const numColour = pd.master ? C.master : C.gold;
-    L.add('<text x="' + PAD + '" y="' + (top + 30) + '" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="3" fill="' + C.faint + '">' + esc('PERSONAL DAY ' + pd.value) + (pd.master ? ' \u2605' : '') + '</text>', 0);
-    L.add('<text x="' + PAD + '" y="' + (top + 54) + '" font-family="EB Garamond, Georgia, serif" font-size="20" fill="' + numColour + '">' + esc(pd.name) + '</text>', 0);
-    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('My Personal Day is ' + pd.value + ', ' + pd.name + '. What does this energy ask of me today.') + '">', 0);
-    L.add('<text x="' + (W - PAD) + '" y="' + (top + 30) + '" text-anchor="end" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="2" fill="' + C.gold + '">' + esc('\u2197 ASK') + '</text>', 0);
-    L.add('<rect x="' + (PAD - 16) + '" y="' + top + '" width="' + (innerW + 32) + '" height="' + panelH + '" rx="10" fill="transparent"/>', 0);
-    L.add('</g>', 0);
-    L.add(body(meaningLines, PAD, top + 78, 14, C.dim, 22), 0);
-    L.add('', panelH + 22);
+    const ccx = PAD + 10, ccy = top + panelH / 2;
+    const tx = PAD + 62;
+    L.add('<rect x="' + (PAD - 22) + '" y="' + top + '" width="' + (inner + 44) + '" height="' + panelH + '" rx="13" fill="' + C.raised + '"/>', 0);
+    L.add('<circle cx="' + ccx + '" cy="' + ccy + '" r="27" fill="none" stroke="' + numColour + '" stroke-opacity="0.55"/>', 0);
+    L.add(txt([String(pd.value)], ccx, ccy + 9, 24, numColour, 0, FONT.serif, { anchor: 'middle' }), 0);
+    L.add(txt(['PERSONAL DAY ' + pd.value + (pd.master ? '  \u2605' : '')], tx, top + 34, 11, C.faint, 0, FONT.caps, { spacing: 3 }), 0);
+    L.add(txt([pd.name], tx, top + 60, 19, numColour, 0, FONT.serif), 0);
+    L.add(txt(meaningLines, tx, top + 84, 14, C.dim, 21, FONT.sans), 0);
+    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('My Personal Day is ' + pd.value + ', ' + pd.name + '. What does this energy ask of me today.') + '"><rect x="' + (PAD - 22) + '" y="' + top + '" width="' + (inner + 44) + '" height="' + panelH + '" rx="13" fill="transparent"/><text x="' + (W - PAD) + '" y="' + (top + 34) + '" text-anchor="end" font-family="' + FONT.caps + '" font-size="11" letter-spacing="2" fill="' + C.teal + '">' + esc('\u2197 ASK') + '</text></g>', 0);
+    L.add('', panelH + 28);
   }
 
-  // Lunar | Dreamspell two columns
+  // Lunar | Dreamspell, two columns
   {
-    const colW = innerW / 2 - 12;
+    const gap = 22;
+    const panelW = (inner + 44 - gap) / 2;
     const top = L.y;
-    const colH = 122;
-    const x1 = PAD - 16, x2 = PAD - 16 + colW + 24;
-    L.add('<rect x="' + x1 + '" y="' + top + '" width="' + (colW + 8) + '" height="' + colH + '" rx="10" fill="' + C.raised + '"/>', 0);
-    L.add('<rect x="' + x2 + '" y="' + top + '" width="' + (colW + 8) + '" height="' + colH + '" rx="10" fill="' + C.raised + '"/>', 0);
+    const colH = 134;
+    const xL = PAD - 22;
+    const xR = xL + panelW + gap;
+    const px = 20;
+    L.add('<rect x="' + xL + '" y="' + top + '" width="' + panelW + '" height="' + colH + '" rx="13" fill="' + C.raised + '"/>', 0);
+    L.add('<rect x="' + xR + '" y="' + top + '" width="' + panelW + '" height="' + colH + '" rx="13" fill="' + C.raised + '"/>', 0);
     // lunar
-    const moonGlyph = '<circle cx="' + (x1 + 24) + '" cy="' + (top + 50) + '" r="9" fill="none" stroke="' + C.goldBright + '" stroke-width="1.6"/><path d="M' + (x1 + 24) + ' ' + (top + 41) + ' a9 9 0 0 0 0 18 z" fill="' + C.goldBright + '" opacity="0.8"/>';
-    L.add('<text x="' + (x1 + 16) + '" y="' + (top + 26) + '" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="2" fill="' + C.teal + '">LUNAR PHASE</text>', 0);
-    L.add(moonGlyph, 0);
-    L.add('<text x="' + (x1 + 40) + '" y="' + (top + 54) + '" font-family="EB Garamond, Georgia, serif" font-size="16" fill="' + C.text + '">' + esc(m.lunar.phase) + '</text>', 0);
+    L.add(txt(['LUNAR PHASE'], xL + px, top + 28, 11, C.teal, 0, FONT.caps, { spacing: 2 }), 0);
+    L.add(moonGlyph(xL + px + 8, top + 56), 0);
+    L.add(txt([m.lunar.phase], xL + px + 26, top + 61, 17, C.text, 0, FONT.serif), 0);
     const moonSub = (m.lunar.sign ? m.lunar.sign + ' \u00b7 ' : '') + 'Day ' + m.lunar.age + ' \u00b7 ' + m.lunar.daysToNew + 'd to New Moon';
-    L.add(body(wrap(moonSub, Math.floor(colW / 6.6)), x1 + 16, top + 78, 12, C.dim, 17), 0);
-    if (m.lunar.black) L.add('<text x="' + (x1 + 16) + '" y="' + (top + colH - 12) + '" font-family="Georgia, serif" font-size="11" fill="' + C.goldBright + '">Black Moon window</text>', 0);
-    else if (m.lunar.shiva) L.add('<text x="' + (x1 + 16) + '" y="' + (top + colH - 12) + '" font-family="Georgia, serif" font-size="11" fill="' + C.goldBright + '">Shiva Moon window</text>', 0);
+    L.add(txt(wrap(moonSub, Math.floor((panelW - px * 2) / 6.4)), xL + px, top + 86, 12.5, C.dim, 18, FONT.sans), 0);
+    if (m.lunar.black) L.add(txt(['Black Moon window'], xL + px, top + colH - 14, 12, C.goldBright, 0, FONT.serif, { italic: true }), 0);
+    else if (m.lunar.shiva) L.add(txt(['Shiva Moon window'], xL + px, top + colH - 14, 12, C.goldBright, 0, FONT.serif, { italic: true }), 0);
     // dreamspell (tappable)
-    L.add('<text x="' + (x2 + 16) + '" y="' + (top + 26) + '" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="2" fill="' + C.teal + '">DREAMSPELL</text>', 0);
-    L.add(body(wrap(m.kin.full, Math.floor(colW / 6.4)), x2 + 16, top + 50, 13.5, C.text, 19), 0);
-    const hookLines = wrap(m.kin.toneName + ' tone asks: ' + m.kin.hook + '.', Math.floor(colW / 6.6));
-    L.add(body(hookLines, x2 + 16, top + 92, 12, C.dim, 16), 0);
-    if (m.kin.isGAP) L.add('<text x="' + (x2 + colW - 8) + '" y="' + (top + 26) + '" text-anchor="end" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="1" fill="' + C.goldBright + '">PORTAL</text>', 0);
-    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('Today is ' + m.kin.full + '. What does this Kin mean for me today.') + '"><rect x="' + x2 + '" y="' + top + '" width="' + (colW + 8) + '" height="' + colH + '" rx="10" fill="transparent"/></g>', 0);
-    L.add('', colH + 20);
+    L.add(txt(['DREAMSPELL'], xR + px, top + 28, 11, C.teal, 0, FONT.caps, { spacing: 2 }), 0);
+    if (m.kin.isGAP) L.add(txt(['PORTAL'], xR + panelW - px, top + 28, 10, C.goldBright, 0, FONT.caps, { anchor: 'end', spacing: 1 }), 0);
+    L.add(txt(wrap(m.kin.full, Math.floor((panelW - px * 2) / 6.2)), xR + px, top + 56, 14, C.text, 19, FONT.serif), 0);
+    L.add(txt(wrap(m.kin.toneName + ' tone asks: ' + m.kin.hook + '.', Math.floor((panelW - px * 2) / 6.4)), xR + px, top + 98, 12.5, C.dim, 17, FONT.sans), 0);
+    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('Today is ' + m.kin.full + '. What does this Kin mean for me today.') + '"><rect x="' + xR + '" y="' + top + '" width="' + panelW + '" height="' + colH + '" rx="13" fill="transparent"/></g>', 0);
+    L.add('', colH + 30);
   }
 
-  // Three windows row (tappable), the thing that was not tappable before
+  // Three windows row (tappable)
   if (m.windows.length === 3) {
-    const top = L.y;
-    L.add(label('The day in three windows', PAD, top, C.faint), 22);
+    L.add(capLabel('The day in three windows', cx, L.y, C.faint), 30);
     const rowTop = L.y;
-    const colW = innerW / 3 - 10;
-    const rowH = 118;
+    const gap = 16;
+    const colW = (inner + 44 - gap * 2) / 3;
+    const rowH = 120;
     m.windows.forEach((w, i) => {
-      const x = PAD - 8 + i * (colW + 12);
+      const x = (PAD - 22) + i * (colW + gap);
       const numColour = w.master ? C.master : C.gold;
-      L.add('<rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="9" fill="' + C.raised + '"/>', 0);
-      L.add('<text x="' + (x + 14) + '" y="' + (rowTop + 24) + '" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="2" fill="' + C.faint + '">' + esc(w.key.toUpperCase()) + '</text>', 0);
-      L.add('<text x="' + (x + 14) + '" y="' + (rowTop + 40) + '" font-family="Georgia, serif" font-size="10" fill="' + C.faint + '">' + esc(w.layer) + '</text>', 0);
-      L.add('<text x="' + (x + 14) + '" y="' + (rowTop + 66) + '" font-family="EB Garamond, Georgia, serif" font-size="22" fill="' + numColour + '">' + esc(String(w.value)) + (w.master ? ' \u2605' : '') + '</text>', 0);
-      L.add(body(wrap(w.name, Math.floor(colW / 6.2)), x + 14, rowTop + 88, 13, C.text, 16), 0);
-      L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc(w.layer + ' is ' + w.value + ', ' + w.name + '. What does this ask of my ' + w.key + ' today.') + '"><rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="9" fill="transparent"/></g>', 0);
+      L.add('<rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="11" fill="' + C.raised + '"/>', 0);
+      L.add(txt([w.key.toUpperCase()], x + 16, rowTop + 26, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 0);
+      L.add(txt([w.layer], x + 16, rowTop + 44, 10.5, C.faint, 0, FONT.sans), 0);
+      L.add(txt([String(w.value) + (w.master ? '  \u2605' : '')], x + 16, rowTop + 76, 24, numColour, 0, FONT.serif), 0);
+      L.add(txt(wrap(w.name, Math.floor((colW - 32) / 6.4)), x + 16, rowTop + 100, 13, C.text, 16, FONT.sans), 0);
+      L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc(w.layer + ' is ' + w.value + ', ' + w.name + '. What does this ask of my ' + w.key + ' today.') + '"><rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="11" fill="transparent"/></g>', 0);
     });
-    L.add('', rowH + 22);
+    L.add('', rowH + 32);
   }
 
-  // Planetary weather, when the reading has it
+  // Planetary weather
   if (m.planets.length) {
-    const top = L.y;
-    L.add(label('Planetary weather', PAD, top, C.teal), 26);
+    L.add(capLabel('Planetary weather', cx, L.y, C.teal), 36);
     m.planets.forEach((p, i) => {
-      const ry = L.y + i * 26;
-      L.add('<text x="' + PAD + '" y="' + ry + '" font-family="Cinzel, Georgia, serif" font-size="11" letter-spacing="2" fill="' + C.faint + '">' + esc(p.body.toUpperCase()) + '</text>', 0);
-      L.add('<text x="' + (PAD + 130) + '" y="' + ry + '" font-family="EB Garamond, Georgia, serif" font-size="14" fill="' + C.text + '">' + esc((p.degree ? p.degree.toFixed(1) + '\u00b0 ' : '') + p.sign) + '</text>', 0);
+      const ry = L.y + i * 30;
+      L.add(txt([p.body.toUpperCase()], PAD, ry, 11, C.faint, 0, FONT.caps, { spacing: 2 }), 0);
+      L.add(txt([(p.degree ? p.degree.toFixed(1) + '\u00b0 ' : '') + p.sign], PAD + 150, ry, 15, C.text, 0, FONT.serif), 0);
+      if (i < m.planets.length - 1) L.add(ruleLine(ry + 12, PAD, W - PAD, 0.12), 0);
     });
-    L.add('', m.planets.length * 26 + 14);
+    L.add('', m.planets.length * 30 + 18);
   }
 
   // Fixed signature
   {
-    const top = L.y;
-    L.add('<line x1="' + PAD + '" y1="' + top + '" x2="' + (W - PAD) + '" y2="' + top + '" stroke="' + C.rule + '" stroke-opacity="0.3"/>', 22);
-    if (m.signature.name) L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="EB Garamond, Georgia, serif" font-size="16" fill="' + C.gold + '">' + esc(m.signature.name) + '</text>', 28);
-    const half = innerW / 2;
+    L.add(ruleLine(L.y, PAD, W - PAD, 0.3), 30);
+    if (m.signature.name) L.add(txt([m.signature.name], cx, L.y, 18, C.gold, 0, FONT.serif, { anchor: 'middle' }), 36);
+    const half = inner / 2;
     if (m.signature.lifePath) {
       const lp = m.signature.lifePath; const cc = lp.master ? C.master : C.gold;
-      L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="2" fill="' + C.faint + '">LIFE PATH</text>', 0);
-      L.add('<text x="' + (PAD + half) + '" y="' + L.y + '" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="2" fill="' + C.faint + '">PERSONAL YEAR</text>', 18);
-      L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="EB Garamond, Georgia, serif" font-size="22" fill="' + cc + '">' + esc(String(lp.value)) + (lp.master ? ' \u2605' : '') + '</text>', 0);
-      if (m.signature.personalYear) { const py = m.signature.personalYear; const pc = py.master ? C.master : C.gold; L.add('<text x="' + (PAD + half) + '" y="' + L.y + '" font-family="EB Garamond, Georgia, serif" font-size="22" fill="' + pc + '">' + esc(String(py.value)) + (py.master ? ' \u2605' : '') + '</text>', 22); }
-      else L.add('', 22);
-      L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="Georgia, serif" font-size="12" fill="' + C.dim + '">' + esc(lp.name) + '</text>', 0);
-      if (m.signature.personalYear) L.add('<text x="' + (PAD + half) + '" y="' + L.y + '" font-family="Georgia, serif" font-size="12" fill="' + C.dim + '">' + esc(m.signature.personalYear.name) + '</text>', 24);
-      else L.add('', 24);
+      L.add(txt(['LIFE PATH'], PAD, L.y, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 0);
+      L.add(txt(['PERSONAL YEAR'], PAD + half, L.y, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 22);
+      L.add(txt([String(lp.value) + (lp.master ? '  \u2605' : '')], PAD, L.y, 24, cc, 0, FONT.serif), 0);
+      if (m.signature.personalYear) { const py = m.signature.personalYear; const pc = py.master ? C.master : C.gold; L.add(txt([String(py.value) + (py.master ? '  \u2605' : '')], PAD + half, L.y, 24, pc, 0, FONT.serif), 26); } else L.add('', 26);
+      L.add(txt([lp.name], PAD, L.y, 13, C.dim, 0, FONT.sans), 0);
+      if (m.signature.personalYear) L.add(txt([m.signature.personalYear.name], PAD + half, L.y, 13, C.dim, 0, FONT.sans), 28); else L.add('', 28);
     }
     if (m.signature.birthKin) {
-      L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="2" fill="' + C.faint + '">BIRTH KIN</text>', 18);
-      L.add('<text x="' + PAD + '" y="' + L.y + '" font-family="EB Garamond, Georgia, serif" font-size="14" fill="' + C.text + '">' + esc(m.signature.birthKin.full) + '</text>', 26);
+      L.add(txt(['BIRTH KIN'], cx, L.y, 10, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 2 }), 22);
+      L.add(txt([m.signature.birthKin.full], cx, L.y, 14, C.text, 0, FONT.serif, { anchor: 'middle' }), 30);
     }
   }
 
   // Final message
   {
-    const fmLines = wrap(m.finalMessage, maxBody - 4);
-    L.add('<line x1="' + PAD + '" y1="' + L.y + '" x2="' + (W - PAD) + '" y2="' + L.y + '" stroke="' + C.rule + '" stroke-opacity="0.3"/>', 26);
-    L.add('<text x="' + (W / 2) + '" y="' + L.y + '" text-anchor="middle" font-style="italic" font-family="EB Garamond, Georgia, serif" font-size="15" fill="' + C.dim + '">' + fmLines.map((ln, i) => '<tspan x="' + (W / 2) + '" dy="' + (i === 0 ? 0 : 23) + '">' + esc(ln) + '</tspan>').join('') + '</text>', fmLines.length * 23 + 18);
+    const fmLines = wrap(m.finalMessage, Math.floor(inner / 9.8));
+    L.add(ruleLine(L.y, cx - 110, cx + 110, 0.28), 34);
+    L.add(txt(fmLines, cx, L.y, 15.5, C.dim, 24, FONT.serif, { anchor: 'middle', italic: true }), fmLines.length * 24 + 30);
   }
 
-  // footer
-  L.add('<circle cx="' + (W / 2 - 12) + '" cy="' + (L.y + 6) + '" r="6" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/><circle cx="' + (W / 2 + 12) + '" cy="' + (L.y + 6) + '" r="6" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/>', 26);
-  L.add('<text x="' + (W / 2) + '" y="' + L.y + '" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="10" letter-spacing="3" fill="' + C.faint + '">COSMICDAILYPLANNER.COM</text>', 30);
+  // sources, quiet, tied to the bibliography
+  if (m.sources.length) {
+    const src = 'Grounded in ' + m.sources.slice(0, 5).join(', ');
+    const srcLines = wrap(src, Math.floor(inner / 6.2));
+    L.add(txt(srcLines, cx, L.y, 10.5, C.faint, 15, FONT.sans, { anchor: 'middle' }), srcLines.length * 15 + 24);
+  }
+
+  // footer mark
+  L.add('<circle cx="' + (cx - 12) + '" cy="' + (L.y + 4) + '" r="6.5" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/><circle cx="' + (cx + 12) + '" cy="' + (L.y + 4) + '" r="6.5" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/>', 28);
+  L.add(txt(['COSMICDAILYPLANNER.COM'], cx, L.y, 10, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 3 }), 36);
 
   const H = Math.round(L.y);
-  const defs = '<defs><linearGradient id="cardbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + C.panel + '"/><stop offset="0.16" stop-color="' + C.page + '"/><stop offset="1" stop-color="' + C.page + '"/></linearGradient></defs>';
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" font-family="Georgia, serif">'
+  const defs = '<defs>'
+    + '<linearGradient id="cardbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + C.panel + '"/><stop offset="0.14" stop-color="' + C.page + '"/><stop offset="1" stop-color="' + C.page + '"/></linearGradient>'
+    + '<radialGradient id="cardglow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="' + C.glow + '" stop-opacity="0.85"/><stop offset="1" stop-color="' + C.page + '" stop-opacity="0"/></radialGradient>'
+    + '</defs>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" font-family="' + FONT.serif + '">'
     + defs
     + '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="url(#cardbg)"/>'
-    + '<rect x="6" y="6" width="' + (W - 12) + '" height="' + (H - 12) + '" rx="14" fill="none" stroke="' + C.rule + '" stroke-opacity="0.25"/>'
+    + '<rect x="0" y="0" width="' + W + '" height="240" fill="url(#cardglow)"/>'
+    + '<rect x="0" y="0" width="' + W + '" height="2.5" fill="' + C.goldBright + '" opacity="0.5"/>'
+    + '<rect x="7" y="7" width="' + (W - 14) + '" height="' + (H - 14) + '" rx="16" fill="none" stroke="' + C.rule + '" stroke-opacity="0.22"/>'
     + L.parts.join('')
     + '</svg>';
 }
+
 
 /* ============================================================================
  * Save and share. The card image is the SVG above, rasterised for keeping and
@@ -560,6 +596,10 @@ function ensureStyle(): void {
 .cdp-surface .card-dd-in { flex:1; resize:none; background:var(--card, #122440); border:1px solid rgba(191,163,99,.3); border-radius:6px; color:var(--text-light, #F0E6CC); font-family:Georgia, serif; font-size:14px; padding:9px 11px; line-height:1.5; }
 .cdp-surface .card-dd-in:focus { outline:none; border-color:var(--gold, #C9A050); }
 .cdp-surface .card-dd-ask { background:none; border:1px solid var(--gold, #C9A050); color:var(--gold, #C9A050); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding:0 16px; border-radius:6px; cursor:pointer; }
+.cdp-surface .card-src-h { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold, #C9A050); margin:16px 0 2px; }
+.cdp-surface .card-src-note { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-faint, #9E9282); margin:0 0 8px; }
+.cdp-surface .card-src-line { font-family:Georgia, serif; font-size:12.5px; line-height:1.55; color:var(--text-dim, #D4C8AE); margin:0 0 6px; }
+.cdp-surface .card-src-line b { color:var(--text-light, #F0E6CC); font-weight:600; }
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -603,7 +643,8 @@ export function openCard(o: OpenCardOptions): CardHandle {
   const savePdf = el('button', { type: 'button', class: 'card-btn' }, 'Save PDF');
   const shareBtn = el('button', { type: 'button', class: 'card-btn' }, 'Share');
   const openFull = el('button', { type: 'button', class: 'card-btn' }, 'Open full reading');
-  tools.appendChild(saveImg); tools.appendChild(savePdf); tools.appendChild(shareBtn); tools.appendChild(openFull);
+  const sourcesBtn = el('button', { type: 'button', class: 'card-btn' }, 'Sources');
+  tools.appendChild(saveImg); tools.appendChild(savePdf); tools.appendChild(shareBtn); tools.appendChild(sourcesBtn); tools.appendChild(openFull);
   shell.appendChild(tools);
   view.appendChild(shell);
   o.container.appendChild(view);
@@ -612,6 +653,7 @@ export function openCard(o: OpenCardOptions): CardHandle {
   function close(): void { live = false; if (view.parentNode) view.parentNode.removeChild(view); }
   closeBtn.addEventListener('click', close);
   openFull.addEventListener('click', () => { if (o.onOpenFullReading) o.onOpenFullReading(); });
+  sourcesBtn.addEventListener('click', () => { openSources(); });
 
   let currentSvg = '';
   function currentModel(): CardModel {
@@ -689,6 +731,45 @@ export function openCard(o: OpenCardOptions): CardHandle {
     fin.focus();
   }
   function deepDive(prompt: string): void { if (composeAsk) openDeepDive(prompt); }
+
+  /* ---- the sources panel, the bibliography made reachable from the card --- */
+  function openSources(): void {
+    if (ddOpen) return;
+    ddOpen = true;
+    const scrim = el('div', { class: 'card-dd-scrim' });
+    const panel = el('div', { class: 'card-dd', role: 'dialog', 'aria-label': 'Sources' });
+    const head = el('div', { class: 'card-dd-head' });
+    head.appendChild(el('div', { class: 'card-dd-h' }, 'Sources'));
+    const x = el('button', { type: 'button', class: 'card-dd-x', 'aria-label': 'Close' }, '\u00d7');
+    head.appendChild(x);
+    panel.appendChild(head);
+    const thread = el('div', { class: 'card-dd-thread' });
+    const groups: Array<[string, string, string]> = [
+      ['numerology_day_quality', 'Numerology', 'Symbolic, Pythagorean. Master numbers preserved.'],
+      ['dreamspell_count', 'Dreamspell and Maya', 'Symbolic. Argueelles 1987, held distinct from the living K\u2019iche\u2019 count.'],
+      ['lunar_phase_timing', 'Lunar', 'Astronomical. USNO timestamps authoritative.'],
+      ['pacing_circadian', 'Pacing', 'Empirical, circadian. A separate discipline from numerology.'],
+    ];
+    for (const g of groups) {
+      const cites = citationsForClaim(g[0]);
+      if (!cites.length) continue;
+      thread.appendChild(el('div', { class: 'card-src-h' }, g[1]));
+      thread.appendChild(el('div', { class: 'card-src-note' }, g[2]));
+      for (const c of cites.slice(0, 6)) {
+        const line = el('div', { class: 'card-src-line' });
+        line.appendChild(el('b', {}, c.display));
+        const tail = (c.title ? ' ' + c.title : '') + (c.journal ? ', ' + c.journal : (c.publisher ? ', ' + c.publisher : '')) + (c.counterweight ? ' (sceptical counterweight)' : '');
+        line.appendChild(document.createTextNode(tail));
+        thread.appendChild(line);
+      }
+    }
+    panel.appendChild(thread);
+    scrim.appendChild(panel);
+    view.appendChild(scrim);
+    function closeS(): void { ddOpen = false; if (scrim.parentNode) scrim.parentNode.removeChild(scrim); }
+    x.addEventListener('click', closeS);
+    scrim.addEventListener('click', (e: Event) => { if (e.target === scrim) closeS(); });
+  }
 
   /* ---- save and share ----------------------------------------------------- */
   function flash(btn: HTMLElement, lbl: string): void { const p = btn.textContent || ''; btn.textContent = lbl; window.setTimeout(() => { btn.textContent = p; }, 1600); }
