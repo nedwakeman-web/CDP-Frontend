@@ -31,17 +31,55 @@ import { LocalOrchestrator, ApiOrchestrator } from './surface/compose';
 import type { Orchestrator } from './surface/compose';
 import { VesselRepository } from './data/repository';
 import { storeFor } from './data/store';
+import { kinDescriptor, lunarWindow, personalNumerology, reduceNumber } from './coordinates-core';
+import type { DepthContext } from './surface/compose';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || '';
 const OFFLINE = (import.meta.env.VITE_OFFLINE as string | undefined) === 'true' || API_BASE === 'local';
 
-function chooseOrchestrator(): Orchestrator {
+function digitSum(s: string): number {
+  let n = 0;
+  for (const c of s) { if (c >= '0' && c <= '9') n += Number(c); }
+  return n;
+}
+
+/**
+ * The day coordinates the ask reply uses as scaffold, computed from the core so
+ * the server reply is grounded in the same verified Kin, moon, and numerology
+ * the surface shows. A gap here is harmless, the reply treats context as scaffold.
+ */
+function buildCompassContext(repo: VesselRepository): DepthContext {
+  const today = new Date().toISOString().slice(0, 10);
+  const ctx: DepthContext = { dateStr: today };
+  try {
+    const k = kinDescriptor(today);
+    ctx.kin = k.full;
+    ctx.isGAP = k.isGAP;
+    const lw = lunarWindow(today);
+    if (lw) { ctx.moon = lw.phase; ctx.isBlackMoon = lw.black; ctx.isShivaMoon = lw.shiva; }
+    ctx.universalYear = reduceNumber(digitSum(String(new Date().getUTCFullYear()))).value;
+    const prof = repo.getProfile();
+    if (prof) {
+      if (prof.name) ctx.name = prof.name;
+      if (prof.birthDate) {
+        const pn = personalNumerology(prof.birthDate, today);
+        ctx.personalDay = pn.personalDay.value;
+        ctx.personalYear = pn.personalYear.value;
+      }
+    }
+  } catch (_e) {
+    // context is scaffold only; a gap is acceptable
+  }
+  return ctx;
+}
+
+function chooseOrchestrator(repo: VesselRepository): Orchestrator {
   const local = new LocalOrchestrator();
   if (OFFLINE) return local;
   // The empty base resolves to a relative /api path, which the Netlify proxy
   // forwards to Railway in production. A set base posts directly in dev.
   const base = API_BASE === 'local' ? '' : API_BASE;
-  return new ApiOrchestrator(base, local);
+  return new ApiOrchestrator(base, local, { contextProvider: () => buildCompassContext(repo) });
 }
 
 async function buildRepository(): Promise<VesselRepository> {
@@ -60,7 +98,7 @@ async function bootstrap(): Promise<void> {
   }
   try {
     const repo = await buildRepository();
-    await mountVessel({ root, orchestrator: chooseOrchestrator(), repo });
+    await mountVessel({ root, orchestrator: chooseOrchestrator(repo), repo });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('CDP: vessel failed to mount', e);
