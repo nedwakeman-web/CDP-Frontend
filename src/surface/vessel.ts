@@ -670,8 +670,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     stat.appendChild(el('span', { class: 'stat-num' }, py ? py : 'Year'));
     stat.appendChild(el('span', { class: 'stat-label' }, 'of the current cycle'));
     b.appendChild(stat);
-    b.appendChild(el('div', { class: 'line' }, 'A seven year arc, the long pattern beneath the daily one.'));
-    b.appendChild(el('div', { class: 'soft' }, 'Trends, review and synthesis. The year as a reading lives on the right. Arrives as its stage lands.'));
+    b.appendChild(el('div', { class: 'line' }, 'A seven year arc, the long pattern beneath the daily one. Themes taking shape, what is working, and what you are holding across the year.'));
+    const openBtn = el('button', { type: 'button', class: 'rdg-link' }, 'Open the full year');
+    openBtn.addEventListener('click', () => openYearView());
+    b.appendChild(openBtn);
     return b;
   }
   function seasonBody(): HTMLElement {
@@ -935,6 +937,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     });
   }
   function openYearView(): void {
+    closeDrawer('left');
     closeDrawer('right');
     if (yearHandle) yearHandle.close();
     yearHandle = openYear({
@@ -1234,32 +1237,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   handleRight.addEventListener('click', () => { drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
   drawerScrim.addEventListener('click', () => { drawers.left.classList.remove('open'); drawers.right.classList.remove('open'); refreshDrawerScrim(); });
 
-  /* ===== world modal ===== */
-  const worldScrim = el('div', { class: 'scrim' });
-  const world = el('div', { class: 'world', role: 'dialog', 'aria-label': 'This year' });
-  const worldClose = el('button', { type: 'button', class: 'world-close', 'aria-label': 'Close' }, '\u00d7');
-  world.appendChild(worldClose);
-  world.appendChild(el('div', { class: 'world-head' }, 'How this year is taking shape'));
-  world.appendChild(el('div', { class: 'world-sub' }, 'The long view, the slow patterns, and what is alive now.'));
-  const cols = el('div', { class: 'cols' });
-  const col1 = el('div');
-  col1.appendChild(el('div', { class: 'col-title' }, 'Held now'));
-  const live = repo.live();
-  if (live.length === 0) col1.appendChild(el('div', { class: 'col-item' }, 'Nothing held yet.'));
-  else live.forEach((it) => col1.appendChild(el('div', { class: 'col-item held' }, it.text)));
-  const col2 = el('div');
-  col2.appendChild(el('div', { class: 'col-title' }, 'The backdrop'));
-  col2.appendChild(el('div', { class: 'col-item' }, 'The universal year, your fixed signature, and the slow planetary weather, as the long view fills in.'));
-  cols.appendChild(col1);
-  cols.appendChild(col2);
-  world.appendChild(cols);
-  surface.appendChild(worldScrim);
-  surface.appendChild(world);
-  function openWorld(): void { world.classList.add('open'); worldScrim.classList.add('show'); }
-  function closeWorld(): void { world.classList.remove('open'); worldScrim.classList.remove('show'); }
-  worldOpenBtn.addEventListener('click', openWorld);
-  worldClose.addEventListener('click', closeWorld);
-  worldScrim.addEventListener('click', closeWorld);
+  /* The full year is the single year view. It opens from the left rail, Emerging
+   * patterns, and from the under-compass line, framed as themes, what is taking
+   * shape, and what is held across the year. The earlier lighter peek is retired. */
+  worldOpenBtn.addEventListener('click', () => openYearView());
 
   /* ===== lean menu (behind the header menu icon) ===== */
   /* ===== sign in and make-it-mine, folded from the old landing onto one surface ===== */
@@ -1494,7 +1475,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { closeWorld(); menu.classList.remove('open'); }
+    if (e.key === 'Escape') { menu.classList.remove('open'); }
   });
 
   trackEvent('session_start', {});
