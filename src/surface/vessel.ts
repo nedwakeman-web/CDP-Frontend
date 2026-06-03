@@ -388,7 +388,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme', 'Account', 'Sign in'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
 const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
@@ -1090,8 +1090,22 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
     menu.appendChild(row);
   }
+  const menuAccountRow = el('button', { type: 'button', class: 'menu-row' });
+  const menuAccountLabel = el('span', {}, 'Sign in');
+  menuAccountRow.appendChild(menuAccountLabel);
+  menuAccountRow.addEventListener('click', () => { menu.classList.remove('open'); signin.classList.add('open'); });
+  menu.appendChild(menuAccountRow);
   menu.appendChild(menuNote);
   surface.appendChild(menu);
+  function refreshAuthLabels(): void {
+    if (!isSupabaseConfigured()) return;
+    void currentUserId().then((uid) => {
+      const label = uid ? 'Account' : 'Sign in';
+      signinLink.textContent = label;
+      menuAccountLabel.textContent = label;
+    });
+  }
+  refreshAuthLabels();
 
   /* ===== voice ===== */
   function reflectVoice(): void {
