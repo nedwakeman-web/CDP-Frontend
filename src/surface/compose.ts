@@ -5,8 +5,8 @@
  * to a concrete composer, the same discipline the data layer applies to the
  * Store. Two concrete composers live here. LocalOrchestrator is the browser
  * side placeholder: plain, grounded, honest, and offline. ApiOrchestrator is
- * the real composition over the Railway server, round tripping summoned depth
- * to /api/compose/depth, and it is the one used by default. Neither the surface
+ * the real composition over the Railway server, round tripping the ask
+ * to /api/compass/reply, and it is the one used by default. Neither the surface
  * controller nor any view changes when the orchestrator is switched, because
  * none of them ever knew where the composing happened.
  *
@@ -18,7 +18,7 @@
  * and synchronous on both composers, since they are the glance the surface
  * shows at once. Only summoned depth round trips, because depth is bottomless
  * and is composed on the server against the verified coordinates and the
- * person's continuity. When the endpoint is unreachable, the ApiOrchestrator
+ * day. When the endpoint is unreachable, the ApiOrchestrator
  * degrades to an honest held state rather than breaking.
  *
  * House style holds in this file: no em dashes, no en dashes, no exclamation
@@ -162,6 +162,16 @@ export interface DepthContext {
   dateStr?: string;
   continuity?: Array<{ label: string; summary: string }>;
   recentTouches?: Array<{ role: string; text: string }>;
+  /** Name and the day coordinates the reply uses as scaffold. */
+  name?: string;
+  kin?: string;
+  moon?: string;
+  personalDay?: number | string;
+  personalYear?: number | string;
+  universalYear?: number | string;
+  isGAP?: boolean;
+  isBlackMoon?: boolean;
+  isShivaMoon?: boolean;
 }
 
 export interface ApiOrchestratorOptions {
@@ -178,7 +188,7 @@ export interface ApiOrchestratorOptions {
 /**
  * The real composer. The calm reads delegate to a local instance, since they
  * are immediate and need no server. Summoned depth posts to /api/compose/depth
- * and renders the returned reflection. Any failure, a missing endpoint, an
+ * and renders the returned reply. Any failure, a missing endpoint, an
  * upstream error, or a timeout, degrades to an honest held state, so a server
  * problem is degraded and never broken.
  */
@@ -232,24 +242,28 @@ export class ApiOrchestrator implements Orchestrator {
     const merged: DepthContext = { ...base, ...(ctx || {}) };
     const dateStr = merged.dateStr || todayUTC(this.now());
 
-    const intention: { text: string; anchor?: { label: string; date?: string } } = { text: it.text };
-    if (it.anchor) {
-      intention.anchor = it.anchor.date ? { label: it.anchor.label, date: it.anchor.date } : { label: it.anchor.label };
-    }
+    const context: Record<string, unknown> = { date_str: dateStr };
+    if (merged.kin) context.kin = merged.kin;
+    if (merged.moon) context.moon = merged.moon;
+    if (merged.personalDay != null) context.personal_day = merged.personalDay;
+    if (merged.personalYear != null) context.personal_year = merged.personalYear;
+    if (merged.universalYear != null) context.universal_year = merged.universalYear;
+    if (merged.isGAP) context.is_gap = true;
+    if (merged.isBlackMoon) context.is_black_moon = true;
+    if (merged.isShivaMoon) context.is_shiva_moon = true;
 
     const body = {
-      lens,
-      intention,
-      dateStr,
-      continuity: Array.isArray(merged.continuity) ? merged.continuity : [],
-      recentTouches: Array.isArray(merged.recentTouches) ? merged.recentTouches : [],
+      intention: it.text,
+      voice: lens,
+      name: merged.name || '',
+      context,
     };
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const res = await this.fetchImpl(this.base + '/api/compose/depth', {
+      const res = await this.fetchImpl(this.base + '/api/compass/reply', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -258,13 +272,9 @@ export class ApiOrchestrator implements Orchestrator {
 
       if (!res.ok) return this.fallback();
 
-      const data = (await res.json()) as { text?: unknown; summary?: unknown };
-      if (data && typeof data.text === 'string' && data.text.trim().length > 0) {
-        const composed: Composed = { text: data.text.trim() };
-        if (typeof data.summary === 'string' && data.summary.trim().length > 0) {
-          composed.summary = data.summary.trim();
-        }
-        return composed;
+      const data = (await res.json()) as { ok?: boolean; reply?: unknown };
+      if (data && data.ok && typeof data.reply === 'string' && data.reply.trim().length > 0) {
+        return { text: data.reply.trim() };
       }
       return this.fallback();
     } catch (_e) {
