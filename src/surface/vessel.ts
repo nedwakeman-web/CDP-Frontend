@@ -26,7 +26,7 @@ import type { Lens, HeldIntention, Touch } from '../data/model';
 import type { Orchestrator, DepthContext } from './compose';
 import { VesselRepository } from '../data/repository';
 import { trackEvent } from '../data/analytics';
-import { dayCoordinates, kinDescriptor, universalDay, lunarWindow } from '../coordinates-core';
+import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, personalNumerology, reduceNumber } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
@@ -927,16 +927,60 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
   calview.appendChild(calLegend);
 
+  const cvBest = el('div', { class: 'cv-best' });
+  const cvBestInput = el('input', { type: 'text', class: 'cv-best-input', placeholder: 'A decision, a launch, a conversation, a rest day', 'aria-label': 'What is the day for' }) as HTMLInputElement;
+  const cvBestBtn = el('button', { type: 'button', class: 'cv-best-btn' }, 'Find the best days');
+  const cvBestStatus = el('div', { class: 'cv-best-status' });
+  cvBest.appendChild(cvBestInput);
+  cvBest.appendChild(cvBestBtn);
+  calview.appendChild(cvBest);
+  calview.appendChild(cvBestStatus);
+
   const calGrid = el('div', { class: 'cv-grid' });
   calview.appendChild(calGrid);
   const calDetail = el('div', { class: 'cv-detail' });
   calview.appendChild(calDetail);
+  const cvBdResults = el('div', { class: 'cv-bd-results' });
+  calview.appendChild(cvBdResults);
   surface.appendChild(calview);
+  if (!document.getElementById('cdp-bestday-style')) {
+    const bdStyle = el('style', { id: 'cdp-bestday-style' });
+    bdStyle.textContent = [
+      '.cdp-surface .cv-best{display:flex;gap:8px;padding:0 14px 10px}',
+      '.cdp-surface .cv-best-input{flex:1;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:14px;padding:9px 12px}',
+      '.cdp-surface .cv-best-btn{background:var(--gold,#C9A050);color:#1A1208;border:none;border-radius:3px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:0 16px;cursor:pointer;white-space:nowrap}',
+      '.cdp-surface .cv-best-status{padding:0 14px 8px;font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--text-dim,#D4C8AE)}',
+      '.cdp-surface .cv-cell{position:relative}',
+      '.cdp-surface .cv-cell.bd-top{box-shadow:0 0 0 2px var(--gold,#C9A050) inset;border-radius:6px}',
+      '.cdp-surface .cv-cell.bd-worst{opacity:.7}',
+      '.cdp-surface .cv-cell.bd-worst::after{content:\'\';position:absolute;bottom:4px;right:4px;width:5px;height:5px;border-radius:50%;background:rgba(200,90,90,.6)}',
+      '.cdp-surface .cv-bd-results{padding:6px 14px 28px}',
+      '.cdp-surface .cv-bd-head{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050);margin:8px 0 4px}',
+      '.cdp-surface .cv-bd-sub{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--text-dim,#D4C8AE);margin-bottom:12px}',
+      '.cdp-surface .cv-bd-card{border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:var(--navy,#0D1E33);padding:12px 14px;margin-bottom:10px}',
+      '.cdp-surface .cv-bd-rank{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold,#C9A050)}',
+      '.cdp-surface .cv-bd-date{font-family:\'EB Garamond\',Georgia,serif;font-size:18px;color:var(--text-light,#F0E6CC);margin:2px 0}',
+      '.cdp-surface .cv-bd-score{font-size:12px;color:var(--gold-soft,#E8C878);margin-bottom:8px}',
+      '.cdp-surface .cv-bd-reason{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-light,#F0E6CC);margin-bottom:3px}',
+      '.cdp-surface .cv-bd-caution{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--gold-soft,#E8C878);margin-top:5px;font-style:italic}',
+      '.cdp-surface .cv-bd-open{margin-top:9px;background:none;border:1px solid var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer}',
+      '.cdp-surface .cv-bd-more{display:block;margin:4px auto 14px;background:none;border:1px dashed var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:8px 16px;border-radius:2px;cursor:pointer}',
+      '.cdp-surface .cv-bd-also{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:10px 0 8px}',
+      '.cdp-surface .cv-bd-also.worst{color:rgba(200,120,120,.85)}',
+      '.cdp-surface .cv-bd-worst-wrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--gold-line,#3A3320)}',
+      '.cdp-surface .cv-bd-avoid{border-left:3px solid rgba(200,90,90,.5);background:var(--bg,#0A1828);border-radius:3px;padding:9px 12px;margin-bottom:7px;cursor:pointer}'
+    ].join('');
+    document.head.appendChild(bdStyle);
+  }
 
   const calToday = new Date(dateStr + 'T00:00:00Z');
   let viewYear = calToday.getUTCFullYear();
   let viewMonth = calToday.getUTCMonth();
   let selectedDay = dateStr;
+  let bdRanked: Array<{ dateIso: string; totalScore?: number; convergence?: number; reasons?: string[]; cautions?: string[] }> = [];
+  let bdIntent = '';
+  const bdTop = new Set<string>();
+  const bdWorst = new Set<string>();
 
   function pad2(x: number): string { return x < 10 ? '0' + String(x) : String(x); }
   function cellDateStr(y: number, m: number, d: number): string { return String(y) + '-' + pad2(m + 1) + '-' + pad2(d); }
@@ -959,6 +1003,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (ds === selectedDay) cls.push('sel');
       if (k.isGAP) cls.push('portal');
       if (ud.isMaster) cls.push('master');
+      if (bdTop.has(ds)) cls.push('bd-top');
+      if (bdWorst.has(ds)) cls.push('bd-worst');
       const cell = el('button', { type: 'button', class: cls.join(' '), 'data-date': ds });
       cell.appendChild(el('span', { class: 'cv-num' }, String(dnum)));
       const badges = el('span', { class: 'cv-badges' });
@@ -991,6 +1037,102 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     calDetail.appendChild(rows);
     calDetail.appendChild(el('div', { class: 'cv-dnote' }, lunarWindow(selectedDay).meaning));
   }
+
+  type BdDay = { dateIso: string; totalScore?: number; convergence?: number; reasons?: string[]; cautions?: string[] };
+  function bdScore(d: BdDay): number { return Math.round(d.totalScore || d.convergence || 0); }
+  function bdBand(s: number): string { return s >= 70 ? 'Strong' : s >= 55 ? 'Good' : 'Moderate'; }
+  function bdDayLabel(iso: string): string {
+    const dt = new Date(iso + 'T12:00:00Z');
+    return dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  function bdOpenDay(iso: string): void {
+    selectedDay = iso;
+    viewYear = Number(iso.slice(0, 4));
+    viewMonth = Number(iso.slice(5, 7)) - 1;
+    renderCalGrid();
+    renderCalDetail();
+  }
+  function renderBdResults(): void {
+    clear(cvBdResults);
+    if (!bdRanked.length) return;
+    cvBdResults.appendChild(el('div', { class: 'cv-bd-head' }, 'Best days for: ' + bdIntent));
+    cvBdResults.appendChild(el('div', { class: 'cv-bd-sub' }, 'The top days carry a gold ring on the calendar. The days to wait on carry a faint mark.'));
+    const top = bdRanked.slice(0, 3);
+    const more = bdRanked.slice(3, 8);
+    const worst = bdRanked.slice().reverse().slice(0, 3);
+    function card(d: BdDay, rank: number): HTMLElement {
+      const sc = bdScore(d);
+      const c = el('div', { class: 'cv-bd-card' });
+      c.appendChild(el('div', { class: 'cv-bd-rank' }, rank === 1 ? 'Best match' : '#' + String(rank)));
+      c.appendChild(el('div', { class: 'cv-bd-date' }, bdDayLabel(d.dateIso)));
+      c.appendChild(el('div', { class: 'cv-bd-score' }, bdBand(sc) + ', score ' + String(sc) + ' of 100'));
+      for (const r of (d.reasons || []).slice(0, 3)) c.appendChild(el('div', { class: 'cv-bd-reason' }, r));
+      const cautions = (d.cautions || []).slice(0, 1);
+      if (cautions.length) c.appendChild(el('div', { class: 'cv-bd-caution' }, cautions[0]));
+      const open = el('button', { type: 'button', class: 'cv-bd-open' }, 'Open this day');
+      open.addEventListener('click', () => bdOpenDay(d.dateIso));
+      c.appendChild(open);
+      return c;
+    }
+    const worstWrap = el('div', { class: 'cv-bd-worst-wrap' });
+    worstWrap.appendChild(el('div', { class: 'cv-bd-also worst' }, 'Days to wait on'));
+    for (const d of worst) {
+      const w = el('div', { class: 'cv-bd-avoid' });
+      w.appendChild(el('div', { class: 'cv-bd-date' }, bdDayLabel(d.dateIso)));
+      const reason = (d.cautions && d.cautions.length) ? d.cautions.join(', ') : 'Lower convergence across the frameworks for this intention.';
+      w.appendChild(el('div', { class: 'cv-bd-reason' }, reason));
+      w.addEventListener('click', () => bdOpenDay(d.dateIso));
+      worstWrap.appendChild(w);
+    }
+    top.forEach((d, i) => cvBdResults.appendChild(card(d, i + 1)));
+    if (more.length) {
+      const moreBtn = el('button', { type: 'button', class: 'cv-bd-more' }, 'Show five more');
+      moreBtn.addEventListener('click', () => {
+        moreBtn.remove();
+        cvBdResults.insertBefore(el('div', { class: 'cv-bd-also' }, 'Also strong'), worstWrap);
+        more.forEach((d, i) => cvBdResults.insertBefore(card(d, i + 4), worstWrap));
+      });
+      cvBdResults.appendChild(moreBtn);
+    }
+    cvBdResults.appendChild(worstWrap);
+  }
+  async function findBestDays(): Promise<void> {
+    const intent = cvBestInput.value.trim();
+    if (!intent) { cvBestInput.focus(); return; }
+    bdIntent = intent;
+    cvBestStatus.textContent = 'Scanning the month for ' + intent + '.';
+    const monthStart = cellDateStr(viewYear, viewMonth, 1);
+    const lastDay = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+    const monthEnd = cellDateStr(viewYear, viewMonth, lastDay);
+    const up: Record<string, unknown> = {};
+    if (profile && profile.birthDate) {
+      up.dob = profile.birthDate;
+      up.birthKin = kinForDate(profile.birthDate);
+      up.personalYear = personalNumerology(profile.birthDate, monthStart).personalYear.value;
+      let sum = 0;
+      for (const ch of profile.birthDate) { if (ch >= '0' && ch <= '9') sum += Number(ch); }
+      up.lifePath = reduceNumber(sum).value;
+    }
+    if (profile && profile.name) up.name = profile.name;
+    try {
+      const res = await fetch('/api/best-day', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userProfile: up, intent, monthStart, monthEnd, topN: lastDay }) });
+      const data = await res.json() as { ranked?: BdDay[]; fullScan?: BdDay[]; error?: string };
+      if (data.error) throw new Error(data.error);
+      const ranked = (data.ranked || data.fullScan || []).slice().sort((x, y) => bdScore(y) - bdScore(x));
+      bdRanked = ranked;
+      bdTop.clear(); bdWorst.clear();
+      ranked.slice(0, 3).forEach((d) => bdTop.add(d.dateIso));
+      ranked.slice().reverse().slice(0, 3).forEach((d) => bdWorst.add(d.dateIso));
+      cvBestStatus.textContent = ranked.length ? '' : 'No strong days found this month. Try a broader intention.';
+      renderCalGrid();
+      renderBdResults();
+      trackEvent('best_day_searched', { intent, results: ranked.length });
+    } catch (_e) {
+      cvBestStatus.textContent = 'The best-day engine could not be reached just now. Please try again in a moment.';
+    }
+  }
+  cvBestBtn.addEventListener('click', () => { void findBestDays(); });
+  cvBestInput.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') { void findBestDays(); } });
 
   calPrev.addEventListener('click', () => { viewMonth -= 1; if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; } renderCalGrid(); });
   calNext.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } renderCalGrid(); });
