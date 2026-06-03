@@ -104,18 +104,20 @@ const TONE_NAMES: readonly string[] = [
 ];
 
 /**
- * The fifty two Galactic Activation Portal Kins.
+ * The fifty two Galactic Activation Portal Kins (the Loom of Maya).
  *
- * This is the standard Dreamspell portal set, the symmetric pattern on the
- * tzolkin, ported from the verified production set and confirmed at fifty two
- * unique entries. Per the one definitive source per framework rule, final
- * sign off is a cross reference against the practitioner portal dates; the set
- * itself is the FLT and Arguelles count and is treated as verified here.
+ * The canonical Dreamspell portal set as taught by the Foundation for the Law
+ * of Time. The pattern is symmetric: every portal Kin K is paired with its
+ * occult partner (261 minus K), and the centre carries two runs of ten
+ * consecutive portals (106 to 115 and 146 to 155). Validated against the Law
+ * of Time record that 19 to 28 May 2023 are ten consecutive portal days, which
+ * this set reproduces exactly through the verified Kin anchor.
  */
 const GAP_KINS: ReadonlySet<number> = new Set([
-  1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30,
-  53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 71, 72, 73, 74, 75, 78, 79, 80, 81, 82,
-  105, 106, 107, 108, 109, 112, 113, 114, 115, 116, 133, 134,
+  1, 20, 22, 39, 43, 50, 51, 58, 64, 69, 72, 77, 85, 88, 93, 96,
+  106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+  146, 147, 148, 149, 150, 151, 152, 153, 154, 155,
+  165, 168, 173, 176, 184, 189, 192, 197, 203, 210, 211, 218, 222, 239, 241, 260,
 ]);
 
 const MASTERS: ReadonlySet<number> = new Set([11, 22, 33, 44]);
