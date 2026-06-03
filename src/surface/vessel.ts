@@ -34,6 +34,8 @@ import type { ReadingHandle } from './reading';
 import { openProfiles } from './profiles';
 import type { ProfilesHandle } from './profiles';
 import { shareControls } from './share';
+import { openYear } from './year';
+import type { YearHandle } from './year';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -422,6 +424,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let lens: Lens = repo.getLens();
   let readingHandle: ReadingHandle | null = null;
   let profilesHandle: ProfilesHandle | null = null;
+  let yearHandle: YearHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -883,6 +886,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
         link.addEventListener('click', () => openProfilesView());
         list.appendChild(link);
+      } else if (d[1] === 'sctx') {
+        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+        link.addEventListener('click', () => openYearView());
+        list.appendChild(link);
       } else {
         list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
       }
@@ -918,6 +925,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getLens: () => lens,
       reflect: (n) => reflect(n),
       onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
+    });
+  }
+  function openYearView(): void {
+    closeDrawer('right');
+    if (yearHandle) yearHandle.close();
+    yearHandle = openYear({
+      container: surface,
+      getProfile: () => profile ?? null,
+      getLens: () => lens,
+      reflect: (n) => reflect(n),
     });
   }
   const rightBuilt = buildReadingsDrawer();
