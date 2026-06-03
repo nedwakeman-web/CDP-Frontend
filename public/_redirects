@@ -1,3 +1,1 @@
-/api/*       https://cdp-server-production.up.railway.app/api/:splat    200
-/app.html    /                                                          301!
-/app         /                                                          301!
+/api/*    https://cdp-server-production.up.railway.app/api/:splat    200
