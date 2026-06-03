@@ -70,6 +70,13 @@ export interface OpenReadingOptions {
    * with that exact context. When absent, the taps are simply not shown.
    */
   ask?: (prompt: string) => void;
+  /**
+   * Composes the Compass answer in place and returns it, so a tap opens a
+   * popup over the reading rather than leaving for the home Compass. Preferred
+   * over ask when present. The reading stays underneath, so closing the popup
+   * returns here, and it takes follow up questions.
+   */
+  composeAsk?: (prompt: string) => Promise<string>;
 }
 
 export interface ReadingHandle {
@@ -428,6 +435,24 @@ function ensureStyle(): void {
 .cdp-surface .rdg-source-line { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 7px; }
 .cdp-surface .rdg-source-line b { color:var(--text-dim, #D4C8AE); font-weight:600; }
 .cdp-surface .rdg-source-note { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 8px; }
+.cdp-surface .rdg-dd-scrim { position:fixed; inset:0; background:rgba(3,12,24,.62); z-index:80; display:flex; align-items:flex-end; justify-content:center; }
+.cdp-surface .rdg-dd { width:100%; max-width:40rem; max-height:82vh; background:var(--navy, #0D1E33); border:1px solid var(--gold-line, #BFA363); border-bottom:none; border-radius:10px 10px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.45); display:flex; flex-direction:column; overflow:hidden; }
+.cdp-surface .rdg-dd-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(191,163,99,.22); }
+.cdp-surface .rdg-dd-h { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold, #C9A050); }
+.cdp-surface .rdg-dd-x { background:none; border:none; color:var(--text-dim, #D4C8AE); font-size:22px; line-height:1; cursor:pointer; padding:0 4px; }
+.cdp-surface .rdg-dd-x:hover { color:var(--gold-soft, #E8C878); }
+.cdp-surface .rdg-dd-thread { overflow-y:auto; padding:16px 18px; flex:1; }
+.cdp-surface .rdg-dd-q { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim, #D4C8AE); margin:0 0 8px; }
+.cdp-surface .rdg-dd-a { margin:0 0 18px; padding-left:12px; border-left:2px solid var(--gold-line, #BFA363); }
+.cdp-surface .rdg-dd-wait { color:var(--text-faint, #9E9282); font-style:italic; font-family:'EB Garamond', Georgia, serif; }
+.cdp-surface .rdg-dd-p { font-family:Georgia, serif; font-size:15px; line-height:1.7; color:var(--text-light, #F0E6CC); margin:0 0 11px; }
+.cdp-surface .rdg-dd-foot { display:flex; gap:8px; padding:12px 14px; border-top:1px solid rgba(191,163,99,.22); background:var(--panel-deep, #0A1828); }
+.cdp-surface .rdg-dd-in { flex:1; resize:none; background:var(--card, #122440); border:1px solid rgba(191,163,99,.3); border-radius:6px; color:var(--text-light, #F0E6CC); font-family:Georgia, serif; font-size:14px; padding:9px 11px; line-height:1.5; }
+.cdp-surface .rdg-dd-in::placeholder { color:var(--text-faint, #9E9282); }
+.cdp-surface .rdg-dd-in:focus { outline:none; border-color:var(--gold, #C9A050); }
+.cdp-surface .rdg-dd-ask { background:none; border:1px solid var(--gold, #C9A050); color:var(--gold, #C9A050); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding:0 16px; border-radius:6px; cursor:pointer; }
+.cdp-surface .rdg-dd-ask:hover { background:rgba(201,160,80,.1); }
+.cdp-surface .rdg-dd-ask[disabled] { opacity:.5; cursor:default; }
 @media (max-width: 640px) {
   .cdp-surface .rdg-coords { grid-template-columns:repeat(2,1fr); }
 }
@@ -498,6 +523,8 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   const tier = o.tier || 'oracle';
   const dateStr = o.date || new Date().toISOString().slice(0, 10);
   const ask = o.ask;
+  const composeAsk = o.composeAsk;
+  const canDeepDive = !!(composeAsk || ask);
   const profile = o.getProfile();
 
   const view = el('div', { class: 'rdg-view', role: 'dialog', 'aria-label': 'Today\u2019s reading' });
@@ -545,11 +572,84 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     status.textContent = text;
   }
 
+  function lensName(l: Lens): string {
+    return l === 'science' ? 'Science' : l === 'everyday' ? 'Everyday' : 'Tradition';
+  }
+
+  /* ---- the in place Compass popup, opened over the reading ---------------- *
+   * A tap opens this panel over the reading rather than leaving for the home.
+   * The reading stays mounted underneath, so closing the panel is the way back,
+   * and the follow up input lets the person keep interacting with the answer.  */
+  let ddOpen = false;
+  function openDeepDive(firstPrompt: string): void {
+    if (ddOpen) return;
+    ddOpen = true;
+    const scrim = el('div', { class: 'rdg-dd-scrim' });
+    const panel = el('div', { class: 'rdg-dd', role: 'dialog', 'aria-label': 'Ask the Oracle' });
+    const head = el('div', { class: 'rdg-dd-head' });
+    head.appendChild(el('div', { class: 'rdg-dd-h' }, 'Ask the Oracle'));
+    const x = el('button', { type: 'button', class: 'rdg-dd-x', 'aria-label': 'Close' }, '\u00d7');
+    head.appendChild(x);
+    panel.appendChild(head);
+    const thread = el('div', { class: 'rdg-dd-thread' });
+    panel.appendChild(thread);
+    const foot = el('div', { class: 'rdg-dd-foot' });
+    const fin = el('textarea', { class: 'rdg-dd-in', rows: '1', placeholder: 'Ask a follow up question' }) as HTMLTextAreaElement;
+    const fbtn = el('button', { type: 'button', class: 'rdg-dd-ask' }, 'Ask');
+    foot.appendChild(fin);
+    foot.appendChild(fbtn);
+    panel.appendChild(foot);
+    scrim.appendChild(panel);
+    view.appendChild(scrim);
+
+    function closeDD(): void { ddOpen = false; if (scrim.parentNode) scrim.parentNode.removeChild(scrim); }
+    x.addEventListener('click', closeDD);
+    scrim.addEventListener('click', (e: Event) => { if (e.target === scrim) closeDD(); });
+
+    let busy = false;
+    async function run(prompt: string): Promise<void> {
+      const q = prompt.trim();
+      if (!q || busy) return;
+      busy = true; fbtn.setAttribute('disabled', 'disabled');
+      thread.appendChild(el('div', { class: 'rdg-dd-q' }, q));
+      const aEl = el('div', { class: 'rdg-dd-a rdg-dd-wait' }, 'Composing in the ' + lensName(o.getLens()) + ' voice.');
+      thread.appendChild(aEl);
+      panel.scrollTop = panel.scrollHeight;
+      try {
+        const reply = composeAsk ? await composeAsk(q) : '';
+        aEl.classList.remove('rdg-dd-wait');
+        clear(aEl);
+        const paras = reply.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+        if (paras.length === 0) paras.push((reply || '').trim() || 'The Oracle is still composing. Please try again in a moment.');
+        for (const p of paras) aEl.appendChild(el('p', { class: 'rdg-dd-p' }, p));
+      } catch (_e) {
+        aEl.classList.remove('rdg-dd-wait');
+        aEl.textContent = 'The answer hit a snag on the server. Please try again in a moment.';
+      } finally {
+        busy = false; fbtn.removeAttribute('disabled');
+        panel.scrollTop = panel.scrollHeight;
+        fin.focus();
+      }
+    }
+    fbtn.addEventListener('click', () => { const t = fin.value; fin.value = ''; void run(t); });
+    fin.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = fin.value; fin.value = ''; void run(t); }
+    });
+    void run(firstPrompt);
+    fin.focus();
+  }
+
+  /* The tap path. Prefers the in place popup, falls back to the home Compass. */
+  function deepDive(prompt: string): void {
+    if (composeAsk) { openDeepDive(prompt); return; }
+    if (ask) { try { ask(prompt); } catch (_e) { /* host handles */ } }
+  }
+
   /* ---- a quiet tap that opens the Compass on a coordinate ----------------- */
   function askCue(label: string, prompt: string): HTMLElement | null {
-    if (!ask) return null;
+    if (!canDeepDive) return null;
     const b = el('button', { type: 'button', class: 'rdg-ask' }, label);
-    b.addEventListener('click', () => { try { ask(prompt); } catch (_e) { /* host handles */ } });
+    b.addEventListener('click', () => { deepDive(prompt); });
     return b;
   }
 
@@ -577,16 +677,16 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     computed.appendChild(dh);
 
     // decision tiles, into the Compass
-    if (ask) {
+    if (canDeepDive) {
       const tiles = el('div', { class: 'rdg-tiles' });
       const t1 = el('button', { type: 'button', class: 'rdg-tile' });
       t1.appendChild(el('div', { class: 'rdg-tile-h' }, 'Time a decision'));
       t1.appendChild(el('div', { class: 'rdg-tile-s' }, 'Should I act today, or wait'));
-      t1.addEventListener('click', () => { try { ask('I am weighing a decision. Given today\u2019s coordinates, is today a day to act, or to wait, and why.'); } catch (_e) { /* host */ } });
+      t1.addEventListener('click', () => { deepDive('I am weighing a decision. Given today\u2019s coordinates, is today a day to act, or to wait, and why.'); });
       const t2 = el('button', { type: 'button', class: 'rdg-tile' });
       t2.appendChild(el('div', { class: 'rdg-tile-h' }, 'Find a best day'));
       t2.appendChild(el('div', { class: 'rdg-tile-s' }, 'When is best this month'));
-      t2.addEventListener('click', () => { try { ask('Looking at the month ahead, which days are best for an important undertaking, and which to avoid, and why.'); } catch (_e) { /* host */ } });
+      t2.addEventListener('click', () => { deepDive('Looking at the month ahead, which days are best for an important undertaking, and which to avoid, and why.'); });
       tiles.appendChild(t1);
       tiles.appendChild(t2);
       computed.appendChild(tiles);
@@ -647,10 +747,10 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
 
     // today's signal, deterministic
     const signalText = buildSignal(ud, kin, moon, pn);
-    const sig = ask ? el('button', { type: 'button', class: 'rdg-signal tap' }) : el('div', { class: 'rdg-signal' });
+    const sig = canDeepDive ? el('button', { type: 'button', class: 'rdg-signal tap' }) : el('div', { class: 'rdg-signal' });
     sig.appendChild(el('div', { class: 'rdg-signal-l' }, 'Today\u2019s signal'));
     sig.appendChild(el('div', { class: 'rdg-signal-t' }, signalText));
-    if (ask) sig.addEventListener('click', () => { try { ask('Here is today\u2019s signal: ' + signalText + ' Read it for me in depth.'); } catch (_e) { /* host */ } });
+    if (canDeepDive) sig.addEventListener('click', () => { deepDive('Here is today\u2019s signal: ' + signalText + ' Read it for me in depth.'); });
     computed.appendChild(sig);
 
     // biorhythms
@@ -685,9 +785,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     const monthN = reduceNumber(parts[1] || 1).value;
     const yearN = reduceNumber(digitSum(String(parts[0] || new Date().getUTCFullYear()))).value;
     const comp = el('div', { class: 'rdg-energies' });
-    comp.appendChild(energyCard('The day', 'Day ' + (parts[2] || ''), dayN, ask));
-    comp.appendChild(energyCard('The month', 'Month ' + (parts[1] || ''), monthN, ask));
-    comp.appendChild(energyCard('The year', 'Year ' + (parts[0] || ''), yearN, ask));
+    comp.appendChild(energyCard('The day', 'Day ' + (parts[2] || ''), dayN, canDeepDive ? deepDive : undefined));
+    comp.appendChild(energyCard('The month', 'Month ' + (parts[1] || ''), monthN, canDeepDive ? deepDive : undefined));
+    comp.appendChild(energyCard('The year', 'Year ' + (parts[0] || ''), yearN, canDeepDive ? deepDive : undefined));
     computed.appendChild(comp);
     computed.appendChild(el('div', { class: 'rdg-symbolic' }, 'Symbolic, Pythagorean numerology, master numbers preserved. The shared component energies of the date.'));
 
@@ -695,9 +795,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     if (pn) {
       computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'Your personal numerology'));
       const per = el('div', { class: 'rdg-energies' });
-      per.appendChild(energyCard('Personal Day', '', pn.personalDay.value, ask));
-      per.appendChild(energyCard('Personal Month', '', pn.personalMonth.value, ask));
-      per.appendChild(energyCard('Personal Year', '', pn.personalYear.value, ask));
+      per.appendChild(energyCard('Personal Day', '', pn.personalDay.value, canDeepDive ? deepDive : undefined));
+      per.appendChild(energyCard('Personal Month', '', pn.personalMonth.value, canDeepDive ? deepDive : undefined));
+      per.appendChild(energyCard('Personal Year', '', pn.personalYear.value, canDeepDive ? deepDive : undefined));
       computed.appendChild(per);
       computed.appendChild(el('div', { class: 'rdg-symbolic' }, 'Symbolic. Your own numbers, drawn from your birth date set against today.'));
 
@@ -720,9 +820,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     card.appendChild(el('div', { class: 'rdg-coord-glyph ' + glyphCls }, glyph));
     card.appendChild(el('div', { class: 'rdg-coord-v' }, value));
     if (sub) card.appendChild(el('div', { class: 'rdg-coord-s' }, sub));
-    if (tap && ask) {
+    if (tap && canDeepDive) {
       card.appendChild(el('div', { class: 'rdg-coord-tap' }, tap.label));
-      card.addEventListener('click', () => { try { ask(tap.prompt); } catch (_e) { /* host */ } });
+      card.addEventListener('click', () => { deepDive(tap.prompt); });
     }
     return card;
   }

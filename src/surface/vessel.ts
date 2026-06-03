@@ -922,13 +922,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       tier: 'oracle',
       userId: null,
       reflect: (n) => reflect(n),
-      ask: (prompt: string) => {
-        if (readingHandle) readingHandle.close();
-        closeDrawer('left');
-        closeDrawer('right');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        void compose(prompt);
-      },
+      composeAsk: (prompt: string) => composeDepth(prompt),
       title,
     });
   }
@@ -1446,6 +1440,25 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (composed.summary) await repo.setSummary(intentionId, composed.summary);
     const fresh = repo.byId(intentionId);
     if (fresh) renderReply(fresh);
+  }
+
+  // The Compass composed in place, for the reading and card deep dives. It
+  // holds the intention so it is remembered, composes in the current voice,
+  // leaves a quiet reflection, and returns the answer text for the surface to
+  // show in its own popup. It does not render to the home reply area.
+  async function composeDepth(prompt: string): Promise<string> {
+    const text = prompt.trim();
+    if (text.length === 0) return '';
+    trackEvent('reply_requested', { lens });
+    const room = await repo.ensureRoom(ROOM_DEFAULT);
+    const held = await repo.hold({ text, roomId: room.id, kind: 'acute' });
+    trackEvent('intention_held', {});
+    const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id) });
+    await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
+    if (composed.summary) await repo.setSummary(held.id, composed.summary);
+    trackEvent('reply_delivered', { lens });
+    reflect('Held, and answered in place. It is kept in what you are holding.');
+    return composed.text;
   }
 
   async function compose(text: string): Promise<void> {
