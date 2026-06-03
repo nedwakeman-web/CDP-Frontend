@@ -119,6 +119,12 @@ export interface VesselProfile {
   name?: string;
 }
 
+/** A saved person, the self or another, callable for a reading or a comparison. */
+export interface StoredProfile extends VesselProfile {
+  /** Stable id for selection, comparison, and removal. */
+  id: string;
+}
+
 /** The whole of what the vessel holds for one person. The unit of persistence. */
 export interface VesselState {
   rooms: Room[];
@@ -128,6 +134,8 @@ export interface VesselState {
   lens: Lens;
   /** The person's birth profile, present once they have made it theirs. */
   profile?: VesselProfile;
+  /** Other saved people, callable for a reading or a comparison. */
+  savedProfiles?: StoredProfile[];
   /** Schema version, so migrations are explicit and safe. */
   version: number;
 }

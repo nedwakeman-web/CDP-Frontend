@@ -20,7 +20,7 @@
 import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens } from './model';
 import { emptyState, LIMITS, SCHEMA_VERSION } from './model';
 import type { Store } from './store';
-import type { VesselProfile } from './model';
+import type { VesselProfile, StoredProfile } from './model';
 
 function id(prefix: string): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -58,6 +58,22 @@ export class VesselRepository {
   getProfile(): VesselProfile | undefined { return this.state.profile; }
   async setProfile(p: VesselProfile): Promise<void> {
     this.state.profile = { ...this.state.profile, ...p };
+    await this.commit();
+  }
+
+  // ---- saved profiles (the self plus other people) --------------------------
+  listSavedProfiles(): StoredProfile[] { return (this.state.savedProfiles || []).map((p) => ({ ...p })); }
+  async addSavedProfile(p: VesselProfile): Promise<StoredProfile> {
+    const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const entry: StoredProfile = { ...p, id };
+    if (!this.state.savedProfiles) this.state.savedProfiles = [];
+    this.state.savedProfiles.push(entry);
+    await this.commit();
+    return { ...entry };
+  }
+  async removeSavedProfile(id: string): Promise<void> {
+    if (!this.state.savedProfiles) return;
+    this.state.savedProfiles = this.state.savedProfiles.filter((p) => p.id !== id);
     await this.commit();
   }
 
