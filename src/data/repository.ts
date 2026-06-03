@@ -20,6 +20,7 @@
 import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens } from './model';
 import { emptyState, LIMITS, SCHEMA_VERSION } from './model';
 import type { Store } from './store';
+import type { VesselProfile } from './model';
 
 function id(prefix: string): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -53,6 +54,12 @@ export class VesselRepository {
 
   getLens(): Lens { return this.state.lens; }
   async setLens(lens: Lens): Promise<void> { this.state.lens = lens; await this.commit(); }
+
+  getProfile(): VesselProfile | undefined { return this.state.profile; }
+  async setProfile(p: VesselProfile): Promise<void> {
+    this.state.profile = { ...this.state.profile, ...p };
+    await this.commit();
+  }
 
   // ---- rooms ----------------------------------------------------------------
 
