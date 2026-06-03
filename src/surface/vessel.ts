@@ -196,7 +196,7 @@ const STYLES = `
 .cdp-surface .move { background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 4px; }
 .cdp-surface .move:hover { color:var(--gold); }
 .cdp-surface .module-name { cursor:pointer; flex:1; }
-.cdp-surface .rdg-link { display:block; padding:8px 2px; color:var(--text-light); text-decoration:none; border-bottom:1px solid var(--gold-line); font-size:14px; }
+.cdp-surface .rdg-link { display:block; width:100%; box-sizing:border-box; text-align:left; background:none; border:none; border-bottom:1px solid var(--gold-line); -webkit-appearance:none; appearance:none; padding:8px 2px; color:var(--text-light); text-decoration:none; font-family:'EB Garamond', Georgia, serif; font-size:14px; letter-spacing:0.02em; cursor:pointer; }
 .cdp-surface .rdg-link:hover { color:var(--gold); }
 .cdp-surface .module.collapsed .module-body { display:none; }
 .cdp-surface .module-body { padding:11px; }
@@ -922,6 +922,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       tier: 'oracle',
       userId: null,
       reflect: (n) => reflect(n),
+      ask: (prompt: string) => {
+        if (readingHandle) readingHandle.close();
+        closeDrawer('left');
+        closeDrawer('right');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        void compose(prompt);
+      },
       title,
     });
   }

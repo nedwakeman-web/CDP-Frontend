@@ -1,33 +1,28 @@
 /**
  * CDP Vessel, surface layer: the native daily reading.
  *
- * This is the absorption of the monolith reading into the Vessel. It composes
- * nothing of its own. It calls the live, proven reading engine on the server,
- * the same /api/reading/start and /api/reading/status the monolith uses, with
- * the same async tiered contract, and it renders the returned reading in the
- * Vessel shell. The six framework synthesis, the convergence, and the tiering
- * all live on the server and are unchanged. What changes is only where the
- * result is shown, inside the Vessel rather than in a separate page, and how
- * fully it is shown.
+ * The reading opens full, never blank. Two zones compose it. The computed zone
+ * is rendered the instant the reading opens, from the verified core, with no
+ * wait on the model: the day coordinates as cards, the today signal, the
+ * biorhythms, the universal and personal numerology with the three component
+ * energies and the three windows of the day. The composed zone streams in the
+ * Oracle prose underneath as the server returns it: the synthesis, the
+ * convergence, the lunar and astrology and Dreamspell sections, the pacing kept
+ * distinct, and the scholarly sources surfaced quietly. While that composes the
+ * computed zone is already there to read, so the page is full from the first
+ * moment.
  *
- * This render carries every element the monolith renderReading carries that the
- * skeleton dropped: the scholarly sources, surfaced quietly and tappable but
- * never announced; the three numerology energies as their own clear layer, each
- * labelled symbolic and given its meaning; the circadian pacing kept as its own
- * distinct discipline, separate from numerology and cited to Cajochen and
- * Schmidt 2024; the Dreamspell tone and seal oracle texture with the portal note
- * and the Argueelles disclaimer; the astrology transit depth with the
- * Saturn and Neptune backdrop; and the within section framing the monolith uses
- * so a first read needs no instruction. The full per voice prose is presented
- * rather than the lead paragraphs.
+ * The reading can be pre started the instant the app mounts, through the
+ * exported prewarmReading, so by the time a person opens it the server job is
+ * already composing. Every card and section carries a quiet tap that opens the
+ * Compass on that exact coordinate, so the reading is not a static page but the
+ * live resource the Compass reasons from. The voice toggle on the home swaps
+ * the visible voice in place through repaintVoice with no second round trip.
  *
- * The reading object carries section objects, each with tradition, science, and
- * everyday text, plus a headline and a citations array, mirroring the server
- * projection. A section may also be a plain string, in which case it is shown
- * as written. The voice toggle on the home swaps the visible voice in place
- * through repaintVoice, with no second round trip to the server. The connectivity
- * seams (the endpoint, the polling, the voice repaint, the share, the reflect)
- * are untouched.
+ * The connectivity seams are unchanged: the start endpoint, the status polling,
+ * the voice repaint, the share, the reflect. The endpoint payload and retry are
+ * identical to the proven path; pre starting only moves the same start call
+ * earlier in time.
  *
  * House style holds here, in code, comments, and visible strings alike: no em
  * dashes, no en dashes, no exclamation marks, and no spaced hyphen patterns.
@@ -36,7 +31,9 @@
 import type { Lens } from '../data/model';
 import { shareControls } from './share';
 import { NUM_DATA } from '../data/numerology-content';
-import { kinDescriptor } from '../coordinates-core';
+import {
+  kinDescriptor, universalDay, personalNumerology, reduceNumber, lunarWindow,
+} from '../coordinates-core';
 
 /* ---- the minimum birth fields the server reading pipeline reads ----------- */
 export interface ReadingProfile {
@@ -63,8 +60,16 @@ export interface OpenReadingOptions {
   base?: string;
   /** Overlay heading. */
   title?: string;
+  /** A place name for the date line, when the host knows it. */
+  location?: string;
   /** Called when the reading completes, so the home can show a quiet trace. */
   reflect?: (note: string) => void;
+  /**
+   * Opens the Compass on a coordinate. Wired by the host to the same ask path
+   * the home uses, so a tap on any card or section continues in the Compass
+   * with that exact context. When absent, the taps are simply not shown.
+   */
+  ask?: (prompt: string) => void;
 }
 
 export interface ReadingHandle {
@@ -85,10 +90,9 @@ function sleep(ms: number): Promise<void> { return new Promise((r) => window.set
 
 /**
  * Split prose into paragraphs. The server collapses internal whitespace when it
- * strips section HTML, so a body often arrives as one long line with the
- * paragraph breaks gone. Where blank line breaks survive they are honoured.
- * Otherwise the line is re segmented by sentence into readable paragraphs. This
- * touches presentation only; not a single word is added or dropped.
+ * strips section HTML, so a body often arrives as one long line. Where blank
+ * line breaks survive they are honoured; otherwise the line is re segmented by
+ * sentence into readable paragraphs. Presentation only; no word is added or lost.
  */
 function paragraphs(text: string): string[] {
   const raw = String(text == null ? '' : text);
@@ -127,14 +131,12 @@ function normaliseVoice(value: SectionValue): { plain?: string; voiced?: VoiceTr
       everyday: String(v.everyday || '').trim(),
     };
     if (triple.tradition || triple.science || triple.everyday) return { voiced: triple };
-    // The voices are all empty; fall back to the picked default body if present.
   }
   const body = (v.body || v.text || v.content) as SectionValue;
   if (body) return normaliseVoice(body);
   return null;
 }
 
-/** Resolve the text to show for a voice, falling back so nothing goes blank. */
 function pickVoice(t: VoiceTriple, lens: Lens): string {
   const order = lens === 'science' ? [t.science, t.everyday, t.tradition]
     : lens === 'tradition' ? [t.tradition, t.everyday, t.science]
@@ -142,7 +144,6 @@ function pickVoice(t: VoiceTriple, lens: Lens): string {
   return order.find((x) => x && x.length) || '';
 }
 
-/** A clean string from a section field that may be a string or a voiced object. */
 function asString(v: unknown): string {
   if (v == null) return '';
   if (typeof v === 'string') return v.trim();
@@ -156,7 +157,6 @@ function asString(v: unknown): string {
   return '';
 }
 
-/** Is the reading a raw or empty shell rather than the structured object. */
 function isRaw(r: Record<string, unknown> | null): boolean {
   if (!r) return true;
   if (r.raw === true) return true;
@@ -166,12 +166,50 @@ function isRaw(r: Record<string, unknown> | null): boolean {
   return false;
 }
 
-/* ---- symbolic Dreamspell oracle texture, ported from the monolith ---------
- * The tone and seal hooks are the in reading oracle texture the monolith shows,
- * keyed by the bare seal and tone names the verified core produces. Symbolic,
- * after Argueelles 1987; the em dashes the monolith carried are replaced by
- * house style punctuation. Numbers and Kin identity come from the engine; these
- * tables carry only the symbolic reading of that identity. */
+/* ---- small numeric helpers for the computed zone -------------------------- */
+function digitSum(s: string): number {
+  let n = 0;
+  for (const c of s) { if (c >= '0' && c <= '9') n += Number(c); }
+  return n;
+}
+function isMasterNum(n: number): boolean { return n === 11 || n === 22 || n === 33 || n === 44; }
+function numName(n: number): string { const m = NUM_DATA[n]; return m ? m.n : ''; }
+function numKey(n: number): string { const m = NUM_DATA[n]; return m ? m.k : ''; }
+function numMeaning(n: number): string { const m = NUM_DATA[n]; return m ? m.m : ''; }
+
+const MOON_EMOJI: Record<string, string> = {
+  'New Moon': '\u{1F311}',
+  'Waxing Crescent': '\u{1F312}',
+  'First Quarter': '\u{1F313}',
+  'Waxing Gibbous': '\u{1F314}',
+  'Full Moon': '\u{1F315}',
+  'Waning Gibbous': '\u{1F316}',
+  'Last Quarter': '\u{1F317}',
+  'Waning Crescent': '\u{1F318}',
+};
+
+interface BioVal { label: string; pct: number; phase: string; sign: string }
+function biorhythms(birthDate: string, dateStr: string): BioVal[] {
+  const birth = Date.parse(birthDate + 'T12:00:00Z');
+  const target = Date.parse(dateStr + 'T12:00:00Z');
+  if (Number.isNaN(birth) || Number.isNaN(target)) return [];
+  const days = Math.round((target - birth) / 86400000);
+  const cycles = [
+    { label: 'Physical', period: 23 },
+    { label: 'Emotional', period: 28 },
+    { label: 'Intellectual', period: 33 },
+  ];
+  return cycles.map((c) => {
+    const val = Math.sin((2 * Math.PI * days) / c.period);
+    const next = Math.sin((2 * Math.PI * (days + 1)) / c.period);
+    const pct = Math.round(val * 100);
+    const critical = Math.abs(val) < 0.13 || (val >= 0 && next < 0) || (val < 0 && next >= 0);
+    const phase = critical ? 'Critical' : pct > 60 ? 'High' : pct > 10 ? 'Rising' : pct > -10 ? 'Transition' : pct > -60 ? 'Falling' : 'Low';
+    return { label: c.label, pct, phase, sign: pct > 0 ? '+' : '' };
+  });
+}
+
+/* ---- symbolic Dreamspell oracle texture, ported from the monolith --------- */
 const TONE_HOOKS: Record<string, string> = {
   Magnetic: 'A day of attraction. What you give attention to gathers. Set the intention clearly this morning.',
   Lunar: 'The friction between what you want and what stands in the way is the intelligence of the day, showing you where to direct energy.',
@@ -209,13 +247,10 @@ const SEAL_HOOKS: Record<string, string> = {
   Storm: 'Better not to resist the disruption, it is the intelligence. Transformation is the point.',
   Sun: 'Life force is high. A day to let yourself shine without apology.',
 };
-
-/** The symbolic Dreamspell hook for a date, seal first then tone, plus a portal note. */
 function dreamspellHook(dateStr: string): { text: string; isGAP: boolean } {
   try {
     const d = kinDescriptor(dateStr);
-    const sealKey = d.seal;
-    const sealMsg = SEAL_HOOKS[sealKey] || '';
+    const sealMsg = SEAL_HOOKS[d.seal] || '';
     const toneMsg = TONE_HOOKS[d.toneName] || '';
     let text = [sealMsg, toneMsg].filter(Boolean).join(' ');
     if (d.isGAP) {
@@ -233,26 +268,21 @@ const NUMEROLOGY_HOOK =
   'The Universal Day number is the collective frequency of the date, the energy everyone moves through together. '
   + 'Your Personal Day is where that frequency meets your own numerological signature. '
   + 'The overlap of the two is where the clearest signal of the day tends to sit.';
-
 const TRANSIT_HOOK =
   'Transits are the conversation between today\u2019s sky and your natal chart. '
   + 'The Moon here means where the Moon is in the sky today, not where it was at your birth. '
   + 'When today\u2019s planets touch your natal positions the weather is personal; when they do not, it is still the collective weather, and worth knowing.';
-
 const PACING_HOOK =
   'Pacing is circadian guidance, how attention and energy rise and ebb across the hours, drawn from chronobiology rather than from numerology. '
   + 'The two are kept separate on purpose. '
   + 'The timing here follows the circadian cognition literature, Cajochen and Schmidt 2024.';
-
 const NATAL_HOOK =
   'This reads the day against the fixed chart you were born under. '
   + 'It deepens once birth time and place are captured; until then it works from the birth date alone.';
-
 const DREAMSPELL_DISCLAIMER =
   'Dreamspell after Argueelles 1987, The Mayan Factor. A modern twentieth century system, '
   + 'distinct from the living K\u2019iche\u2019 Maya count carried continuously by Guatemalan daykeepers.';
 
-/** The dynamic lunar framing, ported from the monolith, cleaned to house style. */
 function moonHook(phase: string, isBlack: boolean, isShiva: boolean): string {
   const p = String(phase || '');
   if (isBlack) {
@@ -294,8 +324,63 @@ function ensureStyle(): void {
 .cdp-surface .rdg-h { font-family:Cinzel, Georgia, serif; font-size:13px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
 .cdp-surface .rdg-close { background:none; border:none; cursor:pointer; color:var(--text-dim); font-size:22px; line-height:1; padding:4px 8px; }
 .cdp-surface .rdg-close:hover { color:var(--gold); }
-.cdp-surface .rdg-status { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim); padding:40px 6px; text-align:center; line-height:1.6; }
+.cdp-surface .rdg-status { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim); padding:18px 6px; text-align:center; line-height:1.6; }
 .cdp-surface .rdg-note { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--gold-soft); margin:0 0 18px; }
+
+/* computed zone: telescopes, date, decision tiles, coordinate cards, signal, biorhythms, numerology */
+.cdp-surface .rdg-tele { text-align:center; margin:0 0 6px; }
+.cdp-surface .rdg-tele-name { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold-soft, #E8C878); }
+.cdp-surface .rdg-tele-sub { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-faint, #9E9282); margin-top:2px; }
+.cdp-surface .rdg-datehead { text-align:center; margin:10px 0 18px; }
+.cdp-surface .rdg-eyebrow { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--gold, #C9A050); }
+.cdp-surface .rdg-date { font-family:'EB Garamond', Georgia, serif; font-size:26px; color:var(--text-light, #F0E6CC); margin:4px 0 2px; }
+.cdp-surface .rdg-loc { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-faint, #9E9282); }
+.cdp-surface .rdg-tiles { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 16px; }
+.cdp-surface .rdg-tile { flex:1; min-width:200px; text-align:center; background:none; cursor:pointer; border:1px solid var(--gold-line, #3A3320); border-radius:4px; padding:13px 14px; -webkit-appearance:none; appearance:none; }
+.cdp-surface .rdg-tile:hover { border-color:var(--gold, #C9A050); }
+.cdp-surface .rdg-tile-h { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold, #C9A050); }
+.cdp-surface .rdg-tile-s { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-dim, #D4C8AE); margin-top:3px; }
+.cdp-surface .rdg-coords { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:0 0 14px; }
+.cdp-surface .rdg-coord { text-align:center; border:1px solid var(--gold-line, #3A3320); border-radius:4px; background:rgba(0,0,0,.12); padding:13px 10px; cursor:default; -webkit-appearance:none; appearance:none; }
+.cdp-surface .rdg-coord.tap { cursor:pointer; }
+.cdp-surface .rdg-coord.tap:hover { border-color:var(--gold, #C9A050); }
+.cdp-surface .rdg-coord-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); }
+.cdp-surface .rdg-coord-glyph { font-size:22px; line-height:1; margin:8px 0 4px; color:var(--gold, #C9A050); }
+.cdp-surface .rdg-coord-glyph.master { color:var(--master, #C8A0FF); }
+.cdp-surface .rdg-coord-glyph.teal { color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-coord-v { font-family:'EB Garamond', Georgia, serif; font-size:14px; line-height:1.35; color:var(--text-light, #F0E6CC); }
+.cdp-surface .rdg-coord-s { font-size:11px; color:var(--text-dim, #D4C8AE); margin-top:3px; font-style:italic; }
+.cdp-surface .rdg-coord-tap { font-size:10px; color:var(--gold, #C9A050); margin-top:7px; letter-spacing:0.04em; }
+.cdp-surface .rdg-signal { border-left:2px solid var(--gold, #C9A050); background:rgba(0,0,0,.14); border-radius:0 3px 3px 0; padding:13px 16px; margin:0 0 18px; cursor:default; -webkit-appearance:none; appearance:none; text-align:left; width:100%; box-sizing:border-box; border-top:none; border-right:none; border-bottom:none; }
+.cdp-surface .rdg-signal.tap { cursor:pointer; }
+.cdp-surface .rdg-signal-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin-bottom:6px; }
+.cdp-surface .rdg-signal-t { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:16px; line-height:1.6; color:var(--text-light, #F0E6CC); }
+.cdp-surface .rdg-seclabel { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin:18px 0 10px; }
+.cdp-surface .rdg-bio { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 8px; }
+.cdp-surface .rdg-bio-c { border:1px solid var(--gold-line, #3A3320); border-radius:3px; background:rgba(0,0,0,.12); padding:10px 12px; }
+.cdp-surface .rdg-bio-l { font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin-bottom:5px; }
+.cdp-surface .rdg-bio-v { font-family:'EB Garamond', Georgia, serif; font-size:22px; line-height:1; }
+.cdp-surface .rdg-bio-v.pos { color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-bio-v.neg { color:#E0A0A0; }
+.cdp-surface .rdg-bio-v.crit { color:var(--gold, #C9A050); }
+.cdp-surface .rdg-bio-track { height:2px; background:var(--gold-line, #3A3320); border-radius:1px; margin:6px 0; overflow:hidden; }
+.cdp-surface .rdg-bio-fill { height:100%; border-radius:1px; }
+.cdp-surface .rdg-bio-p { font-size:11px; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-energies { display:flex; gap:10px; flex-wrap:wrap; margin:4px 0 14px; }
+.cdp-surface .rdg-energy { flex:1; min-width:150px; border:1px solid var(--gold-line, #3A3320); border-radius:3px; padding:11px 13px; background:rgba(0,0,0,.12); cursor:default; -webkit-appearance:none; appearance:none; text-align:left; box-sizing:border-box; }
+.cdp-surface .rdg-energy.tap { cursor:pointer; }
+.cdp-surface .rdg-energy.tap:hover { border-color:var(--gold, #C9A050); }
+.cdp-surface .rdg-energy-layer { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); }
+.cdp-surface .rdg-energy-sub { font-size:11px; color:var(--text-faint, #9E9282); margin-top:1px; }
+.cdp-surface .rdg-energy-num { font-family:'EB Garamond', Georgia, serif; font-size:30px; line-height:1.05; color:var(--gold, #C9A050); margin:6px 0 2px; }
+.cdp-surface .rdg-energy-num.master { color:var(--master, #C8A0FF); }
+.cdp-surface .rdg-energy-name { font-family:'EB Garamond', Georgia, serif; font-size:15px; color:var(--text-light, #F0E6CC); }
+.cdp-surface .rdg-energy-key { font-size:11px; color:var(--gold-soft, #E8C878); margin:2px 0 5px; }
+.cdp-surface .rdg-energy-guide { font-family:Georgia, serif; font-size:12px; line-height:1.6; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-symbolic { font-family:Georgia, serif; font-size:11px; line-height:1.5; color:var(--text-faint, #9E9282); margin:0 0 10px; }
+.cdp-surface .rdg-rule { height:1px; background:var(--gold-line, #3A3320); margin:22px 0 16px; border:none; }
+
+/* composed (streamed) zone */
 .cdp-surface .rdg-headline { font-family:'EB Garamond', Georgia, serif; font-size:21px; line-height:1.45; color:var(--text-light); margin:0 0 22px; }
 .cdp-surface .rdg-card { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:14px; background:var(--navy, #0D1E33); overflow:hidden; }
 .cdp-surface .rdg-card.rdg-lead { border-color:transparent; background:none; }
@@ -312,12 +397,9 @@ function ensureStyle(): void {
 .cdp-surface .rdg-p:last-child { margin-bottom:0; }
 .cdp-surface .rdg-card.rdg-lead .rdg-body .rdg-p { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:18px; line-height:1.6; color:var(--gold-soft); }
 .cdp-surface .rdg-closing { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:17px; line-height:1.55; color:var(--gold-soft); margin:22px 2px 0; text-align:center; }
-
-/* enrichment: within section framing, the layers, the quiet sources */
 .cdp-surface .rdg-subhead { font-family:'EB Garamond', Georgia, serif; font-size:17px; line-height:1.4; color:var(--gold-soft, #E8C878); margin:0 16px 8px; }
 .cdp-surface .rdg-card.open .rdg-subhead { margin-top:2px; }
 .cdp-surface .rdg-hook { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:13px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 16px 12px; }
-.cdp-surface .rdg-symbolic { font-family:Georgia, serif; font-size:11px; line-height:1.5; color:var(--text-faint, #9E9282); margin:0 16px 12px; }
 .cdp-surface .rdg-dshook { font-family:'EB Garamond', Georgia, serif; font-size:14px; line-height:1.65; color:var(--text-light, #F0E6CC); margin:0 16px 12px; }
 .cdp-surface .rdg-badges { display:flex; flex-wrap:wrap; gap:8px; margin:0 16px 10px; }
 .cdp-surface .rdg-badge { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:4px 9px; border-radius:2px; border:1px solid var(--gold-line, #3A3320); }
@@ -328,17 +410,10 @@ function ensureStyle(): void {
 .cdp-surface .rdg-backdrop .rdg-backdrop-label { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin-bottom:5px; }
 .cdp-surface .rdg-backdrop p { font-family:Georgia, serif; font-size:14px; line-height:1.7; color:var(--text-dim, #D4C8AE); margin:0; }
 .cdp-surface .rdg-disclaimer { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; line-height:1.6; color:var(--text-faint, #9E9282); margin:8px 16px 0; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
-.cdp-surface .rdg-energies { display:flex; gap:10px; flex-wrap:wrap; margin:4px 16px 14px; }
-.cdp-surface .rdg-energy { flex:1; min-width:150px; border:1px solid var(--gold-line, #3A3320); border-radius:3px; padding:11px 13px; background:rgba(0,0,0,.12); }
-.cdp-surface .rdg-energy-layer { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); }
-.cdp-surface .rdg-energy-sub { font-size:11px; color:var(--text-faint, #9E9282); margin-top:1px; }
-.cdp-surface .rdg-energy-num { font-family:'EB Garamond', Georgia, serif; font-size:30px; line-height:1.05; color:var(--gold, #C9A050); margin:6px 0 2px; }
-.cdp-surface .rdg-energy-num.master { color:var(--master, #C8A0FF); }
-.cdp-surface .rdg-energy-name { font-family:'EB Garamond', Georgia, serif; font-size:15px; color:var(--text-light, #F0E6CC); }
-.cdp-surface .rdg-energy-key { font-size:11px; color:var(--gold-soft, #E8C878); margin:2px 0 5px; }
-.cdp-surface .rdg-energy-guide { font-family:Georgia, serif; font-size:12px; line-height:1.6; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-ask { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--gold, #C9A050); font-family:'EB Garamond', Georgia, serif; font-size:12px; letter-spacing:.06em; padding:7px 13px; border-radius:2px; cursor:pointer; margin:2px 16px 14px; -webkit-appearance:none; appearance:none; }
+.cdp-surface .rdg-ask:hover { border-color:var(--gold, #C9A050); color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-cites { display:flex; flex-wrap:wrap; gap:6px; margin:4px 16px 14px; }
-.cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-faint, #9E9282); font-family:Georgia, serif; font-size:10px; letter-spacing:.02em; padding:3px 8px; border-radius:10px; cursor:pointer; }
+.cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-faint, #9E9282); font-family:Georgia, serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
 .cdp-surface .rdg-cite:hover { color:var(--gold-soft, #E8C878); border-color:var(--gold, #C9A050); }
 .cdp-surface .rdg-cite-detail { font-family:Georgia, serif; font-size:11px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 16px 14px; padding:9px 12px; border:1px solid var(--gold-line, #3A3320); border-radius:3px; background:rgba(0,0,0,.14); display:none; }
 .cdp-surface .rdg-cite-detail.open { display:block; }
@@ -353,147 +428,67 @@ function ensureStyle(): void {
 .cdp-surface .rdg-source-line { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 7px; }
 .cdp-surface .rdg-source-line b { color:var(--text-dim, #D4C8AE); font-weight:600; }
 .cdp-surface .rdg-source-note { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 8px; }
+@media (max-width: 640px) {
+  .cdp-surface .rdg-coords { grid-template-columns:repeat(2,1fr); }
+}
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
   document.head.appendChild(style);
 }
 
-/* ---- pure builders for the enriched elements ------------------------------ */
-
-/** A citation row, quiet and tappable, drawn from a section citations array. */
-function citationRow(cites: unknown): HTMLElement | null {
-  if (!Array.isArray(cites) || cites.length === 0) return null;
-  const wrap = el('div');
-  const row = el('div', { class: 'rdg-cites' });
-  const detail = el('div', { class: 'rdg-cite-detail' });
-  let openRef = '';
-  const seen = new Set<string>();
-  for (const raw of cites) {
-    if (!raw || typeof raw !== 'object') continue;
-    const c = raw as Record<string, unknown>;
-    const ref = String(c.ref || c.display || '');
-    if (!ref || seen.has(ref)) continue;
-    seen.add(ref);
-    const label = String(c.display || '').trim()
-      || [String(c.authors || '').trim(), String(c.year || '').trim()].filter(Boolean).join(' ')
-      || 'Source';
-    const chip = el('button', { type: 'button', class: 'rdg-cite' }, label);
-    chip.addEventListener('click', () => {
-      if (openRef === ref && detail.classList.contains('open')) {
-        detail.classList.remove('open');
-        openRef = '';
-        return;
-      }
-      openRef = ref;
-      clear(detail);
-      const title = String(c.title || '').trim();
-      const venue = String(c.journal || c.publisher || '').trim();
-      const year = String(c.year || '').trim();
-      const authors = String(c.authors || '').trim();
-      const doi = String(c.doi || '').trim();
-      if (authors || year) detail.appendChild(el('div', {}, [authors, year].filter(Boolean).join(', ')));
-      if (title) { const t = el('div', { class: 'rdg-cite-title' }, title); detail.appendChild(t); }
-      if (venue) detail.appendChild(el('div', {}, venue));
-      if (doi) detail.appendChild(el('div', {}, 'doi ' + doi));
-      detail.classList.add('open');
-    });
-    row.appendChild(chip);
-  }
-  if (!row.firstChild) return null;
-  wrap.appendChild(row);
-  wrap.appendChild(detail);
-  return wrap;
+/* ---- pre start cache: start the job the instant the app opens ------------- */
+function startJob(
+  base: string, tier: string, dateStr: string,
+  prof: ReadingProfile | null, lens: Lens, userId: string | null,
+): Promise<string> {
+  const profile = prof
+    ? { dob: prof.birthDate || null, birthTime: prof.birthTime || null, birthPlace: prof.birthPlace || null, name: prof.name || null, readingLang: lens }
+    : { readingLang: lens };
+  const payload = JSON.stringify({ date: dateStr, profile, tier, user_id: userId });
+  const opts: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload };
+  return (async () => {
+    let res = await fetch(base + '/api/reading/start', opts);
+    if (!res.ok && res.status >= 500) { await sleep(3000); res = await fetch(base + '/api/reading/start', opts); }
+    if (!res.ok) throw new Error('start_' + res.status);
+    const data = await res.json() as { jobId?: string };
+    if (!data.jobId) throw new Error('no_job');
+    return data.jobId;
+  })();
 }
 
-/** The three numerology energies as their own clear layer, each labelled symbolic. */
-function energiesLayer(te: unknown): HTMLElement | null {
-  if (!te || typeof te !== 'object') return null;
-  const t = te as Record<string, unknown>;
-  type Spec = { key: string; layer: string };
-  let specs: Spec[];
-  if ('day' in t || 'day_month' in t || 'full_date' in t) {
-    specs = [
-      { key: 'day', layer: 'The day' },
-      { key: 'day_month', layer: 'Day and month' },
-      { key: 'full_date', layer: 'Full date, your year' },
-    ];
-  } else if ('morning' in t || 'afternoon' in t || 'evening' in t) {
-    specs = [
-      { key: 'morning', layer: 'Morning, the day' },
-      { key: 'afternoon', layer: 'Afternoon, the month' },
-      { key: 'evening', layer: 'Evening, the year' },
-    ];
-  } else {
-    return null;
-  }
+function readingKey(base: string, tier: string, date: string): string { return base + '|' + tier + '|' + date; }
 
-  const present = specs.filter((s) => t[s.key] && typeof t[s.key] === 'object');
-  if (present.length === 0) return null;
+let prewarmCache: { key: string; jobId: Promise<string> } | null = null;
 
-  const row = el('div', { class: 'rdg-energies' });
-  for (const s of present) {
-    const e = t[s.key] as Record<string, unknown>;
-    const n = Number(e.n != null ? e.n : e.num);
-    const meaning = Number.isFinite(n) ? NUM_DATA[n] : undefined;
-    const isMaster = !!(meaning && meaning.master);
-    const sub = String(e.label || '').trim();
-    const name = String(e.name || (meaning ? meaning.n : '')).trim();
-    const key = meaning && meaning.k ? meaning.k : '';
-    const guide = String(e.guidance || (meaning ? meaning.m : '')).trim();
-
-    const card = el('div', { class: 'rdg-energy' });
-    card.appendChild(el('div', { class: 'rdg-energy-layer' }, s.layer));
-    if (sub) card.appendChild(el('div', { class: 'rdg-energy-sub' }, sub));
-    card.appendChild(el('div', { class: 'rdg-energy-num' + (isMaster ? ' master' : '') }, Number.isFinite(n) ? String(n) + (isMaster ? ' \u2605' : '') : ''));
-    if (name) card.appendChild(el('div', { class: 'rdg-energy-name' }, name));
-    if (key) card.appendChild(el('div', { class: 'rdg-energy-key' }, key));
-    if (guide) card.appendChild(el('div', { class: 'rdg-energy-guide' }, guide));
-    row.appendChild(card);
-  }
-  return row;
+export interface PrewarmOptions {
+  base?: string;
+  tier?: string;
+  date?: string;
+  getProfile: () => ReadingProfile | null;
+  getLens: () => Lens;
+  userId?: string | null;
 }
 
-/** The quiet foot block of scholarly sources, collapsed and never announced. */
-function sourcesBlock(union: unknown, sourcesText: string): HTMLElement | null {
-  const entries: Record<string, unknown>[] = Array.isArray(union)
-    ? (union as unknown[]).filter((x) => x && typeof x === 'object') as Record<string, unknown>[]
-    : [];
-  const note = String(sourcesText || '').trim();
-  if (entries.length === 0 && !note) return null;
-
-  const wrap = el('div', { class: 'rdg-sources' });
-  const toggle = el('button', { type: 'button', class: 'rdg-sources-toggle' });
-  toggle.appendChild(el('span', { class: 'rdg-sources-caret' }, '\u203a'));
-  toggle.appendChild(el('span', {}, 'Sources'));
-  const body = el('div', { class: 'rdg-sources-body' });
-
-  if (note) body.appendChild(el('div', { class: 'rdg-source-note' }, note));
-
-  const seen = new Set<string>();
-  for (const c of entries) {
-    const ref = String(c.ref || c.display || '');
-    if (ref && seen.has(ref)) continue;
-    if (ref) seen.add(ref);
-    const authors = String(c.authors || '').trim();
-    const year = String(c.year || '').trim();
-    const title = String(c.title || '').trim();
-    const venue = String(c.journal || c.publisher || '').trim();
-    const doi = String(c.doi || '').trim();
-    const line = el('div', { class: 'rdg-source-line' });
-    const lead = [authors, year].filter(Boolean).join(', ');
-    if (lead) { line.appendChild(el('b', {}, lead)); line.appendChild(document.createTextNode('. ')); }
-    if (title) line.appendChild(document.createTextNode(title + '. '));
-    if (venue) line.appendChild(document.createTextNode(venue + '. '));
-    if (doi) line.appendChild(document.createTextNode('doi ' + doi));
-    if (line.firstChild) body.appendChild(line);
+/**
+ * Start the reading job the instant the app mounts, so the server is already
+ * composing before the person opens the reading. Safe to call repeatedly; it
+ * only starts once per date and tier, and it swallows its own errors so a
+ * failure here never affects the surface. openReading reuses the in flight job.
+ */
+export function prewarmReading(po: PrewarmOptions): void {
+  try {
+    const base = (po.base || '').replace(/\/+$/, '');
+    const tier = po.tier || 'oracle';
+    const date = po.date || new Date().toISOString().slice(0, 10);
+    const key = readingKey(base, tier, date);
+    if (prewarmCache && prewarmCache.key === key) return;
+    const jobId = startJob(base, tier, date, po.getProfile(), po.getLens(), po.userId || null);
+    jobId.catch(() => { /* allow openReading to retry from scratch */ });
+    prewarmCache = { key, jobId };
+  } catch (_e) {
+    // pre start is best effort and silent
   }
-
-  if (!body.firstChild) return null;
-  toggle.addEventListener('click', () => wrap.classList.toggle('open'));
-  wrap.appendChild(toggle);
-  wrap.appendChild(body);
-  return wrap;
 }
 
 /* ---- the public entry point ------------------------------------------------ */
@@ -502,6 +497,8 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   const base = (o.base || '').replace(/\/+$/, '');
   const tier = o.tier || 'oracle';
   const dateStr = o.date || new Date().toISOString().slice(0, 10);
+  const ask = o.ask;
+  const profile = o.getProfile();
 
   const view = el('div', { class: 'rdg-view', role: 'dialog', 'aria-label': 'Today\u2019s reading' });
   const shell = el('div', { class: 'rdg-shell' });
@@ -510,18 +507,29 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   const closeBtn = el('button', { type: 'button', class: 'rdg-close', 'aria-label': 'Close' }, '\u00d7');
   bar.appendChild(closeBtn);
   shell.appendChild(bar);
-  const status = el('div', { class: 'rdg-status' }, 'Reading the day for you. This takes a short moment.');
-  shell.appendChild(status);
-  const content = el('div', { class: 'rdg-content' });
-  shell.appendChild(content);
+
+  // The computed zone, rendered now, from the verified core. Never blank.
+  const computed = el('div', { class: 'rdg-computed' });
+  shell.appendChild(computed);
+
+  // A rule between the computed reading and the composed depth.
+  const rule = el('hr', { class: 'rdg-rule' });
+  shell.appendChild(rule);
+
+  // The composed zone, where the Oracle prose streams in.
+  const aiZone = el('div', { class: 'rdg-ai' });
+  shell.appendChild(aiZone);
+  const status = el('div', { class: 'rdg-status' }, 'The Oracle is composing the full depth of your reading.');
+  aiZone.appendChild(status);
+
   let shareInserted = false;
   function ensureShareBar(): void {
     if (shareInserted) return;
     shareInserted = true;
     const bar2 = shareControls({
       title: o.title || 'Today\u2019s reading',
-      text: () => (o.title || 'Today\u2019s reading') + '\n\n' + content.innerText,
-      node: () => content,
+      text: () => (o.title || 'Today\u2019s reading') + '\n\n' + shell.innerText,
+      node: () => shell,
     });
     shell.appendChild(bar2);
   }
@@ -533,12 +541,252 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   closeBtn.addEventListener('click', close);
 
   function setStatus(text: string): void {
-    if (!status.parentNode) shell.insertBefore(status, content);
+    if (!status.parentNode) aiZone.insertBefore(status, aiZone.firstChild);
     status.textContent = text;
   }
-  function clearStatus(): void { if (status.parentNode) status.parentNode.removeChild(status); }
 
-  /* paint a single body element for the current voice */
+  /* ---- a quiet tap that opens the Compass on a coordinate ----------------- */
+  function askCue(label: string, prompt: string): HTMLElement | null {
+    if (!ask) return null;
+    const b = el('button', { type: 'button', class: 'rdg-ask' }, label);
+    b.addEventListener('click', () => { try { ask(prompt); } catch (_e) { /* host handles */ } });
+    return b;
+  }
+
+  /* ======================================================================== *
+   * THE COMPUTED ZONE, rendered immediately from the core
+   * ======================================================================== */
+  function renderComputed(): void {
+    clear(computed);
+
+    // Two Telescopes
+    const tele = el('div', { class: 'rdg-tele' });
+    tele.appendChild(el('div', { class: 'rdg-tele-name' }, 'Two Telescopes'));
+    tele.appendChild(el('div', { class: 'rdg-tele-sub' }, 'The oldest traditions and the newest science, the same coordinates'));
+    computed.appendChild(tele);
+
+    // date and place
+    const dh = el('div', { class: 'rdg-datehead' });
+    dh.appendChild(el('div', { class: 'rdg-eyebrow' }, 'Your daily reading'));
+    let dateLabel = dateStr;
+    try {
+      dateLabel = new Date(dateStr + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    } catch (_e) { /* keep iso */ }
+    dh.appendChild(el('div', { class: 'rdg-date' }, dateLabel));
+    if (o.location) dh.appendChild(el('div', { class: 'rdg-loc' }, o.location));
+    computed.appendChild(dh);
+
+    // decision tiles, into the Compass
+    if (ask) {
+      const tiles = el('div', { class: 'rdg-tiles' });
+      const t1 = el('button', { type: 'button', class: 'rdg-tile' });
+      t1.appendChild(el('div', { class: 'rdg-tile-h' }, 'Time a decision'));
+      t1.appendChild(el('div', { class: 'rdg-tile-s' }, 'Should I act today, or wait'));
+      t1.addEventListener('click', () => { try { ask('I am weighing a decision. Given today\u2019s coordinates, is today a day to act, or to wait, and why.'); } catch (_e) { /* host */ } });
+      const t2 = el('button', { type: 'button', class: 'rdg-tile' });
+      t2.appendChild(el('div', { class: 'rdg-tile-h' }, 'Find a best day'));
+      t2.appendChild(el('div', { class: 'rdg-tile-s' }, 'When is best this month'));
+      t2.addEventListener('click', () => { try { ask('Looking at the month ahead, which days are best for an important undertaking, and which to avoid, and why.'); } catch (_e) { /* host */ } });
+      tiles.appendChild(t1);
+      tiles.appendChild(t2);
+      computed.appendChild(tiles);
+    }
+
+    // compute the day coordinates from the core
+    const ud = universalDay(dateStr);
+    const kin = kinDescriptor(dateStr);
+    const moon = lunarWindow(dateStr);
+    const hasBirth = !!(profile && profile.birthDate);
+    const pn = hasBirth ? personalNumerology(profile!.birthDate as string, dateStr) : null;
+    const lifePath = hasBirth ? reduceNumber(digitSum(profile!.birthDate as string)).value : null;
+    const moonEmoji = MOON_EMOJI[moon.phase] || '\u263D';
+
+    // coordinate cards: Personal Day (or Universal Day), Moon, Kin, Life Path
+    const coords = el('div', { class: 'rdg-coords' });
+
+    const pdValue = pn ? pn.personalDay.value : ud.value;
+    const pdLabel = pn ? 'Personal Day' : 'Universal Day';
+    coords.appendChild(coordCard(
+      pdLabel,
+      isMasterNum(pdValue) ? '\u2605' : String(pdValue),
+      isMasterNum(pdValue) ? 'master' : '',
+      String(pdValue),
+      numName(pdValue),
+      ask ? { label: 'Tap for insight', prompt: pdLabel + ' ' + pdValue + ', ' + numName(pdValue) + '. What does this number ask of me today.' } : null,
+    ));
+
+    coords.appendChild(coordCard(
+      'Moon',
+      moonEmoji, 'teal',
+      moon.phase,
+      moon.black ? 'Black Moon window' : moon.shiva ? 'Shiva Moon window' : (moon.daysToNew + ' days to New'),
+      ask ? { label: 'Tap for insight', prompt: 'The Moon is ' + moon.phase + ', ' + moon.daysToNew + ' days to the New Moon. What does this phase mean for me today.' } : null,
+    ));
+
+    coords.appendChild(coordCard(
+      'Kin',
+      '\u25C8', 'teal',
+      kin.full.replace(/^Kin \d+ /, ''),
+      kin.isGAP ? 'Portal day, synchronicities amplified' : ('Tone ' + kin.tone),
+      ask ? { label: 'Tap for insight', prompt: kin.full + (kin.isGAP ? ', a Galactic Activation Portal' : '') + '. What does my Kin mean for me today.' } : null,
+    ));
+
+    if (lifePath != null) {
+      coords.appendChild(coordCard(
+        'Life Path',
+        isMasterNum(lifePath) ? '\u2605' : String(lifePath),
+        isMasterNum(lifePath) ? 'master' : '',
+        String(lifePath),
+        numName(lifePath),
+        ask ? { label: 'Tap for insight', prompt: 'My Life Path is ' + lifePath + ', ' + numName(lifePath) + '. How does it shape today.' } : null,
+      ));
+    } else {
+      coords.appendChild(coordCard('Universal Day', String(ud.value), isMasterNum(ud.value) ? 'master' : '', String(ud.value), numName(ud.value), null));
+    }
+    computed.appendChild(coords);
+
+    // today's signal, deterministic
+    const signalText = buildSignal(ud, kin, moon, pn);
+    const sig = ask ? el('button', { type: 'button', class: 'rdg-signal tap' }) : el('div', { class: 'rdg-signal' });
+    sig.appendChild(el('div', { class: 'rdg-signal-l' }, 'Today\u2019s signal'));
+    sig.appendChild(el('div', { class: 'rdg-signal-t' }, signalText));
+    if (ask) sig.addEventListener('click', () => { try { ask('Here is today\u2019s signal: ' + signalText + ' Read it for me in depth.'); } catch (_e) { /* host */ } });
+    computed.appendChild(sig);
+
+    // biorhythms
+    if (hasBirth) {
+      const bio = biorhythms(profile!.birthDate as string, dateStr);
+      if (bio.length) {
+        computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'Biorhythms today'));
+        const grid = el('div', { class: 'rdg-bio' });
+        for (const b of bio) {
+          const card = el('div', { class: 'rdg-bio-c' });
+          card.appendChild(el('div', { class: 'rdg-bio-l' }, b.label));
+          const crit = b.phase === 'Critical';
+          const vcls = crit ? 'crit' : b.pct >= 0 ? 'pos' : 'neg';
+          card.appendChild(el('div', { class: 'rdg-bio-v ' + vcls }, b.sign + b.pct + '%'));
+          const track = el('div', { class: 'rdg-bio-track' });
+          const fill = el('div', { class: 'rdg-bio-fill' });
+          const w = Math.min(100, Math.abs(b.pct));
+          fill.setAttribute('style', 'width:' + w + '%;background:' + (crit ? 'var(--gold,#C9A050)' : b.pct >= 0 ? 'var(--teal,#81CDB6)' : '#E0A0A0') + ';' + (b.pct < 0 ? 'margin-left:' + (100 - w) + '%;' : ''));
+          track.appendChild(fill);
+          card.appendChild(track);
+          card.appendChild(el('div', { class: 'rdg-bio-p' }, b.phase));
+          grid.appendChild(card);
+        }
+        computed.appendChild(grid);
+      }
+    }
+
+    // numerology of the day: universal day + three component energies
+    computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'Numerology of the day'));
+    const parts = dateStr.split('-').map(Number);
+    const dayN = reduceNumber(parts[2] || 1).value;
+    const monthN = reduceNumber(parts[1] || 1).value;
+    const yearN = reduceNumber(digitSum(String(parts[0] || new Date().getUTCFullYear()))).value;
+    const comp = el('div', { class: 'rdg-energies' });
+    comp.appendChild(energyCard('The day', 'Day ' + (parts[2] || ''), dayN, ask));
+    comp.appendChild(energyCard('The month', 'Month ' + (parts[1] || ''), monthN, ask));
+    comp.appendChild(energyCard('The year', 'Year ' + (parts[0] || ''), yearN, ask));
+    computed.appendChild(comp);
+    computed.appendChild(el('div', { class: 'rdg-symbolic' }, 'Symbolic, Pythagorean numerology, master numbers preserved. The shared component energies of the date.'));
+
+    // personal numerology, if birth date known
+    if (pn) {
+      computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'Your personal numerology'));
+      const per = el('div', { class: 'rdg-energies' });
+      per.appendChild(energyCard('Personal Day', '', pn.personalDay.value, ask));
+      per.appendChild(energyCard('Personal Month', '', pn.personalMonth.value, ask));
+      per.appendChild(energyCard('Personal Year', '', pn.personalYear.value, ask));
+      computed.appendChild(per);
+      computed.appendChild(el('div', { class: 'rdg-symbolic' }, 'Symbolic. Your own numbers, drawn from your birth date set against today.'));
+
+      // three windows of the day, from the personal layers
+      computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'The day in three windows'));
+      const win = el('div', { class: 'rdg-energies' });
+      win.appendChild(windowCard('Morning', 'Personal Day', pn.personalDay.value));
+      win.appendChild(windowCard('Afternoon', 'Personal Month', pn.personalMonth.value));
+      win.appendChild(windowCard('Evening', 'Personal Year', pn.personalYear.value));
+      computed.appendChild(win);
+    }
+  }
+
+  function coordCard(
+    label: string, glyph: string, glyphCls: string, value: string, sub: string,
+    tap: { label: string; prompt: string } | null,
+  ): HTMLElement {
+    const card = el(tap ? 'button' : 'div', { type: 'button', class: 'rdg-coord' + (tap ? ' tap' : '') });
+    card.appendChild(el('div', { class: 'rdg-coord-l' }, label));
+    card.appendChild(el('div', { class: 'rdg-coord-glyph ' + glyphCls }, glyph));
+    card.appendChild(el('div', { class: 'rdg-coord-v' }, value));
+    if (sub) card.appendChild(el('div', { class: 'rdg-coord-s' }, sub));
+    if (tap && ask) {
+      card.appendChild(el('div', { class: 'rdg-coord-tap' }, tap.label));
+      card.addEventListener('click', () => { try { ask(tap.prompt); } catch (_e) { /* host */ } });
+    }
+    return card;
+  }
+
+  function energyCard(layer: string, sub: string, n: number, canAsk: ((p: string) => void) | undefined): HTMLElement {
+    const master = isMasterNum(n);
+    const card = el(canAsk ? 'button' : 'div', { type: 'button', class: 'rdg-energy' + (canAsk ? ' tap' : '') });
+    card.appendChild(el('div', { class: 'rdg-energy-layer' }, layer));
+    if (sub) card.appendChild(el('div', { class: 'rdg-energy-sub' }, sub));
+    card.appendChild(el('div', { class: 'rdg-energy-num' + (master ? ' master' : '') }, String(n) + (master ? ' \u2605' : '')));
+    const name = numName(n);
+    if (name) card.appendChild(el('div', { class: 'rdg-energy-name' }, name));
+    const key = numKey(n);
+    if (key) card.appendChild(el('div', { class: 'rdg-energy-key' }, key));
+    const meaning = numMeaning(n);
+    if (meaning) card.appendChild(el('div', { class: 'rdg-energy-guide' }, meaning));
+    if (canAsk) card.addEventListener('click', () => { try { canAsk(layer + (sub ? ' ' + sub : '') + ', the number ' + n + ' (' + name + '). What does this energy ask of me.'); } catch (_e) { /* host */ } });
+    return card;
+  }
+
+  function windowCard(part: string, layer: string, n: number): HTMLElement {
+    const master = isMasterNum(n);
+    const card = el('div', { class: 'rdg-energy' });
+    card.appendChild(el('div', { class: 'rdg-energy-layer' }, part));
+    card.appendChild(el('div', { class: 'rdg-energy-sub' }, layer));
+    card.appendChild(el('div', { class: 'rdg-energy-num' + (master ? ' master' : '') }, String(n) + (master ? ' \u2605' : '')));
+    const name = numName(n);
+    if (name) card.appendChild(el('div', { class: 'rdg-energy-name' }, name));
+    const key = numKey(n);
+    if (key) card.appendChild(el('div', { class: 'rdg-energy-key' }, key));
+    return card;
+  }
+
+  function buildSignal(
+    ud: { value: number }, kin: { full: string; isGAP: boolean; toneName: string },
+    moon: { phase: string; black: boolean; shiva: boolean }, pn: { personalDay: { value: number } } | null,
+  ): string {
+    const n = pn ? pn.personalDay.value : ud.value;
+    const lead = isMasterNum(n) ? ('Master Number ' + n + ' day, ' + numName(n)) : (numName(n) + ', the day reduces to ' + n);
+    const parts: string[] = [lead + '.'];
+    parts.push(numMeaning(n));
+    parts.push(kin.full.replace(/^Kin \d+ /, '') + (kin.isGAP ? ', a Galactic Activation Portal, synchronicities amplified' : '') + '.');
+    parts.push(moon.phase + (moon.black ? ', Black Moon window, a tricky time' : moon.shiva ? ', Shiva Moon window, a blissful time' : '') + '.');
+    return parts.filter(Boolean).join(' ');
+  }
+
+  /* ======================================================================== *
+   * THE COMPOSED ZONE, streamed from the server
+   * ======================================================================== */
+  function makeBody(value: SectionValue): HTMLElement | null {
+    const norm = normaliseVoice(value);
+    if (!norm) return null;
+    const body = el('div', { class: 'rdg-body' });
+    if (norm.plain != null) { body.dataset.plain = norm.plain; }
+    else if (norm.voiced) {
+      body.classList.add('rdg-voiced');
+      body.dataset.tradition = norm.voiced.tradition;
+      body.dataset.science = norm.voiced.science;
+      body.dataset.everyday = norm.voiced.everyday;
+    }
+    paintBody(body, o.getLens());
+    return body;
+  }
+
   function paintBody(body: HTMLElement, lens: Lens): void {
     clear(body);
     let text = '';
@@ -563,28 +811,83 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     }
   }
 
-  /** Build a voiced (or plain) body element that repaintVoice will keep in sync. */
-  function makeBody(value: SectionValue): HTMLElement | null {
-    const norm = normaliseVoice(value);
-    if (!norm) return null;
-    const body = el('div', { class: 'rdg-body' });
-    if (norm.plain != null) { body.dataset.plain = norm.plain; }
-    else if (norm.voiced) {
-      body.classList.add('rdg-voiced');
-      body.dataset.tradition = norm.voiced.tradition;
-      body.dataset.science = norm.voiced.science;
-      body.dataset.everyday = norm.voiced.everyday;
+  function citationRow(cites: unknown): HTMLElement | null {
+    if (!Array.isArray(cites) || cites.length === 0) return null;
+    const wrap = el('div');
+    const row = el('div', { class: 'rdg-cites' });
+    const detail = el('div', { class: 'rdg-cite-detail' });
+    let openRef = '';
+    const seen = new Set<string>();
+    for (const raw of cites) {
+      if (!raw || typeof raw !== 'object') continue;
+      const c = raw as Record<string, unknown>;
+      const ref = String(c.ref || c.display || '');
+      if (!ref || seen.has(ref)) continue;
+      seen.add(ref);
+      const label = String(c.display || '').trim()
+        || [String(c.authors || '').trim(), String(c.year || '').trim()].filter(Boolean).join(' ')
+        || 'Source';
+      const chip = el('button', { type: 'button', class: 'rdg-cite' }, label);
+      chip.addEventListener('click', () => {
+        if (openRef === ref && detail.classList.contains('open')) { detail.classList.remove('open'); openRef = ''; return; }
+        openRef = ref;
+        clear(detail);
+        const title = String(c.title || '').trim();
+        const venue = String(c.journal || c.publisher || '').trim();
+        const year = String(c.year || '').trim();
+        const authors = String(c.authors || '').trim();
+        const doi = String(c.doi || '').trim();
+        if (authors || year) detail.appendChild(el('div', {}, [authors, year].filter(Boolean).join(', ')));
+        if (title) detail.appendChild(el('div', { class: 'rdg-cite-title' }, title));
+        if (venue) detail.appendChild(el('div', {}, venue));
+        if (doi) detail.appendChild(el('div', {}, 'doi ' + doi));
+        detail.classList.add('open');
+      });
+      row.appendChild(chip);
     }
-    paintBody(body, o.getLens());
-    return body;
+    if (!row.firstChild) return null;
+    wrap.appendChild(row);
+    wrap.appendChild(detail);
+    return wrap;
   }
 
-  /**
-   * A rich section card: a titled, collapsible panel that can carry a server
-   * headline as a subhead, a framing hook, the voiced body, any extra elements
-   * (the energies layer, the lunar badges, the Dreamspell texture, the
-   * Saturn and Neptune backdrop, the disclaimer), and a quiet citation row.
-   */
+  function sourcesBlock(union: unknown, sourcesText: string): HTMLElement | null {
+    const entries: Record<string, unknown>[] = Array.isArray(union)
+      ? (union as unknown[]).filter((x) => x && typeof x === 'object') as Record<string, unknown>[]
+      : [];
+    const note = String(sourcesText || '').trim();
+    if (entries.length === 0 && !note) return null;
+    const wrap = el('div', { class: 'rdg-sources' });
+    const toggle = el('button', { type: 'button', class: 'rdg-sources-toggle' });
+    toggle.appendChild(el('span', { class: 'rdg-sources-caret' }, '\u203a'));
+    toggle.appendChild(el('span', {}, 'Sources'));
+    const body = el('div', { class: 'rdg-sources-body' });
+    if (note) body.appendChild(el('div', { class: 'rdg-source-note' }, note));
+    const seen = new Set<string>();
+    for (const c of entries) {
+      const ref = String(c.ref || c.display || '');
+      if (ref && seen.has(ref)) continue;
+      if (ref) seen.add(ref);
+      const authors = String(c.authors || '').trim();
+      const year = String(c.year || '').trim();
+      const title = String(c.title || '').trim();
+      const venue = String(c.journal || c.publisher || '').trim();
+      const doi = String(c.doi || '').trim();
+      const line = el('div', { class: 'rdg-source-line' });
+      const lead = [authors, year].filter(Boolean).join(', ');
+      if (lead) { line.appendChild(el('b', {}, lead)); line.appendChild(document.createTextNode('. ')); }
+      if (title) line.appendChild(document.createTextNode(title + '. '));
+      if (venue) line.appendChild(document.createTextNode(venue + '. '));
+      if (doi) line.appendChild(document.createTextNode('doi ' + doi));
+      if (line.firstChild) body.appendChild(line);
+    }
+    if (!body.firstChild) return null;
+    toggle.addEventListener('click', () => wrap.classList.toggle('open'));
+    wrap.appendChild(toggle);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
   interface RichSpec {
     title: string;
     subhead?: string;
@@ -593,6 +896,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     preBody?: HTMLElement[];
     postBody?: HTMLElement[];
     citations?: unknown;
+    askPrompt?: string;
     collapsed: boolean;
     lead?: boolean;
   }
@@ -600,40 +904,35 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     const body = makeBody(spec.body);
     const hasExtras = (spec.preBody && spec.preBody.length) || (spec.postBody && spec.postBody.length);
     if (!body && !hasExtras && !spec.subhead) return null;
-
     const card = el('div', { class: 'rdg-card' + (spec.lead ? ' rdg-lead' : '') + (spec.collapsed && !spec.lead ? '' : ' open') });
     const head = el('button', { type: 'button', class: 'rdg-head' });
     head.appendChild(el('span', { class: 'rdg-title' }, spec.title));
     head.appendChild(el('span', { class: 'rdg-caret' }, '\u203a'));
     card.appendChild(head);
-
     if (spec.subhead) card.appendChild(el('div', { class: 'rdg-subhead' }, spec.subhead));
     if (spec.hook) card.appendChild(spec.hook);
     if (spec.preBody) for (const n of spec.preBody) card.appendChild(n);
     if (body) card.appendChild(body);
     if (spec.postBody) for (const n of spec.postBody) card.appendChild(n);
-
+    const cue = spec.askPrompt ? askCue('Ask the Oracle about this', spec.askPrompt) : null;
+    if (cue) card.appendChild(cue);
     const cites = citationRow(spec.citations);
     if (cites) card.appendChild(cites);
-
     if (!spec.lead) head.addEventListener('click', () => card.classList.toggle('open'));
     return card;
   }
 
-  function render(raw: unknown): void {
+  function renderAI(raw: unknown): void {
     const outer = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : {};
     const r = (outer.reading && typeof outer.reading === 'object' ? outer.reading : outer) as Record<string, unknown>;
     const moon = (outer.moon && typeof outer.moon === 'object' ? outer.moon : null) as Record<string, unknown> | null;
-    clear(content);
+    clear(aiZone);
     if (isRaw(r)) {
       const s = String(r.synthesis || '').trim();
-      const note = el('div', { class: 'rdg-status' }, s && !s.startsWith('{') ? s : 'The reading came back in an unexpected shape. The engine is reachable; please try again in a moment.');
-      content.appendChild(note);
+      aiZone.appendChild(el('div', { class: 'rdg-status' }, s && !s.startsWith('{') ? s : 'The reading is composing on the server; the page above is your day in full while it arrives.'));
       return;
     }
-    clearStatus();
 
-    /* headline, the one line at the top, when the engine supplies one */
     const hv = normaliseVoice(r.headline as SectionValue);
     if (hv) {
       const h = el('div', { class: 'rdg-headline' });
@@ -645,44 +944,31 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         h.dataset.everyday = hv.voiced.everyday;
         h.textContent = pickVoice(hv.voiced, o.getLens());
       }
-      content.appendChild(h);
+      aiZone.appendChild(h);
     }
 
-    /* the synthesis, as the italic lead */
     const lead = buildRichSection({ title: 'Today', body: r.synthesis as SectionValue, collapsed: false, lead: true });
-    if (lead) content.appendChild(lead);
+    if (lead) aiZone.appendChild(lead);
 
-    /* where the frameworks meet, open */
     const conv = (normaliseVoice(r.depth_synthesis as SectionValue) ? r.depth_synthesis : r.framework_convergence) as SectionValue;
-    const convCites = (r.depth_synthesis && typeof r.depth_synthesis === 'object')
-      ? (r.depth_synthesis as Record<string, unknown>).citations : undefined;
-    const convCard = buildRichSection({ title: 'Where the frameworks meet', body: conv, citations: convCites, collapsed: false });
-    if (convCard) content.appendChild(convCard);
+    const convCites = (r.depth_synthesis && typeof r.depth_synthesis === 'object') ? (r.depth_synthesis as Record<string, unknown>).citations : undefined;
+    const convCard = buildRichSection({ title: 'Where the frameworks meet', body: conv, citations: convCites, askPrompt: 'Go deeper on where the frameworks converge today.', collapsed: false });
+    if (convCard) aiZone.appendChild(convCard);
 
-    /* numerology, with the three energies as their own clear layer */
     const numObj = (r.numerology && typeof r.numerology === 'object') ? r.numerology as Record<string, unknown> : null;
     if (numObj || normaliseVoice(r.numerology as SectionValue)) {
-      const energies = numObj ? energiesLayer(numObj.three_energies) : null;
-      const pre: HTMLElement[] = [];
-      pre.push(el('div', { class: 'rdg-hook' }, NUMEROLOGY_HOOK));
-      const post: HTMLElement[] = [];
-      if (energies) {
-        post.push(el('div', { class: 'rdg-symbolic' }, 'The three energies of the day. Symbolic, Pythagorean numerology, master numbers preserved.'));
-        post.push(energies);
-      }
       const card = buildRichSection({
-        title: 'Numerology of the day',
+        title: 'Numerology, read in depth',
         subhead: numObj ? asString(numObj.headline) : '',
-        preBody: pre,
+        hook: el('div', { class: 'rdg-hook' }, NUMEROLOGY_HOOK),
         body: r.numerology as SectionValue,
-        postBody: post,
         citations: numObj ? numObj.citations : undefined,
+        askPrompt: 'How does today\u2019s number energy work for me.',
         collapsed: true,
       });
-      if (card) content.appendChild(card);
+      if (card) aiZone.appendChild(card);
     }
 
-    /* lunar landscape, with the Black and Shiva windows */
     const moonObj = (r.moon_section && typeof r.moon_section === 'object') ? r.moon_section as Record<string, unknown> : null;
     if (moonObj || normaliseVoice(r.moon_section as SectionValue)) {
       const phase = moon ? String(moon.phase || '') : '';
@@ -701,12 +987,12 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         preBody: pre,
         body: r.moon_section as SectionValue,
         citations: moonObj ? moonObj.citations : undefined,
+        askPrompt: 'What does this Moon mean for me today.',
         collapsed: true,
       });
-      if (card) content.appendChild(card);
+      if (card) aiZone.appendChild(card);
     }
 
-    /* pacing across the day, kept distinct from numerology */
     const pacingObj = (r.pacing_section && typeof r.pacing_section === 'object') ? r.pacing_section as Record<string, unknown> : null;
     if (pacingObj && normaliseVoice(r.pacing_section as SectionValue)) {
       const card = buildRichSection({
@@ -717,23 +1003,20 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         citations: pacingObj.citations,
         collapsed: true,
       });
-      if (card) content.appendChild(card);
+      if (card) aiZone.appendChild(card);
     }
 
-    /* western astrology, the transits, with the Saturn and Neptune backdrop */
     const astroObj = (r.astrology && typeof r.astrology === 'object') ? r.astrology as Record<string, unknown> : null;
     if (astroObj) {
-      const transitBody: SectionValue =
-        (astroObj.tradition || astroObj.science || astroObj.everyday)
-          ? astroObj
-          : (asString(astroObj.main_transit_body) || asString(astroObj.main_transit));
+      const transitBody: SectionValue = (astroObj.tradition || astroObj.science || astroObj.everyday)
+        ? astroObj
+        : (asString(astroObj.main_transit_body) || asString(astroObj.main_transit));
       const post: HTMLElement[] = [];
       const sn = asString(astroObj.saturn_neptune);
       if (sn) {
         const bd = el('div', { class: 'rdg-backdrop' });
         bd.appendChild(el('div', { class: 'rdg-backdrop-label' }, 'Saturn and Neptune backdrop'));
-        const firstPara = paragraphs(sn)[0] || sn;
-        bd.appendChild(el('p', {}, firstPara));
+        bd.appendChild(el('p', {}, paragraphs(sn)[0] || sn));
         post.push(bd);
       }
       const card = buildRichSection({
@@ -743,12 +1026,12 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         body: transitBody,
         postBody: post,
         citations: astroObj.citations,
+        askPrompt: 'What do today\u2019s transits mean for me.',
         collapsed: true,
       });
-      if (card) content.appendChild(card);
+      if (card) aiZone.appendChild(card);
     }
 
-    /* the day against the natal chart, oracle depth, partial until time and place */
     const natalObj = (r.natal_integration && typeof r.natal_integration === 'object') ? r.natal_integration as Record<string, unknown> : null;
     if (natalObj && normaliseVoice(r.natal_integration as SectionValue)) {
       const card = buildRichSection({
@@ -759,10 +1042,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         citations: natalObj.citations,
         collapsed: true,
       });
-      if (card) content.appendChild(card);
+      if (card) aiZone.appendChild(card);
     }
 
-    /* dreamspell, with the tone and seal oracle texture, portal note, disclaimer */
     const dsObj = (r.dreamspell && typeof r.dreamspell === 'object') ? r.dreamspell as Record<string, unknown> : null;
     if (dsObj || normaliseVoice(r.dreamspell as SectionValue)) {
       const hook = dreamspellHook(dateStr);
@@ -780,6 +1062,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         body: r.dreamspell as SectionValue,
         postBody: post,
         citations: dsObj ? dsObj.citations : undefined,
+        askPrompt: 'What does my Kin mean for me today.',
         collapsed: true,
       });
       if (card) {
@@ -792,35 +1075,21 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
             if (titleSpan && titleSpan.parentNode) titleSpan.parentNode.insertBefore(badge, titleSpan.nextSibling);
           }
         }
-        content.appendChild(card);
+        aiZone.appendChild(card);
       }
     }
 
-    /* the body and shadow sections, when the engine supplies them, above the floor */
     const bodyObj = (r.body_section && typeof r.body_section === 'object') ? r.body_section as Record<string, unknown> : null;
     if (bodyObj && normaliseVoice(r.body_section as SectionValue)) {
-      const card = buildRichSection({
-        title: 'Body, today',
-        subhead: asString(bodyObj.headline),
-        body: r.body_section as SectionValue,
-        citations: bodyObj.citations,
-        collapsed: true,
-      });
-      if (card) content.appendChild(card);
+      const card = buildRichSection({ title: 'Body, today', subhead: asString(bodyObj.headline), body: r.body_section as SectionValue, citations: bodyObj.citations, collapsed: true });
+      if (card) aiZone.appendChild(card);
     }
     const shadowObj = (r.shadow_section && typeof r.shadow_section === 'object') ? r.shadow_section as Record<string, unknown> : null;
     if (shadowObj && normaliseVoice(r.shadow_section as SectionValue)) {
-      const card = buildRichSection({
-        title: 'Where today might catch you',
-        subhead: asString(shadowObj.headline),
-        body: r.shadow_section as SectionValue,
-        citations: shadowObj.citations,
-        collapsed: true,
-      });
-      if (card) content.appendChild(card);
+      const card = buildRichSection({ title: 'Where today might catch you', subhead: asString(shadowObj.headline), body: r.shadow_section as SectionValue, citations: shadowObj.citations, askPrompt: 'Help me work with this shadow today.', collapsed: true });
+      if (card) aiZone.appendChild(card);
     }
 
-    /* closing line */
     const cv = normaliseVoice((r.closing || r.closing_line) as SectionValue);
     if (cv) {
       const c = el('div', { class: 'rdg-closing' });
@@ -832,29 +1101,22 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         c.dataset.everyday = cv.voiced.everyday;
         c.textContent = pickVoice(cv.voiced, o.getLens());
       }
-      content.appendChild(c);
+      aiZone.appendChild(c);
     }
 
-    /* the scholarly sources, surfaced quietly at the foot */
     const sources = sourcesBlock(r.citationUnion, asString(r.sources));
-    if (sources) content.appendChild(sources);
-
-    ensureShareBar();
+    if (sources) aiZone.appendChild(sources);
   }
 
+  /* ---- the endpoint and polling seams, unchanged in contract -------------- */
   async function start(): Promise<string> {
-    const prof = o.getProfile();
-    const profile = prof
-      ? { dob: prof.birthDate || null, birthTime: prof.birthTime || null, birthPlace: prof.birthPlace || null, name: prof.name || null, readingLang: o.getLens() }
-      : { readingLang: o.getLens() };
-    const payload = JSON.stringify({ date: dateStr, profile, tier, user_id: o.userId || null });
-    const opts: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload };
-    let res = await fetch(base + '/api/reading/start', opts);
-    if (!res.ok && res.status >= 500) { await sleep(3000); res = await fetch(base + '/api/reading/start', opts); }
-    if (!res.ok) throw new Error('start_' + res.status);
-    const data = await res.json() as { jobId?: string };
-    if (!data.jobId) throw new Error('no_job');
-    return data.jobId;
+    const key = readingKey(base, tier, dateStr);
+    if (prewarmCache && prewarmCache.key === key) {
+      const cached = prewarmCache;
+      prewarmCache = null;
+      try { return await cached.jobId; } catch (_e) { /* fall through to a fresh start */ }
+    }
+    return startJob(base, tier, dateStr, o.getProfile(), o.getLens(), o.userId || null);
   }
 
   async function run(): Promise<void> {
@@ -873,21 +1135,22 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       let st: { status: string; result?: unknown; phase1?: unknown; elapsed?: number };
       try { st = await (await fetch(base + '/api/reading/status/' + jobId)).json(); }
       catch (_e) { continue; }
-      if (st.status === 'complete') { render(st.result); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
-      if (st.status === 'error') { setStatus('The reading hit a snag on the server. Please try again shortly.'); return; }
+      if (st.status === 'complete') { renderAI(st.result); ensureShareBar(); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
+      if (st.status === 'error') { setStatus('The reading hit a snag on the server. The day above is yours in full; please try the depth again shortly.'); return; }
       if (st.status === 'phase1_complete' && st.phase1 && !shownPhase1) {
         shownPhase1 = true;
-        render(st.phase1);
+        renderAI(st.phase1);
         const composing = el('div', { class: 'rdg-note' }, 'The core is here. The fuller sections are still composing.');
-        content.insertBefore(composing, content.firstChild);
+        aiZone.insertBefore(composing, aiZone.firstChild);
       } else if (st.status === 'pending') {
         const secs = Math.round((Date.now() - t0) / 1000);
-        setStatus('Reading the day for you. ' + secs + ' seconds in.');
+        setStatus('The Oracle is composing the full depth of your reading. ' + secs + ' seconds in.');
       }
     }
-    if (live) setStatus('This is taking longer than usual. Your reading is still composing on the server; please try again shortly.');
+    if (live) setStatus('The depth is taking longer than usual on the server. The day above is complete; please try the depth again shortly.');
   }
 
+  renderComputed();
   void run();
   return { close, repaintVoice };
 }
