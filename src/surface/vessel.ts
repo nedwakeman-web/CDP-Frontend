@@ -36,6 +36,8 @@ import type { ProfilesHandle } from './profiles';
 import { shareControls } from './share';
 import { openYear } from './year';
 import type { YearHandle } from './year';
+import { openCompatibility } from './compatibility';
+import type { CompatibilityHandle } from './compatibility';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -425,6 +427,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let readingHandle: ReadingHandle | null = null;
   let profilesHandle: ProfilesHandle | null = null;
   let yearHandle: YearHandle | null = null;
+  let compatHandle: CompatibilityHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -890,6 +893,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
         link.addEventListener('click', () => openYearView());
         list.appendChild(link);
+      } else if (d[1] === 'scompat') {
+        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+        link.addEventListener('click', () => openCompatView());
+        list.appendChild(link);
       } else {
         list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
       }
@@ -932,6 +939,17 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (yearHandle) yearHandle.close();
     yearHandle = openYear({
       container: surface,
+      getProfile: () => profile ?? null,
+      getLens: () => lens,
+      reflect: (n) => reflect(n),
+    });
+  }
+  function openCompatView(): void {
+    closeDrawer('right');
+    if (compatHandle) compatHandle.close();
+    compatHandle = openCompatibility({
+      container: surface,
+      repo,
       getProfile: () => profile ?? null,
       getLens: () => lens,
       reflect: (n) => reflect(n),
