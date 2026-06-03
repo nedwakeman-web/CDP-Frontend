@@ -30,6 +30,7 @@ import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, p
 import type { Coordinate } from '../coordinates-core';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
+import { openCard } from './card';
 import type { ReadingHandle } from './reading';
 import { openProfiles } from './profiles';
 import type { ProfilesHandle } from './profiles';
@@ -425,6 +426,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   if (!repo.isLoaded) await repo.init();
   let lens: Lens = repo.getLens();
   let readingHandle: ReadingHandle | null = null;
+  let cardHandle: { close(): void; repaintVoice(l: Lens): void } | null = null;
   let profilesHandle: ProfilesHandle | null = null;
   let yearHandle: YearHandle | null = null;
   let compatHandle: CompatibilityHandle | null = null;
@@ -885,7 +887,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (d[1] === 'scard' || d[1] === 'sr') {
         const screenName = d[1];
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
-        link.addEventListener('click', () => openReadingFor(profile ?? null, screenName === 'scard' ? 'Today\u2019s card' : 'Today\u2019s reading'));
+        link.addEventListener('click', () => { if (screenName === 'scard') openCardFor(profile ?? null); else openReadingFor(profile ?? null, 'Today\u2019s reading'); });
         list.appendChild(link);
       } else if (d[1] === 'sp') {
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
@@ -924,6 +926,20 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       reflect: (n) => reflect(n),
       composeAsk: (prompt: string) => composeDepth(prompt),
       title,
+    });
+  }
+  function openCardFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null): void {
+    closeDrawer('right');
+    if (cardHandle) cardHandle.close();
+    cardHandle = openCard({
+      container: surface,
+      getLens: () => lens,
+      getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
+      reflect: (n) => reflect(n),
+      composeAsk: (prompt: string) => composeDepth(prompt),
+      getReadingResult: () => null,
+      onOpenFullReading: () => openReadingFor(prof, 'Today\u2019s reading'),
+      title: 'Today\u2019s card',
     });
   }
   function openProfilesView(): void {
@@ -1388,6 +1404,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     trackEvent('voice_changed', { lens: next });
     if (activeReplyId) void revoice(activeReplyId);
     if (readingHandle) readingHandle.repaintVoice(next);
+    if (cardHandle) cardHandle.repaintVoice(next);
   }
   reflectVoice();
 
