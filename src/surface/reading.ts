@@ -20,6 +20,7 @@
  */
 
 import type { Lens } from '../data/model';
+import { shareControls } from './share';
 
 /* ---- the minimum birth fields the server reading pipeline reads ----------- */
 export interface ReadingProfile {
@@ -46,6 +47,8 @@ export interface OpenReadingOptions {
   base?: string;
   /** Overlay heading. */
   title?: string;
+  /** Called when the reading completes, so the home can show a quiet trace. */
+  reflect?: (note: string) => void;
 }
 
 export interface ReadingHandle {
@@ -176,6 +179,17 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   shell.appendChild(status);
   const content = el('div', { class: 'rdg-content' });
   shell.appendChild(content);
+  let shareInserted = false;
+  function ensureShareBar(): void {
+    if (shareInserted) return;
+    shareInserted = true;
+    const bar2 = shareControls({
+      title: o.title || 'Today\u2019s reading',
+      text: () => (o.title || 'Today\u2019s reading') + '\n\n' + content.innerText,
+      node: () => content,
+    });
+    shell.appendChild(bar2);
+  }
   view.appendChild(shell);
   o.container.appendChild(view);
 
@@ -287,6 +301,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       }
       content.appendChild(c);
     }
+    ensureShareBar();
   }
 
   async function start(): Promise<string> {
@@ -320,7 +335,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       let st: { status: string; result?: unknown; phase1?: unknown; elapsed?: number };
       try { st = await (await fetch(base + '/api/reading/status/' + jobId)).json(); }
       catch (_e) { continue; }
-      if (st.status === 'complete') { render(st.result); return; }
+      if (st.status === 'complete') { render(st.result); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
       if (st.status === 'error') { setStatus('The reading hit a snag on the server. Please try again shortly.'); return; }
       if (st.status === 'phase1_complete' && st.phase1 && !shownPhase1) {
         shownPhase1 = true;

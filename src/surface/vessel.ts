@@ -33,6 +33,7 @@ import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
 import { openProfiles } from './profiles';
 import type { ProfilesHandle } from './profiles';
+import { shareControls } from './share';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -136,6 +137,8 @@ const STYLES = `
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
 .cdp-surface .meet-line { font-size:14px; font-style:italic; color:var(--text-muted); max-width:560px; margin:16px auto 0; }
+.cdp-surface .reflect { font-size:13px; font-style:italic; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
+.cdp-surface .reflect.show { opacity:1; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .cdp-surface .compass-svg { width:auto; max-width:clamp(280px, 60vw, 660px); max-height:52vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
@@ -579,6 +582,15 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // and the chosen voice. A local first cut until the backend composes it live.
   const meetLine = el('div', { class: 'meet-line' }, composeMeetLine());
   home.appendChild(meetLine);
+  const reflectLine = el('div', { class: 'reflect' });
+  home.appendChild(reflectLine);
+  let reflectTimer = 0;
+  function reflect(note: string): void {
+    reflectLine.textContent = note;
+    reflectLine.classList.add('show');
+    window.clearTimeout(reflectTimer);
+    reflectTimer = window.setTimeout(() => reflectLine.classList.remove('show'), 7000);
+  }
 
   const replyArea = el('div', { 'aria-live': 'polite' });
   home.appendChild(replyArea);
@@ -893,6 +905,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
       tier: 'oracle',
       userId: null,
+      reflect: (n) => reflect(n),
       title,
     });
   }
@@ -903,6 +916,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       container: surface,
       repo,
       getLens: () => lens,
+      reflect: (n) => reflect(n),
       onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
     });
   }
@@ -1113,6 +1127,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       cvBdResults.appendChild(moreBtn);
     }
     cvBdResults.appendChild(worstWrap);
+    cvBdResults.appendChild(shareControls({
+      title: 'Best days for ' + bdIntent,
+      text: () => 'Best days for ' + bdIntent + '\n\n' + cvBdResults.innerText,
+      node: () => cvBdResults,
+    }));
   }
   async function findBestDays(): Promise<void> {
     const intent = cvBestInput.value.trim();
@@ -1145,6 +1164,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       renderCalGrid();
       renderBdResults();
       trackEvent('best_day_searched', { intent, results: ranked.length });
+      if (ranked.length) reflect('Best days for ' + intent + ' are marked on the calendar.');
     } catch (_e) {
       cvBestStatus.textContent = 'The best-day engine could not be reached just now. Please try again in a moment.';
     }

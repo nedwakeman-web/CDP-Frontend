@@ -26,6 +26,8 @@ export interface OpenProfilesOptions {
   getLens: () => Lens;
   /** Opens a reading for the chosen profile, with a label for the heading. */
   onRead: (profile: VesselProfile, label: string) => void;
+  /** Optional quiet trace back to the home when a person is saved. */
+  reflect?: (note: string) => void;
 }
 
 export interface ProfilesHandle { close(): void; }
@@ -160,6 +162,7 @@ export function openProfiles(o: OpenProfilesOptions): ProfilesHandle {
       nameInput.value = '';
       dobInput.value = '';
       renderList();
+      if (o.reflect) o.reflect('Saved ' + name + '.');
     });
   });
 
