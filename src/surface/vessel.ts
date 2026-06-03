@@ -31,6 +31,8 @@ import type { Coordinate } from '../coordinates-core';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
+import { openProfiles } from './profiles';
+import type { ProfilesHandle } from './profiles';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -416,6 +418,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   if (!repo.isLoaded) await repo.init();
   let lens: Lens = repo.getLens();
   let readingHandle: ReadingHandle | null = null;
+  let profilesHandle: ProfilesHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -860,20 +863,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     ];
     for (const d of dests) {
       if (d[1] === 'scard' || d[1] === 'sr') {
-        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
         const screenName = d[1];
-        link.addEventListener('click', () => {
-          closeDrawer('right');
-          if (readingHandle) readingHandle.close();
-          readingHandle = openReading({
-            container: surface,
-            getLens: () => lens,
-            getProfile: () => (profile ? { birthDate: profile.birthDate, name: profile.name } : null),
-            tier: 'oracle',
-            userId: null,
-            title: screenName === 'scard' ? 'Today\u2019s card' : 'Today\u2019s reading',
-          });
-        });
+        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+        link.addEventListener('click', () => openReadingFor(profile ?? null, screenName === 'scard' ? 'Today\u2019s card' : 'Today\u2019s reading'));
+        list.appendChild(link);
+      } else if (d[1] === 'sp') {
+        const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+        link.addEventListener('click', () => openProfilesView());
         list.appendChild(link);
       } else {
         list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
@@ -887,6 +883,28 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (pinned.right) openDrawer('right'); else closeDrawer('right');
     });
     return { drawer };
+  }
+  function openReadingFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null, title: string): void {
+    closeDrawer('right');
+    if (readingHandle) readingHandle.close();
+    readingHandle = openReading({
+      container: surface,
+      getLens: () => lens,
+      getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
+      tier: 'oracle',
+      userId: null,
+      title,
+    });
+  }
+  function openProfilesView(): void {
+    closeDrawer('right');
+    if (profilesHandle) profilesHandle.close();
+    profilesHandle = openProfiles({
+      container: surface,
+      repo,
+      getLens: () => lens,
+      onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
+    });
   }
   const rightBuilt = buildReadingsDrawer();
   surface.appendChild(leftBuilt.drawer);
