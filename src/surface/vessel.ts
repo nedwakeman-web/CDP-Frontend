@@ -275,6 +275,16 @@ const STYLES = `
 .cdp-surface .cv-dv.pending { font-style:italic; color:var(--text-dim); }
 .cdp-surface .cv-dnote { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:13px; color:var(--text-muted); margin-top:12px; }
 @media (max-width:520px){ .cdp-surface .cv-num { font-size:12px; } .cdp-surface .cv-title { font-size:17px; min-width:128px; } .cdp-surface .calview { padding:16px 12px 48px; } }
+.cdp-surface .signin { position:fixed; top:58px; right:0; width:min(22rem, 92vw); max-height:calc(100vh - 58px); overflow-y:auto; background:var(--navy); border-left:1px solid var(--gold-line); box-shadow:0 0 40px rgba(0,0,0,0.45); z-index:78; transform:translateX(100%); transition:transform .24s; padding:20px 18px 28px; }
+.cdp-surface .signin.open { transform:none; }
+.cdp-surface .signin h3 { font-family:Cinzel, Georgia, serif; font-size:12px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin-bottom:12px; }
+.cdp-surface .signin .invite { font-family:'EB Garamond', Georgia, serif; font-size:14px; color:var(--text-muted); line-height:1.5; margin-bottom:6px; }
+.cdp-surface .signin .kicker { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--gold-soft); margin-bottom:16px; }
+.cdp-surface .signin label { display:block; font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); margin:12px 0 5px; }
+.cdp-surface .signin input { width:100%; padding:10px 12px; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
+.cdp-surface .signin input:focus { border-color:var(--gold); }
+.cdp-surface .signin .acts { display:flex; gap:10px; margin-top:18px; }
+.cdp-surface .signin .note { font-size:12px; color:var(--text-dim); line-height:1.5; margin-top:16px; }
 .cdp-surface .world { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-48%); width:min(92vw, 720px); max-height:84vh; overflow-y:auto; background:var(--navy); border:1px solid var(--gold-line); border-radius:4px; box-shadow:0 18px 70px rgba(0,0,0,0.6); padding:26px 28px 28px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
 .cdp-surface .world.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
 .cdp-surface .world-head { font-size:18px; font-style:italic; font-weight:300; color:var(--text-light); margin-bottom:4px; }
@@ -395,7 +405,7 @@ const CYCLING_PHRASES: Record<Lens, string[]> = {
 
 export async function mountVessel(options: VesselOptions): Promise<void> {
   const { root, orchestrator, repo } = options;
-  const profile = options.profile;
+  let profile = options.profile;
   const now = Date.now();
   const dateStr = todayUTCDateStr(now);
 
@@ -425,7 +435,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     try { window.localStorage.setItem('cdp-theme', theme); } catch (_e) { /* presentation only */ }
   }
 
-  const day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
+  let day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
   function coordValue(key: string): string {
     const c = day.coordinates.find((x: Coordinate) => x.key === key);
     return c && !c.unknown ? c.display : '';
@@ -438,6 +448,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const aboutLink = el('button', { type: 'button', class: 'topnav-link' }, 'About');
   aboutLink.addEventListener('click', () => voiceNote.classList.toggle('show'));
   topnav.appendChild(aboutLink);
+  const signinLink = el('button', { type: 'button', class: 'topnav-link' }, 'Sign in');
+  signinLink.addEventListener('click', () => signin.classList.toggle('open'));
+  topnav.appendChild(signinLink);
   header.appendChild(topnav);
 
   const voiceWrap = el('div', { class: 'voice-wrap' });
@@ -515,12 +528,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today\u2019s coordinates', 'aria-expanded': 'false' });
   pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
   const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today\u2019s coordinates' });
-  for (const c of day.coordinates) {
-    const crow = el('div', { class: 'crow' });
-    crow.appendChild(el('span', { class: 'cl' }, c.label));
-    crow.appendChild(el('span', { class: c.unknown ? 'cv pending' : 'cv' }, c.display));
-    coords.appendChild(crow);
-  }
+  paintCoords();
   pill.appendChild(coords);
   let coordsOpen = false;
   pill.addEventListener('click', (e: Event) => {
@@ -1014,6 +1022,25 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   worldScrim.addEventListener('click', closeWorld);
 
   /* ===== lean menu (behind the header menu icon) ===== */
+  /* ===== sign in and make-it-mine, folded from the old landing onto one surface ===== */
+  const signin = el('div', { class: 'signin', role: 'dialog', 'aria-label': 'Make it yours' });
+  signin.appendChild(el('h3', {}, 'Make it yours'));
+  signin.appendChild(el('div', { class: 'invite' }, 'It becomes yours the moment you tell it about you. Add your birth date, and today is drawn around your own numerology rather than the world\u2019s alone.'));
+  signin.appendChild(el('div', { class: 'kicker' }, 'Two minutes, and every minute of every day thereafter is personal.'));
+  signin.appendChild(el('label', { for: 'cdpBirthDate' }, 'Birth date'));
+  const bDate = el('input', { type: 'date', id: 'cdpBirthDate' }) as HTMLInputElement;
+  signin.appendChild(bDate);
+  const signinActs = el('div', { class: 'acts' });
+  const makeMineBtn = el('button', { type: 'button', class: 'btn' }, 'Make it mine');
+  const notNowBtn = el('button', { type: 'button', class: 'btn ghost' }, 'Not now');
+  signinActs.appendChild(makeMineBtn);
+  signinActs.appendChild(notNowBtn);
+  signin.appendChild(signinActs);
+  signin.appendChild(el('div', { class: 'note' }, 'Your birth time and place, for the full natal chart, arrive with the transits. Continue without signing in, or sign in to keep what you hold across your devices; signing in arrives with the next build, so for now your details stay on this device, for this visit.'));
+  surface.appendChild(signin);
+  makeMineBtn.addEventListener('click', () => { if (bDate.value) applyProfile(bDate.value); signin.classList.remove('open'); });
+  notNowBtn.addEventListener('click', () => signin.classList.remove('open'));
+
   const menu = el('div', { class: 'menu', role: 'dialog', 'aria-label': 'Menu' });
   const menuNote = el('div', { class: 'menu-note' });
   for (const label of MENU_ITEMS) {
@@ -1066,6 +1093,22 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     return 'What you are holding is still here. A steady day to work with it.';
   }
   function paintMeetLine(): void { meetLine.textContent = composeMeetLine(); }
+
+  function paintCoords(): void {
+    clear(coords);
+    for (const c of day.coordinates) {
+      const crow = el('div', { class: 'crow' });
+      crow.appendChild(el('span', { class: 'cl' }, c.label));
+      crow.appendChild(el('span', { class: c.unknown ? 'cv pending' : 'cv' }, c.display));
+      coords.appendChild(crow);
+    }
+  }
+  function applyProfile(birthDate: string): void {
+    profile = { birthDate: birthDate, name: profile ? profile.name : undefined };
+    day = dayCoordinates(dateStr, { birthDate: birthDate });
+    paintCoords();
+    paintMeetLine();
+  }
 
   function setVoice(next: Lens): void {
     if (next === lens) return;
