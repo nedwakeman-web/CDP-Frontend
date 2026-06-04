@@ -333,11 +333,20 @@ function moonGlyph(cx: number, cy: number): string {
   return '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="' + C.goldBright + '" opacity="0.92"/>'
     + '<ellipse cx="' + (cx + 5) + '" cy="' + cy + '" rx="4.2" ry="9" fill="' + C.page + '" opacity="0.5"/>';
 }
+function arrowNE(x: number, y: number, colour: string): string {
+  return '<path d="M' + x + ',' + y + ' L' + (x + 9) + ',' + (y - 9) + '" stroke="' + colour + '" stroke-width="1.3" stroke-linecap="round"/>'
+    + '<path d="M' + (x + 3.5) + ',' + (y - 9) + ' L' + (x + 9) + ',' + (y - 9) + ' L' + (x + 9) + ',' + (y - 3.5) + '" stroke="' + colour + '" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+function starGlyph(cx: number, cy: number, r: number, colour: string): string {
+  let pts = '';
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5; const rr = (i % 2 === 0) ? r : r * 0.42; pts += (cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1) + ' '; }
+  return '<polygon points="' + pts.trim() + '" fill="' + colour + '"/>';
+}
 function ruleLine(y: number, x1: number, x2: number, op: number): string {
   return '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="' + C.rule + '" stroke-opacity="' + op + '"/>';
 }
 
-export function buildCardSVG(m: CardModel, _lens: Lens): string {
+export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'afternoon' | 'evening'): string {
   const L = new Layout();
   const inner = W - PAD * 2;
   const cx = W / 2;
@@ -352,16 +361,17 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
   L.add(ruleLine(L.y, PAD, W - PAD, 0.35), 54);
 
   // reflection (tappable)
-  const reflWindow = m.windows.find((w) => w.key === m.currentWindow);
-  const reflText = reflWindow ? reflWindow.reflection : computedReflection(m.currentWindow, m.personalDay ? m.personalDay.value : 1);
+  const reflWindow = m.windows.find((w) => w.key === sel);
+  const reflText = reflWindow ? reflWindow.reflection : computedReflection(sel, m.personalDay ? m.personalDay.value : 1);
   const reflLines = wrap(reflText, wSans);
-  const reflPrompt = 'It is ' + m.currentWindow + '. Read me my ' + m.currentWindow + ' reflection in depth for today.';
-  const rlHalf = (m.currentWindow + ' reflection').length * 5.7;
+  const reflPrompt = 'It is ' + sel + '. Read me my ' + sel + ' reflection in depth for today.';
+  const rlHalf = (sel + ' reflection').length * 5.7;
   L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc(reflPrompt) + '">', 0);
   L.add(moonGlyph(cx - rlHalf - 14, L.y - 4), 0);
-  L.add(capLabel(m.currentWindow + ' Reflection', cx, L.y, C.teal), 40);
+  L.add(capLabel(sel + ' Reflection', cx, L.y, C.teal), 40);
   L.add(txt(reflLines, PAD, L.y, 19, C.text, 31, FONT.sans), reflLines.length * 31 + 14);
-  L.add(txt(['\u2197 Ask the Oracle'], W - PAD, L.y, 12, C.teal, 0, FONT.caps, { anchor: 'end', spacing: 1 }), 36);
+  const cueW = 'Ask the Oracle'.length * 6.7;
+  L.add(arrowNE(W - PAD - cueW - 14, L.y, C.teal) + txt(['Ask the Oracle'], W - PAD, L.y, 14, C.teal, 0, FONT.serif, { anchor: 'end', italic: true }), 36);
   L.add('</g>', 0);
   L.add(ruleLine(L.y, cx - 80, cx + 80, 0.22) + '<circle cx="' + cx + '" cy="' + L.y + '" r="2.5" fill="' + C.gold + '"/>', 50);
 
@@ -382,10 +392,10 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
     L.add('<rect x="' + (PAD - 22) + '" y="' + top + '" width="' + (inner + 44) + '" height="' + panelH + '" rx="13" fill="' + C.raised + '"/>', 0);
     L.add('<circle cx="' + ccx + '" cy="' + ccy + '" r="27" fill="none" stroke="' + numColour + '" stroke-opacity="0.55"/>', 0);
     L.add(txt([String(pd.value)], ccx, ccy + 9, 24, numColour, 0, FONT.serif, { anchor: 'middle' }), 0);
-    L.add(txt(['PERSONAL DAY ' + pd.value + (pd.master ? '  \u2605' : '')], tx, top + 34, 11, C.faint, 0, FONT.caps, { spacing: 3 }), 0);
+    L.add(txt(['PERSONAL DAY ' + pd.value], tx, top + 34, 11, C.faint, 0, FONT.caps, { spacing: 3 }), 0);
     L.add(txt([pd.name], tx, top + 60, 19, numColour, 0, FONT.serif), 0);
     L.add(txt(meaningLines, tx, top + 84, 14, C.dim, 21, FONT.sans), 0);
-    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('My Personal Day is ' + pd.value + ', ' + pd.name + '. What does this energy ask of me today.') + '"><rect x="' + (PAD - 22) + '" y="' + top + '" width="' + (inner + 44) + '" height="' + panelH + '" rx="13" fill="transparent"/><text x="' + (W - PAD) + '" y="' + (top + 34) + '" text-anchor="end" font-family="' + FONT.caps + '" font-size="11" letter-spacing="2" fill="' + C.teal + '">' + esc('\u2197 ASK') + '</text></g>', 0);
+    L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc('My Personal Day is ' + pd.value + ', ' + pd.name + '. What does this energy ask of me today.') + '"><rect x="' + (PAD - 22) + '" y="' + top + '" width="' + (inner + 44) + '" height="' + panelH + '" rx="13" fill="transparent"/>' + arrowNE(W - PAD - 32, top + 34, C.teal) + '<text x="' + (W - PAD) + '" y="' + (top + 34) + '" text-anchor="end" font-family="' + FONT.serif + '" font-style="italic" font-size="13" fill="' + C.teal + '">' + esc('Ask') + '</text></g>', 0);
     L.add('', panelH + 28);
   }
 
@@ -430,7 +440,8 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
       L.add('<rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="11" fill="' + C.raised + '"/>', 0);
       L.add(txt([w.key.toUpperCase()], x + 16, rowTop + 26, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 0);
       L.add(txt([w.layer], x + 16, rowTop + 44, 10.5, C.faint, 0, FONT.sans), 0);
-      L.add(txt([String(w.value) + (w.master ? '  \u2605' : '')], x + 16, rowTop + 76, 24, numColour, 0, FONT.serif), 0);
+      L.add(txt([String(w.value)], x + 16, rowTop + 76, 24, numColour, 0, FONT.serif), 0);
+      if (w.master) L.add(starGlyph(x + 16 + String(w.value).length * 14 + 9, rowTop + 68, 6, numColour), 0);
       L.add(txt(wrap(w.name, Math.floor((colW - 32) / 6.4)), x + 16, rowTop + 100, 13, C.text, 16, FONT.sans), 0);
       L.add('<g class="ctap" style="cursor:pointer" data-prompt="' + esc(w.layer + ' is ' + w.value + ', ' + w.name + '. What does this ask of my ' + w.key + ' today.') + '"><rect x="' + x + '" y="' + rowTop + '" width="' + colW + '" height="' + rowH + '" rx="11" fill="transparent"/></g>', 0);
     });
@@ -458,8 +469,15 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
       const lp = m.signature.lifePath; const cc = lp.master ? C.master : C.gold;
       L.add(txt(['LIFE PATH'], PAD, L.y, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 0);
       L.add(txt(['PERSONAL YEAR'], PAD + half, L.y, 10, C.faint, 0, FONT.caps, { spacing: 2 }), 22);
-      L.add(txt([String(lp.value) + (lp.master ? '  \u2605' : '')], PAD, L.y, 24, cc, 0, FONT.serif), 0);
-      if (m.signature.personalYear) { const py = m.signature.personalYear; const pc = py.master ? C.master : C.gold; L.add(txt([String(py.value) + (py.master ? '  \u2605' : '')], PAD + half, L.y, 24, pc, 0, FONT.serif), 26); } else L.add('', 26);
+      const y0 = L.y;
+      L.add(txt([String(lp.value)], PAD, y0, 24, cc, 0, FONT.serif), 0);
+      if (lp.master) L.add(starGlyph(PAD + String(lp.value).length * 14 + 10, y0 - 8, 6, cc), 0);
+      if (m.signature.personalYear) {
+        const py = m.signature.personalYear; const pc = py.master ? C.master : C.gold;
+        L.add(txt([String(py.value)], PAD + half, y0, 24, pc, 0, FONT.serif), 0);
+        if (py.master) L.add(starGlyph(PAD + half + String(py.value).length * 14 + 10, y0 - 8, 6, pc), 0);
+      }
+      L.add('', 26);
       L.add(txt([lp.name], PAD, L.y, 13, C.dim, 0, FONT.sans), 0);
       if (m.signature.personalYear) L.add(txt([m.signature.personalYear.name], PAD + half, L.y, 13, C.dim, 0, FONT.sans), 28); else L.add('', 28);
     }
@@ -487,6 +505,10 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
   L.add('<circle cx="' + (cx - 12) + '" cy="' + (L.y + 4) + '" r="6.5" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/><circle cx="' + (cx + 12) + '" cy="' + (L.y + 4) + '" r="6.5" fill="none" stroke="' + C.rule + '" stroke-width="1.2"/>', 28);
   L.add(txt(['COSMICDAILYPLANNER.COM'], cx, L.y, 10, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 3 }), 36);
 
+  const stars = [[58,42],[150,92],[300,54],[430,104],[560,70],[662,120],[96,150],[505,140],[640,38],[214,128],[372,150],[700,86],[44,108],[600,150],[260,40]]
+    .map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (0.8 + ((p[0] * p[1]) % 5) / 5) + '" fill="' + C.text + '" opacity="' + (0.1 + ((p[0] + p[1]) % 6) / 60) + '"/>').join('');
+  const horizon = '<path d="M0,262 L0,206 L120,172 L240,204 L360,168 L480,198 L600,176 L720,206 L720,262 Z" fill="' + C.glow + '" opacity="0.5"/>'
+    + '<path d="M0,262 L0,232 L110,200 L220,228 L340,196 L470,224 L590,202 L720,230 L720,262 Z" fill="#1A3658" opacity="0.6"/>';
   const H = Math.round(L.y);
   const defs = '<defs>'
     + '<linearGradient id="cardbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + C.panel + '"/><stop offset="0.14" stop-color="' + C.page + '"/><stop offset="1" stop-color="' + C.page + '"/></linearGradient>'
@@ -497,6 +519,7 @@ export function buildCardSVG(m: CardModel, _lens: Lens): string {
     + '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="url(#cardbg)"/>'
     + '<rect x="0" y="0" width="' + W + '" height="240" fill="url(#cardglow)"/>'
     + '<rect x="0" y="0" width="' + W + '" height="2.5" fill="' + C.goldBright + '" opacity="0.5"/>'
+    + stars + horizon
     + '<rect x="7" y="7" width="' + (W - 14) + '" height="' + (H - 14) + '" rx="16" fill="none" stroke="' + C.rule + '" stroke-opacity="0.22"/>'
     + L.parts.join('')
     + '</svg>';
@@ -600,6 +623,11 @@ function ensureStyle(): void {
 .cdp-surface .card-src-note { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-faint, #9E9282); margin:0 0 8px; }
 .cdp-surface .card-src-line { font-family:Georgia, serif; font-size:12.5px; line-height:1.55; color:var(--text-dim, #D4C8AE); margin:0 0 6px; }
 .cdp-surface .card-src-line b { color:var(--text-light, #F0E6CC); font-weight:600; }
+.cdp-surface .card-tabs { display:flex; gap:8px; margin:0 0 14px; flex-wrap:wrap; }
+.cdp-surface .card-tab { display:flex; align-items:center; gap:8px; background:none; border:1px solid rgba(191,163,99,0.28); border-radius:7px; color:var(--text-faint, #9E9282); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.14em; text-transform:uppercase; padding:9px 18px; cursor:pointer; transition:color .15s, border-color .15s, background .15s; }
+.cdp-surface .card-tab:hover { color:var(--text-dim, #D4C8AE); border-color:rgba(191,163,99,0.5); }
+.cdp-surface .card-tab.on { color:var(--gold, #C9A050); border-color:var(--gold, #C9A050); background:rgba(201,160,80,0.08); }
+.cdp-surface .card-tab-g { font-size:13px; opacity:.85; }
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -614,6 +642,7 @@ export function openCard(o: OpenCardOptions): CardHandle {
   const composeAsk = o.composeAsk;
 
   let lens: Lens = o.getLens();
+  let selectedWindow: 'morning' | 'afternoon' | 'evening' | null = null;
   const view = el('div', { class: 'card-view', role: 'dialog', 'aria-label': 'Today\u2019s card' });
   const shell = el('div', { class: 'card-shell' });
 
@@ -622,6 +651,9 @@ export function openCard(o: OpenCardOptions): CardHandle {
   const closeBtn = el('button', { type: 'button', class: 'card-close', 'aria-label': 'Close' }, '\u00d7');
   bar.appendChild(closeBtn);
   shell.appendChild(bar);
+
+  const tabs = el('div', { class: 'card-tabs' });
+  shell.appendChild(tabs);
 
   const svgHost = el('div', { class: 'card-svg' });
   shell.appendChild(svgHost);
@@ -666,7 +698,20 @@ export function openCard(o: OpenCardOptions): CardHandle {
       if (l === lens) voiceBtns[l].classList.add('on'); else voiceBtns[l].classList.remove('on');
     });
     const model = currentModel();
-    currentSvg = buildCardSVG(model, lens);
+    const order: Array<'morning' | 'afternoon' | 'evening'> = ['morning', 'afternoon', 'evening'];
+    const curIdx = order.indexOf(model.currentWindow);
+    const available = order.slice(0, curIdx + 1);
+    const sel: 'morning' | 'afternoon' | 'evening' = (selectedWindow && available.indexOf(selectedWindow) >= 0) ? selectedWindow : model.currentWindow;
+    while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
+    const glyph: Record<string, string> = { morning: '\u2600', afternoon: '\u25D0', evening: '\u263E' };
+    for (const w of available) {
+      const t = el('button', { type: 'button', class: 'card-tab' + (w === sel ? ' on' : '') });
+      t.appendChild(el('span', { class: 'card-tab-g' }, glyph[w]));
+      t.appendChild(el('span', {}, w.charAt(0).toUpperCase() + w.slice(1)));
+      t.addEventListener('click', () => { selectedWindow = w; paint(); });
+      tabs.appendChild(t);
+    }
+    currentSvg = buildCardSVG(model, lens, sel);
     svgHost.innerHTML = currentSvg;
     const taps = svgHost.querySelectorAll('.ctap');
     taps.forEach((node) => {
