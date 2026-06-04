@@ -82,6 +82,15 @@ export interface OpenReadingOptions {
   composeAsk?: (prompt: string) => Promise<string>;
   /** Records a located outcome signal, the spine of the measurable impact model. */
   recordSignal?: (s: VesselSignal) => void;
+  /**
+   * Reads the person's own located signals, the spine of the measurable impact
+   * model. When present it powers two reading class moves: a quiet line of
+   * recognition on return, and the emergent surface that names the person's own
+   * felt patterns as observation rather than forecast, and names the null when
+   * there is one. Optional, so the reading is a safe drop in whether or not the
+   * host passes it; both moves stay dormant when it is absent.
+   */
+  getSignals?: () => VesselSignal[];
 }
 
 export interface ReadingHandle {
@@ -287,7 +296,7 @@ const TRANSIT_HOOK =
 const PACING_HOOK =
   'Pacing is circadian guidance, how attention and energy rise and ebb across the hours, drawn from chronobiology rather than from numerology. '
   + 'The two are kept separate on purpose. '
-  + 'The timing here follows the circadian cognition literature, Cajochen and Schmidt 2024.';
+  + 'The timing here follows the circadian cognition literature, Cajochen et al. 2025 and Schmidt 2007.';
 const NATAL_HOOK =
   'This reads the day against the fixed chart you were born under. '
   + 'It deepens once birth time and place are captured; until then it works from the birth date alone.';
@@ -337,12 +346,12 @@ function ensureStyle(): void {
 .cdp-surface .rdg-close { background:none; border:none; cursor:pointer; color:var(--text-dim); font-size:22px; line-height:1; padding:4px 8px; }
 .cdp-surface .rdg-close:hover { color:var(--gold); }
 .cdp-surface .rdg-status { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim); padding:18px 6px; text-align:center; line-height:1.6; }
-.cdp-surface .rdg-note { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--gold-soft); margin:0 0 18px; }
+.cdp-surface .rdg-note { font-family:Georgia, serif; font-size:13px; color:var(--gold-soft); margin:0 0 18px; }
 
 /* computed zone: telescopes, date, decision tiles, coordinate cards, signal, biorhythms, numerology */
 .cdp-surface .rdg-tele { text-align:center; margin:0 0 6px; }
 .cdp-surface .rdg-tele-name { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold-soft, #E8C878); }
-.cdp-surface .rdg-tele-sub { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-faint, #9E9282); margin-top:2px; }
+.cdp-surface .rdg-tele-sub { font-family:'EB Garamond', Georgia, serif; font-size:13px; color:var(--text-dim, #D4C8AE); margin-top:3px; }
 .cdp-surface .rdg-datehead { text-align:center; margin:10px 0 18px; }
 .cdp-surface .rdg-eyebrow { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--gold, #C9A050); }
 .cdp-surface .rdg-date { font-family:'EB Garamond', Georgia, serif; font-size:26px; color:var(--text-light, #F0E6CC); margin:4px 0 2px; }
@@ -351,7 +360,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-tile { flex:1; min-width:200px; text-align:center; background:none; cursor:pointer; border:1px solid var(--gold-line, #3A3320); border-radius:4px; padding:13px 14px; -webkit-appearance:none; appearance:none; }
 .cdp-surface .rdg-tile:hover { border-color:var(--gold, #C9A050); }
 .cdp-surface .rdg-tile-h { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gold, #C9A050); }
-.cdp-surface .rdg-tile-s { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; color:var(--text-dim, #D4C8AE); margin-top:3px; }
+.cdp-surface .rdg-tile-s { font-family:'EB Garamond', Georgia, serif; font-size:12.5px; color:var(--text-dim, #D4C8AE); margin-top:3px; }
 .cdp-surface .rdg-coords { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin:0 0 14px; }
 .cdp-surface .rdg-coord { text-align:center; border:1px solid var(--gold-line, #3A3320); border-radius:4px; background:rgba(0,0,0,.12); padding:13px 10px; cursor:default; -webkit-appearance:none; appearance:none; }
 .cdp-surface .rdg-coord.tap { cursor:pointer; }
@@ -361,7 +370,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-coord-glyph.master { color:var(--master, #C8A0FF); }
 .cdp-surface .rdg-coord-glyph.teal { color:var(--teal, #81CDB6); }
 .cdp-surface .rdg-coord-v { font-family:'EB Garamond', Georgia, serif; font-size:14px; line-height:1.35; color:var(--text-light, #F0E6CC); }
-.cdp-surface .rdg-coord-s { font-size:11px; color:var(--text-dim, #D4C8AE); margin-top:3px; font-style:italic; }
+.cdp-surface .rdg-coord-s { font-size:11.5px; color:var(--text-dim, #D4C8AE); margin-top:3px; }
 .cdp-surface .rdg-coord-tap { font-size:10px; color:var(--gold, #C9A050); margin-top:7px; letter-spacing:0.04em; }
 .cdp-surface .rdg-signal { border-left:2px solid var(--gold, #C9A050); background:rgba(0,0,0,.14); border-radius:0 3px 3px 0; padding:13px 16px; margin:0 0 18px; cursor:default; -webkit-appearance:none; appearance:none; text-align:left; width:100%; box-sizing:border-box; border-top:none; border-right:none; border-bottom:none; }
 .cdp-surface .rdg-signal.tap { cursor:pointer; }
@@ -383,13 +392,13 @@ function ensureStyle(): void {
 .cdp-surface .rdg-energy.tap { cursor:pointer; }
 .cdp-surface .rdg-energy.tap:hover { border-color:var(--gold, #C9A050); }
 .cdp-surface .rdg-energy-layer { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); }
-.cdp-surface .rdg-energy-sub { font-size:11px; color:var(--text-faint, #9E9282); margin-top:1px; }
+.cdp-surface .rdg-energy-sub { font-size:11.5px; color:var(--text-dim, #D4C8AE); margin-top:1px; }
 .cdp-surface .rdg-energy-num { font-family:'EB Garamond', Georgia, serif; font-size:30px; line-height:1.05; color:var(--gold, #C9A050); margin:6px 0 2px; }
 .cdp-surface .rdg-energy-num.master { color:var(--master, #C8A0FF); }
 .cdp-surface .rdg-energy-name { font-family:'EB Garamond', Georgia, serif; font-size:15px; color:var(--text-light, #F0E6CC); }
 .cdp-surface .rdg-energy-key { font-size:11px; color:var(--gold-soft, #E8C878); margin:2px 0 5px; }
 .cdp-surface .rdg-energy-guide { font-family:Georgia, serif; font-size:12px; line-height:1.6; color:var(--text-dim, #D4C8AE); }
-.cdp-surface .rdg-symbolic { font-family:Georgia, serif; font-size:11px; line-height:1.5; color:var(--text-faint, #9E9282); margin:0 0 10px; }
+.cdp-surface .rdg-symbolic { font-family:Georgia, serif; font-size:12.5px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 0 10px; }
 .cdp-surface .rdg-rule { height:1px; background:var(--gold-line, #3A3320); margin:22px 0 16px; border:none; }
 
 /* composed (streamed) zone */
@@ -411,7 +420,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-closing { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:17px; line-height:1.55; color:var(--gold-soft); margin:22px 2px 0; text-align:center; }
 .cdp-surface .rdg-subhead { font-family:'EB Garamond', Georgia, serif; font-size:17px; line-height:1.4; color:var(--gold-soft, #E8C878); margin:0 16px 8px; }
 .cdp-surface .rdg-card.open .rdg-subhead { margin-top:2px; }
-.cdp-surface .rdg-hook { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:13px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 16px 12px; }
+.cdp-surface .rdg-hook { font-family:Georgia, serif; font-size:13.5px; line-height:1.65; color:var(--text-dim, #D4C8AE); margin:0 16px 12px; }
 .cdp-surface .rdg-dshook { font-family:'EB Garamond', Georgia, serif; font-size:14px; line-height:1.65; color:var(--text-light, #F0E6CC); margin:0 16px 12px; }
 .cdp-surface .rdg-badges { display:flex; flex-wrap:wrap; gap:8px; margin:0 16px 10px; }
 .cdp-surface .rdg-badge { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:4px 9px; border-radius:2px; border:1px solid var(--gold-line, #3A3320); }
@@ -421,7 +430,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-backdrop { border-left:2px solid var(--gold-line, #3A3320); margin:4px 16px 12px; padding:8px 0 8px 14px; }
 .cdp-surface .rdg-backdrop .rdg-backdrop-label { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin-bottom:5px; }
 .cdp-surface .rdg-backdrop p { font-family:Georgia, serif; font-size:14px; line-height:1.7; color:var(--text-dim, #D4C8AE); margin:0; }
-.cdp-surface .rdg-disclaimer { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:8px 16px 0; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
+.cdp-surface .rdg-disclaimer { font-family:Georgia, serif; font-size:13px; line-height:1.65; color:var(--text-dim, #D4C8AE); margin:8px 16px 0; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
 .cdp-surface .rdg-ask { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--gold, #C9A050); font-family:'EB Garamond', Georgia, serif; font-size:12px; letter-spacing:.06em; padding:7px 13px; border-radius:2px; cursor:pointer; margin:2px 16px 14px; -webkit-appearance:none; appearance:none; }
 .cdp-surface .rdg-ask:hover { border-color:var(--gold, #C9A050); color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-cites { display:flex; flex-wrap:wrap; gap:6px; margin:4px 16px 14px; }
@@ -447,7 +456,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-source-line.counter b { color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-source-reg { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim, #D4C8AE); margin-left:6px; white-space:nowrap; }
 .cdp-surface .rdg-source-reg.counter { color:var(--gold-soft, #E8C878); }
-.cdp-surface .rdg-source-ver { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:11px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin-top:13px; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
+.cdp-surface .rdg-source-ver { font-family:Georgia, serif; font-size:12px; line-height:1.65; color:var(--text-dim, #D4C8AE); margin-top:13px; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
 .cdp-surface .rdg-dd-scrim { position:fixed; inset:0; background:rgba(3,12,24,.62); z-index:80; display:flex; align-items:flex-end; justify-content:center; }
 .cdp-surface .rdg-dd { width:100%; max-width:40rem; max-height:82vh; background:var(--navy, #0D1E33); border:1px solid var(--gold-line, #BFA363); border-bottom:none; border-radius:10px 10px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.45); display:flex; flex-direction:column; overflow:hidden; }
 .cdp-surface .rdg-dd-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(191,163,99,.22); }
@@ -457,7 +466,7 @@ function ensureStyle(): void {
 .cdp-surface .rdg-dd-thread { overflow-y:auto; padding:16px 18px; flex:1; }
 .cdp-surface .rdg-dd-q { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim, #D4C8AE); margin:0 0 8px; }
 .cdp-surface .rdg-dd-a { margin:0 0 18px; padding-left:12px; border-left:2px solid var(--gold-line, #BFA363); }
-.cdp-surface .rdg-dd-wait { color:var(--text-faint, #9E9282); font-style:italic; font-family:'EB Garamond', Georgia, serif; }
+.cdp-surface .rdg-dd-wait { color:var(--text-dim, #D4C8AE); font-family:Georgia, serif; }
 .cdp-surface .rdg-dd-p { font-family:Georgia, serif; font-size:15px; line-height:1.7; color:var(--text-light, #F0E6CC); margin:0 0 11px; }
 .cdp-surface .rdg-dd-foot { display:flex; gap:8px; padding:12px 14px; border-top:1px solid rgba(191,163,99,.22); background:var(--panel-deep, #0A1828); }
 .cdp-surface .rdg-dd-in { flex:1; resize:none; background:var(--card, #122440); border:1px solid rgba(191,163,99,.3); border-radius:6px; color:var(--text-light, #F0E6CC); font-family:Georgia, serif; font-size:14px; padding:9px 11px; line-height:1.5; }
@@ -469,10 +478,28 @@ function ensureStyle(): void {
 @media (max-width: 640px) {
   .cdp-surface .rdg-coords { grid-template-columns:repeat(2,1fr); }
 }
-.cdp-surface .rdg-landed { display:inline-flex; align-items:center; gap:7px; cursor:pointer; margin:10px 0 2px; font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12.5px; color:var(--text-faint, #9E9282); }
-.cdp-surface .rdg-landed .rdg-landed-dot { width:11px; height:11px; border-radius:50%; border:1.2px solid var(--text-faint, #9E9282); }
+.cdp-surface .rdg-landed { display:inline-flex; align-items:center; gap:7px; cursor:pointer; margin:10px 0 2px; font-family:Georgia, serif; font-size:13px; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-landed .rdg-landed-dot { width:11px; height:11px; border-radius:50%; border:1.2px solid var(--text-dim, #D4C8AE); }
 .cdp-surface .rdg-landed.on { color:var(--teal, #81CDB6); }
 .cdp-surface .rdg-landed.on .rdg-landed-dot { background:var(--teal, #81CDB6); border-color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-bridge { display:flex; flex-wrap:wrap; gap:8px; margin:11px 0 2px; }
+.cdp-surface .rdg-bridge-btn { background:none; border:1px solid var(--gold-line, #3A3320); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:6px 11px; border-radius:2px; cursor:pointer; -webkit-appearance:none; appearance:none; }
+.cdp-surface .rdg-bridge-btn.tradition { color:var(--gold, #C9A050); }
+.cdp-surface .rdg-bridge-btn.science { color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-bridge-btn:hover, .cdp-surface .rdg-bridge-btn.open { border-color:currentColor; }
+.cdp-surface .rdg-bridge-block { margin:9px 0 2px; padding:11px 14px; border-left:2px solid var(--gold-line, #3A3320); border-radius:0 3px 3px 0; background:rgba(0,0,0,.12); }
+.cdp-surface .rdg-bridge-block.tradition { border-left-color:var(--gold, #C9A050); }
+.cdp-surface .rdg-bridge-block.science { border-left-color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-bridge-label { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:6px; }
+.cdp-surface .rdg-bridge-block.tradition .rdg-bridge-label { color:var(--gold-soft, #E8C878); }
+.cdp-surface .rdg-bridge-block.science .rdg-bridge-label { color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-bridge-block .rdg-p { color:var(--text-light, #F0E6CC); }
+.cdp-surface .rdg-return { font-family:Georgia, serif; font-size:13px; line-height:1.6; color:var(--text-dim, #D4C8AE); text-align:center; margin:0 0 14px; }
+.cdp-surface .rdg-emergent { border:1px solid var(--gold-line, #3A3320); border-radius:4px; background:rgba(0,0,0,.12); padding:14px 16px; margin:14px 0 4px; }
+.cdp-surface .rdg-emergent-l { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold, #C9A050); margin-bottom:8px; }
+.cdp-surface .rdg-emergent-p { font-family:Georgia, serif; font-size:13.5px; line-height:1.7; color:var(--text-light, #F0E6CC); margin:0 0 8px; }
+.cdp-surface .rdg-emergent-p:last-child { margin-bottom:0; }
+.cdp-surface .rdg-emergent-p.null { color:var(--text-dim, #D4C8AE); }
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -681,11 +708,93 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     return b;
   }
 
+  /* ---- the emergent surface: the person's own marks, read as observation ----
+   * Sky Standard move four. From the located signals the person has tapped, the
+   * reading names what has been landing most, and through which telescope, as an
+   * observation about what reaches them and never as a forecast. When the marks
+   * are too few or too evenly spread to carry a pattern, it names that null
+   * honestly rather than inventing one. Sky Standard move two, recognition on
+   * return, is the quiet line that recalls what last landed. Both stay dormant
+   * unless the host supplies getSignals, so the file is a safe drop in either way.
+   */
+  interface SigAgg {
+    total: number;
+    byFramework: Record<string, number>;
+    byVoice: Record<string, number>;
+    bridges: number;
+    lastPrior: VesselSignal | null;
+  }
+  function aggregateSignals(sigs: VesselSignal[]): SigAgg {
+    const agg: SigAgg = { total: 0, byFramework: {}, byVoice: {}, bridges: 0, lastPrior: null };
+    for (const s of sigs) {
+      if (!s || s.kind !== 'landed') continue;
+      agg.total += 1;
+      if (s.bridge) agg.bridges += 1;
+      if (s.framework) agg.byFramework[s.framework] = (agg.byFramework[s.framework] || 0) + 1;
+      if (s.voice) agg.byVoice[s.voice] = (agg.byVoice[s.voice] || 0) + 1;
+      if (s.date && s.date < dateStr) {
+        if (!agg.lastPrior || (s.at || 0) > (agg.lastPrior.at || 0)) agg.lastPrior = s;
+      }
+    }
+    return agg;
+  }
+  function topOf(rec: Record<string, number>): { key: string; count: number; tied: boolean } {
+    let key = ''; let count = 0; let second = 0;
+    for (const k in rec) {
+      const v = rec[k];
+      if (v > count) { second = count; count = v; key = k; }
+      else if (v > second) second = v;
+    }
+    return { key, count, tied: count > 0 && count === second };
+  }
+  const FRAMEWORK_LABEL: Record<string, string> = {
+    numerology: 'numerology', lunar: 'lunar', dreamspell: 'Dreamspell',
+    astrology: 'astrology', convergence: 'convergence', pacing: 'pacing',
+  };
+  function frameworkLabel(k: string): string { return FRAMEWORK_LABEL[k] || k.replace(/_/g, ' '); }
+  function voiceLabel(v: string): string { return v === 'science' ? 'science' : v === 'tradition' ? 'tradition' : 'everyday'; }
+
+  function returnLine(agg: SigAgg): HTMLElement | null {
+    const p = agg.lastPrior;
+    if (!p) return null;
+    const where = p.section || (p.framework ? frameworkLabel(p.framework) : 'your reading');
+    const via = p.voice ? (' through the ' + voiceLabel(p.voice) + ' telescope') : '';
+    return el('div', { class: 'rdg-return' }, 'When you were last here, what landed for you was ' + where + via + '.');
+  }
+  function emergentPanel(agg: SigAgg): HTMLElement {
+    const wrap = el('div', { class: 'rdg-emergent' });
+    wrap.appendChild(el('div', { class: 'rdg-emergent-l' }, 'Your own patterns'));
+    if (agg.total < 3) {
+      wrap.appendChild(el('p', { class: 'rdg-emergent-p null' },
+        'Not enough marked yet for a pattern to show. As you tap what lands in a reading, this begins to notice, as an observation about what reaches you and never as a forecast.'));
+      return wrap;
+    }
+    const fw = topOf(agg.byFramework);
+    const vc = topOf(agg.byVoice);
+    if (!fw.key || fw.tied) {
+      wrap.appendChild(el('p', { class: 'rdg-emergent-p null' },
+        'What you have marked so far is spread evenly across the frameworks, with no single thread standing out. That even spread is itself honest information, an observation rather than a forecast.'));
+    } else {
+      let line = 'Across the readings you have marked, what has been landing most is the ' + frameworkLabel(fw.key) + ' thread';
+      if (vc.key && !vc.tied) line += ', most often through the ' + voiceLabel(vc.key) + ' telescope';
+      line += '. That is an observation about what reaches you, not a forecast.';
+      wrap.appendChild(el('p', { class: 'rdg-emergent-p' }, line));
+    }
+    if (agg.bridges > 0) {
+      const n = agg.bridges;
+      wrap.appendChild(el('p', { class: 'rdg-emergent-p' },
+        'You have crossed to the other telescope ' + n + (n === 1 ? ' time' : ' times') + ', which is where the two readings meet on one coordinate.'));
+    }
+    return wrap;
+  }
+
   /* ======================================================================== *
    * THE COMPUTED ZONE, rendered immediately from the core
    * ======================================================================== */
   function renderComputed(): void {
     clear(computed);
+    const signalsFn = o.getSignals;
+    const agg = signalsFn ? aggregateSignals(signalsFn()) : null;
 
     // Two Telescopes
     const tele = el('div', { class: 'rdg-tele' });
@@ -703,6 +812,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     dh.appendChild(el('div', { class: 'rdg-date' }, dateLabel));
     if (o.location) dh.appendChild(el('div', { class: 'rdg-loc' }, o.location));
     computed.appendChild(dh);
+
+    // recognition on return, the quiet line that recalls what last landed
+    if (agg) { const rl = returnLine(agg); if (rl) computed.appendChild(rl); }
 
     // decision tiles, into the Compass
     if (canDeepDive) {
@@ -837,6 +949,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       win.appendChild(windowCard('Evening', 'Personal Year', pn.personalYear.value));
       computed.appendChild(win);
     }
+
+    // the emergent surface, the person's own marks read as observation, never forecast
+    if (agg) computed.appendChild(emergentPanel(agg));
   }
 
   function frameworkForTitle(s: string): string | undefined {
@@ -942,15 +1057,73 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     return body;
   }
 
+  function voiceMeta(l: Lens): { label: string; cls: string } {
+    return l === 'science' ? { label: 'Science', cls: 'science' }
+      : l === 'tradition' ? { label: 'Tradition', cls: 'tradition' }
+      : { label: 'Everyday', cls: 'everyday' };
+  }
+  function otherTelescopes(l: Lens): Lens[] {
+    if (l === 'science') return ['tradition'];
+    if (l === 'tradition') return ['science'];
+    return ['tradition', 'science'];
+  }
+  function sectionTitleOf(node: HTMLElement): string {
+    const card = node.closest('.rdg-card') as HTMLElement | null;
+    const t = card ? card.querySelector('.rdg-title') : null;
+    return t ? (t.textContent || '').trim() : '';
+  }
+  /*
+   * The inline cross telescope bridge. On a voiced section it offers the other
+   * telescope, or both telescopes from the everyday voice, revealed in place
+   * beneath the current voice and in that voice's colour, so both registers are
+   * held on one coordinate at once. It never navigates and never collapses the
+   * reading to a single view, which is the whole of the value. Opening a bridge
+   * records a located bridge signal, the higher value cross telescope move.
+   */
+  function buildBridge(body: HTMLElement, lens: Lens): HTMLElement | null {
+    const triple: Record<Lens, string> = {
+      tradition: body.dataset.tradition || '',
+      science: body.dataset.science || '',
+      everyday: body.dataset.everyday || '',
+    };
+    const others = otherTelescopes(lens).filter((t) => triple[t] && triple[t].trim().length > 0);
+    if (others.length === 0) return null;
+    const row = el('div', { class: 'rdg-bridge' });
+    for (const tele of others) {
+      const meta = voiceMeta(tele);
+      const btn = el('button', { type: 'button', class: 'rdg-bridge-btn ' + meta.cls }, 'Through the ' + meta.label.toLowerCase() + ' telescope');
+      let block: HTMLElement | null = null;
+      btn.addEventListener('click', () => {
+        if (block) { if (block.parentNode) block.parentNode.removeChild(block); block = null; btn.classList.remove('open'); return; }
+        block = el('div', { class: 'rdg-bridge-block ' + meta.cls });
+        block.appendChild(el('div', { class: 'rdg-bridge-label' }, meta.label + ' telescope, the same coordinate'));
+        for (const p of paragraphs(triple[tele])) block.appendChild(el('p', { class: 'rdg-p' }, p));
+        body.insertBefore(block, row);
+        btn.classList.add('open');
+        if (o.recordSignal) {
+          const title = sectionTitleOf(body);
+          o.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'reading', section: title, framework: frameworkForTitle(title), voice: tele, bridge: true });
+        }
+      });
+      row.appendChild(btn);
+    }
+    return row;
+  }
+
   function paintBody(body: HTMLElement, lens: Lens): void {
     clear(body);
+    const voiced = body.classList.contains('rdg-voiced');
     let text = '';
-    if (body.classList.contains('rdg-voiced')) {
+    if (voiced) {
       text = pickVoice({ tradition: body.dataset.tradition || '', science: body.dataset.science || '', everyday: body.dataset.everyday || '' }, lens);
     } else {
       text = body.dataset.plain || '';
     }
     for (const p of paragraphs(text)) body.appendChild(el('p', { class: 'rdg-p' }, p));
+    if (voiced) {
+      const bridge = buildBridge(body, lens);
+      if (bridge) body.appendChild(bridge);
+    }
   }
 
   function repaintVoice(lens: Lens): void {
