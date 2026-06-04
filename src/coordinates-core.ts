@@ -210,9 +210,8 @@ export interface KinDescriptor {
   register: 'symbolic';
 }
 
-/** The full Kin descriptor, all naming systems held distinct, colour composed once. */
-export function kinDescriptor(dateStr: string): KinDescriptor {
-  const kin = kinForDate(dateStr);
+/** The full Kin descriptor for a Kin number, all naming systems held distinct, colour composed once. */
+export function descriptorForKin(kin: number): KinDescriptor {
   const tone = kinTone(kin);
   const si = kinSealIndex(kin);
   const toneName = TONE_NAMES[tone - 1];
@@ -228,6 +227,11 @@ export function kinDescriptor(dateStr: string): KinDescriptor {
     isGAP: GAP_KINS.has(kin),
     register: 'symbolic',
   };
+}
+
+/** The full Kin descriptor for a date, all naming systems held distinct, colour composed once. */
+export function kinDescriptor(dateStr: string): KinDescriptor {
+  return descriptorForKin(kinForDate(dateStr));
 }
 
 /* ============================================================================
