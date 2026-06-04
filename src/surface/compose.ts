@@ -157,11 +157,28 @@ export class LocalOrchestrator implements Orchestrator {
 
 /* ---- the server-backed composer -------------------------------------------- */
 
+/**
+ * One attachment carried with a depth call, in the wire shape the server reads.
+ * Images and documents carry base64 data; text files carry their contents. The
+ * server turns each into an image, document, or text content block for the
+ * model. This mirrors CdpAttachmentWire in the attachments surface module; it is
+ * restated here so the compose seam depends on no surface file.
+ */
+export interface AttachmentInput {
+  kind: 'image' | 'document' | 'text';
+  name: string;
+  mediaType: string;
+  data?: string;
+  textContent?: string;
+}
+
 /** Optional per-call context the server uses to ground the reflection. */
 export interface DepthContext {
   dateStr?: string;
   continuity?: Array<{ label: string; summary: string }>;
   recentTouches?: Array<{ role: string; text: string }>;
+  /** Files the person brought into the compass for this reflection. */
+  attachments?: AttachmentInput[];
   /** Name and the day coordinates the reply uses as scaffold. */
   name?: string;
   kin?: string;
@@ -252,12 +269,15 @@ export class ApiOrchestrator implements Orchestrator {
     if (merged.isBlackMoon) context.is_black_moon = true;
     if (merged.isShivaMoon) context.is_shiva_moon = true;
 
-    const body = {
+    const body: Record<string, unknown> = {
       intention: it.text,
       voice: lens,
       name: merged.name || '',
       context,
     };
+    if (merged.attachments && merged.attachments.length > 0) {
+      body.attachments = merged.attachments;
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);

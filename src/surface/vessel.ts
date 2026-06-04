@@ -40,6 +40,8 @@ import { openCompatibility } from './compatibility';
 import type { CompatibilityHandle } from './compatibility';
 import { openCalendar as openCalendarSurface } from './calendar';
 import type { CalendarHandle } from './calendar';
+import { createAttachmentZone } from './attachments';
+import type { AttachmentZone, CdpAttachmentWire } from './attachments';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -581,6 +583,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const ask = el('div', { class: 'ask' });
   const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
   ask.appendChild(input);
+  // where the attach control and any brought-in files live, under the field
+  const attachMount = el('div');
+  ask.appendChild(attachMount);
   const askRow = el('div', { class: 'ask-row' });
   const continueBtn = el('button', { type: 'button', class: 'btn' }, 'CONTINUE') as HTMLButtonElement;
   askRow.appendChild(continueBtn);
@@ -600,6 +605,14 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     window.clearTimeout(reflectTimer);
     reflectTimer = window.setTimeout(() => reflectLine.classList.remove('show'), 7000);
   }
+
+  // the attach control for the open ask: paperclip, drag and drop, and paste
+  const attachZone: AttachmentZone = createAttachmentZone({
+    input,
+    mount: attachMount,
+    reflect: (n) => reflect(n),
+    maxFiles: 4,
+  });
 
   const replyArea = el('div', { 'aria-live': 'polite' });
   home.appendChild(replyArea);
@@ -719,67 +732,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     b.appendChild(el('div', { class: 'soft' }, MONTHS[month] + '. Tap to open the full calendar with portals, master-number days and the moon.'));
     b.style.cursor = 'pointer';
     b.addEventListener('click', () => openCalendar());
-    return b;
-  }
-
-  // Right rail, Today's reading, with real coordinates.
-  function todayBody(): HTMLElement {
-    const b = el('div');
-    b.appendChild(lineEl('The honest read on today: open it with the compass, and the reading composes around what you are holding.', longDate(dateStr)));
-    b.appendChild(el('div', { class: 'soft' }, 'The day\u2019s coordinates sit in the pill by the date. Opens to the full card: the planetary weather and your signature. Arrives as its stage lands.'));
-    return b;
-  }
-  function longViewBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'The backdrop, not the daily forecast: the universal year, your fixed signature, and the slow planetary weather.'),
-      el('div', { class: 'soft' }, 'Read once, return when something shifts. Arrives as its stage lands.')
-    );
-  }
-  function profilesBody(): HTMLElement {
-    return body(
-      lineEl('People in your world', 'Each one a context the oracle can read with you'),
-      el('div', { class: 'soft' }, 'Each profile private by default. Arrives as its stage lands.')
-    );
-  }
-  function compatBody(): HTMLElement {
-    return body(
-      lineEl('Read a relationship through both telescopes.', 'Pick two people and a reading composes around the bond'),
-      el('div', { class: 'soft' }, 'Summoned around the relationship, not a fixed page. Arrives as its stage lands.')
-    );
-  }
-  function familyBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'A private oracle for each person you keep on record, shared only when everyone opts in.'),
-      el('div', { class: 'soft' }, 'Each oracle private by default. Arrives as its stage lands.')
-    );
-  }
-  function sharedBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'The threads a family holds together surface here, shared only when everyone opts in.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
-  }
-  function knowsBody(): HTMLElement {
-    const b = el('div');
-    b.appendChild(lineEl('The library it draws on', 'The four frameworks and the cited bibliography behind them'));
-    [['Calendar', 'in and out'], ['Messages', 'out'], ['Health and wearables', 'in'], ['Documents you add', 'in']].forEach((s) => {
-      const row = el('div', { class: 'src' });
-      row.appendChild(el('span', { class: 'dot' }));
-      row.appendChild(document.createTextNode(s[0]));
-      row.appendChild(el('span', { class: 'way' }, s[1]));
-      b.appendChild(row);
-    });
-    b.appendChild(el('div', { class: 'soft' }, 'Nothing is consulted that you have not given it. Arrives as its stage lands.'));
-    return b;
-  }
-  function vaultBody(): HTMLElement {
-    const total = repo.live().length + repo.resting().length;
-    const b = el('div');
-    const stat = el('div', { class: 'stat' });
-    stat.appendChild(el('span', { class: 'stat-num' }, String(total)));
-    stat.appendChild(el('span', { class: 'stat-label' }, total === 1 ? 'intention on record' : 'intentions on record'));
-    b.appendChild(stat);
-    b.appendChild(el('div', { class: 'soft' }, 'Everything you have held and tended, kept and searchable.'));
     return b;
   }
 
@@ -915,12 +867,14 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     });
     return { drawer };
   }
-  async function composeAsk(prompt: string): Promise<string> {
+  async function composeAsk(prompt: string, attachments?: CdpAttachmentWire[]): Promise<string> {
     try {
+      const payload: Record<string, unknown> = { question: prompt, profile: profile ?? null, lens };
+      if (attachments && attachments.length > 0) payload.attachments = attachments;
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: prompt, profile: profile ?? null, lens }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) return '';
       const data = (await res.json()) as { answer?: string };
@@ -1472,22 +1426,29 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (fresh) renderReply(fresh);
   }
 
-  async function compose(text: string): Promise<void> {
+  async function compose(text: string, attachments?: CdpAttachmentWire[]): Promise<void> {
     const reflectionFor = text.trim();
-    if (reflectionFor.length === 0 || composing) { input.focus(); return; }
+    const hasFiles = !!attachments && attachments.length > 0;
+    if ((reflectionFor.length === 0 && !hasFiles) || composing) { input.focus(); return; }
     composing = true;
     continueBtn.disabled = true;
     trackEvent('reply_requested', { lens });
     const room = await repo.ensureRoom(ROOM_DEFAULT);
-    const held = await repo.hold({ text: reflectionFor, roomId: room.id, kind: 'acute' });
+    const heldText = reflectionFor.length > 0
+      ? reflectionFor
+      : (attachments && attachments.length === 1
+        ? 'Something I am bringing in to look at: ' + attachments[0].name
+        : 'Some things I am bringing in to look at');
+    const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute' });
     activeReplyId = held.id;
     trackEvent('intention_held', {});
+    if (hasFiles) trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
     meetLine.textContent = held.text;
     renderLive();
     renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.');
     const started = Date.now();
     try {
-      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id) });
+      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments });
       await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
       if (composed.summary) await repo.setSummary(held.id, composed.summary);
       trackEvent('reply_delivered', { lens, ms: Date.now() - started });
@@ -1500,9 +1461,17 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
   }
 
-  continueBtn.addEventListener('click', () => { const t = input.value; input.value = ''; void compose(t); });
+  function sendAsk(): void {
+    const t = input.value;
+    const files = attachZone.toWire();
+    input.value = '';
+    attachZone.clear();
+    void compose(t, files);
+  }
+
+  continueBtn.addEventListener('click', () => { sendAsk(); });
   input.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const t = input.value; input.value = ''; void compose(t); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAsk(); }
   });
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
