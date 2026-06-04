@@ -39,6 +39,8 @@ import type { YearHandle } from './year';
 import { openCompatibility } from './compatibility';
 import type { CompatibilityHandle } from './compatibility';
 import { openCalendar as openCalendarSurface } from './calendar';
+import { openAbout } from './about';
+import type { AboutHandle } from './about';
 import type { CalendarHandle } from './calendar';
 import { createAttachmentZone } from './attachments';
 import type { AttachmentZone, CdpAttachmentWire } from './attachments';
@@ -433,6 +435,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let yearHandle: YearHandle | null = null;
   let compatHandle: CompatibilityHandle | null = null;
   let calendarHandle: CalendarHandle | null = null;
+  let aboutHandle: AboutHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -468,7 +471,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   header.appendChild(el('a', { class: 'brand', href: '/' }, 'COSMIC DAILY PLANNER'));
   const topnav = el('nav', { class: 'topnav', 'aria-label': 'Primary' });
   const aboutLink = el('button', { type: 'button', class: 'topnav-link' }, 'About');
-  aboutLink.addEventListener('click', () => voiceNote.classList.toggle('show'));
+  aboutLink.addEventListener('click', () => openAboutView());
   topnav.appendChild(aboutLink);
   const signinLink = el('button', { type: 'button', class: 'topnav-link' }, 'Sign in');
   signinLink.addEventListener('click', () => signin.classList.toggle('open'));
@@ -1195,6 +1198,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   calNext.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } renderCalGrid(); });
   calClose.addEventListener('click', () => closeCalendar());
 
+  function openAboutView(): void {
+    closeDrawer('left');
+    closeDrawer('right');
+    if (aboutHandle) aboutHandle.close();
+    aboutHandle = openAbout({
+      container: surface,
+      getLens: () => lens,
+      reflect: (n) => reflect(n),
+      onEnterReading: () => openReadingFor(profile ?? null, 'Today\u2019s reading'),
+    });
+  }
+
   function openCalendar(): void {
     closeDrawer('left');
     closeDrawer('right');
@@ -1288,7 +1303,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       row.appendChild(val);
       row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
     } else if (label === 'About') {
-      row.addEventListener('click', () => { menu.classList.remove('open'); voiceNote.classList.add('show'); });
+      row.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
     } else {
       row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
     }
