@@ -117,6 +117,19 @@ export interface VesselProfile {
   birthTime?: string;
   birthPlace?: string;
   name?: string;
+  /** Identity, captured at the profile. Full name is held for the natal chart and formal address. */
+  fullName?: string;
+  /** Where the person lives now, distinct from birthPlace. */
+  location?: string;
+  /** Free personal context that deepens the Oracle. */
+  context?: string;
+  /** Life context, comma separated where natural, referenced by the Oracle when it speaks to a life. */
+  roles?: string;
+  projects?: string;
+  currentIntentions?: string;
+  keyPeople?: string;
+  /** Optional hormonal cycle awareness. Stored on device only, never sent unless cycle awareness is on. */
+  cycle?: { enabled?: boolean; lastPeriod?: string; cycleLength?: number };
 }
 
 /** A saved person, the self or another, callable for a reading or a comparison. */
