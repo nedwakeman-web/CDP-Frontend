@@ -17,7 +17,7 @@
  * marks, in code and in comments alike.
  */
 
-import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens } from './model';
+import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens, VesselSignal } from './model';
 import { emptyState, LIMITS, SCHEMA_VERSION } from './model';
 import type { Store } from './store';
 import type { VesselProfile, StoredProfile } from './model';
@@ -58,6 +58,20 @@ export class VesselRepository {
   getProfile(): VesselProfile | undefined { return this.state.profile; }
   async setProfile(p: VesselProfile): Promise<void> {
     this.state.profile = { ...this.state.profile, ...p };
+    await this.commit();
+  }
+
+  // ---- outcome signals, the person's own located taps and verdicts ----------
+  listSignals(): VesselSignal[] { return (this.state.signals || []).map((x) => ({ ...x })); }
+  async recordSignal(s: VesselSignal): Promise<void> {
+    if (!this.state.signals) this.state.signals = [];
+    this.state.signals.push({ ...s });
+    await this.commit();
+  }
+  async recordOutcome(intentionId: string, moved: 'well' | 'waiting' | 'mixed'): Promise<void> {
+    if (!this.state.signals) this.state.signals = [];
+    const now = new Date();
+    this.state.signals.push({ at: now.getTime(), date: now.toISOString().slice(0, 10), kind: 'outcome', intentionId, moved });
     await this.commit();
   }
 
