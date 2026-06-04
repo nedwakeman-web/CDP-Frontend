@@ -97,6 +97,7 @@ export interface ReadingCitation {
   url: string;
   type: string;
   lineage: string;
+  register: string;
   counterweight: boolean;
 }
 
@@ -114,6 +115,7 @@ function toReadingCitation(e: BibEntry): ReadingCitation {
     url: e.url || '',
     type: e.type,
     lineage: e.lineage || '',
+    register: e.register || '',
     counterweight: e.counterweight,
   };
 }
