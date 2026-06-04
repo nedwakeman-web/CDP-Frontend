@@ -116,6 +116,12 @@ export interface VesselProfile {
   birthDate?: string;
   birthTime?: string;
   birthPlace?: string;
+  /** Birth coordinates and zone, resolved from the place autocomplete. The
+   *  natal chart (rising sign, house cusps, transit timing) needs all three. */
+  birthLat?: number;
+  birthLon?: number;
+  birthTimezone?: string;
+  birthCountry?: string;
   name?: string;
   /** Identity, captured at the profile. Full name is held for the natal chart and formal address. */
   fullName?: string;
