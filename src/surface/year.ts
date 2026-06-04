@@ -141,6 +141,15 @@ function ensureStyle(): void {
     '.cdp-surface .yr-desc{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
     '.cdp-surface .yr-kin{font-family:\'EB Garamond\',Georgia,serif;font-size:17px;color:var(--text-light,#F0E6CC)}',
     '.cdp-surface .yr-symbolic{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--text-faint,#9E9282);margin:2px 0 14px}',
+    '.cdp-surface .yr-cycle{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin:4px 0 10px}',
+    '.cdp-surface .yr-cycle-cell{text-align:center;padding:8px 0;border:1px solid var(--gold-line,#3A3320);border-radius:3px;font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-faint,#9E9282)}',
+    '.cdp-surface .yr-cycle-cell.on{border-color:var(--gold,#C9A050);color:var(--gold,#C9A050);background:var(--raised,#13284A)}',
+    '.cdp-surface .yr-arc{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC);margin:0 0 6px}',
+    '.cdp-surface .yr-months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 10px}',
+    '.cdp-surface .yr-month-cell{text-align:center;padding:9px 0;border:1px solid var(--gold-line,#3A3320);border-radius:3px;background:var(--navy,#0D1E33);cursor:pointer}',
+    '.cdp-surface .yr-month-m{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint,#9E9282)}',
+    '.cdp-surface .yr-month-n{font-family:\'EB Garamond\',Georgia,serif;font-size:18px;color:var(--gold,#C9A050);margin-top:2px}',
+    '.cdp-surface .yr-month-cell.master .yr-month-n{color:var(--master,#C8A0FF)}',
     '.cdp-surface .yr-empty{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--text-faint,#9E9282);border:1px dashed var(--gold-line,#3A3320);border-radius:4px;padding:18px;text-align:center}',
     '.cdp-surface .yr-tap{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px}',
     '.cdp-surface .yr-tapdot{width:12px;height:12px;border-radius:50%;border:1.2px solid var(--text-faint,#9E9282);display:inline-block}',
@@ -279,6 +288,40 @@ export function openYear(o: OpenYearOptions): YearHandle {
     attachTap(pyCard.querySelector('.yr-body') as HTMLElement, { framework: 'numerology', section: 'personal-year' }, 'this landed');
     content.appendChild(pyCard);
     content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. Your own year within the nine year cycle, drawn from your birth date.'));
+
+    {
+      const pos = py.reducesTo;
+      content.appendChild(el('div', { class: 'yr-section' }, 'Where this year sits in the cycle'));
+      const strip = el('div', { class: 'yr-cycle' });
+      for (let i = 1; i <= 9; i++) strip.appendChild(el('div', { class: 'yr-cycle-cell' + (i === pos ? ' on' : '') }, String(i)));
+      content.appendChild(strip);
+      const prev = ((pos + 7) % 9) + 1;
+      const next = (pos % 9) + 1;
+      const arcLine = 'A nine year cycle. You are in year ' + pos + (py.isMaster ? ', carried this year as the master ' + py.value : '') + ', ' + (NUM_DATA[py.value] ? NUM_DATA[py.value].n : '') + '. Behind you, year ' + prev + ', ' + (NUM_DATA[prev] ? NUM_DATA[prev].n : '') + '. Ahead, year ' + next + ', ' + (NUM_DATA[next] ? NUM_DATA[next].n : '') + '.';
+      content.appendChild(el('div', { class: 'yr-arc' }, arcLine));
+      content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. The arc beneath the year, where you have come from and where the cycle turns next.'));
+    }
+
+    {
+      content.appendChild(el('div', { class: 'yr-section' }, 'The year, month by month'));
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const grid = el('div', { class: 'yr-months' });
+      for (let mi = 0; mi < 12; mi++) {
+        const mm = (mi + 1 < 10 ? '0' : '') + String(mi + 1);
+        const pmn = personalNumerology(prof.birthDate, curYear + '-' + mm + '-01').personalMonth;
+        const cell = el(o.composeAsk ? 'button' : 'div', { type: 'button', class: 'yr-month-cell' + (pmn.isMaster ? ' master' : '') });
+        cell.appendChild(el('div', { class: 'yr-month-m' }, MONTHS[mi]));
+        cell.appendChild(el('div', { class: 'yr-month-n' }, String(pmn.value)));
+        if (o.composeAsk) {
+          cell.addEventListener('click', () => {
+            openAsk('In ' + MONTHS[mi] + ' ' + curYear + ' my personal month is ' + pmn.value + ', ' + numName(pmn.value) + '. What does this month ask of me, and how best to use it.', { framework: 'numerology', section: 'month-' + mm });
+          });
+        }
+        grid.appendChild(cell);
+      }
+      content.appendChild(grid);
+      content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. Your personal month for each month of the year, master months marked, so you can plan into the texture ahead.'));
+    }
 
     content.appendChild(el('div', { class: 'yr-section' }, 'Your fixed signature, the constants'));
     const lp = lifePath(prof.birthDate);
