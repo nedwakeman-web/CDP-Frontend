@@ -1207,6 +1207,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getLens: () => lens,
       reflect: (n) => reflect(n),
       onEnterReading: () => openReadingFor(profile ?? null, 'Today\u2019s reading'),
+      onMakeMine: () => { signin.classList.add('open'); },
     });
   }
 
