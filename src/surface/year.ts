@@ -27,7 +27,7 @@
  */
 
 import type { Lens, VesselProfile, HeldIntention, VesselSignal } from '../data/model';
-import { kinForDate, kinDescriptor, personalNumerology, reduceNumber } from '../coordinates-core';
+import { kinForDate, kinDescriptor, descriptorForKin, personalNumerology, reduceNumber } from '../coordinates-core';
 import { NUM_DATA, PY_ARC } from '../data/numerology-content';
 import { shareControls } from './share';
 import { citationsForClaim } from '../data/bibliography';
@@ -74,6 +74,38 @@ function lifePath(birthDate: string): { value: number; master: boolean } {
   const v = reduceNumber(month + day + year).value;
   return { value: v, master: isMaster(v) };
 }
+
+
+/* ---- Chinese zodiac, ported from the monolith with the lunar new year correction ---- */
+const CHINESE_ANIMALS = ['Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig'];
+const CHINESE_ELEMENTS = ['Metal', 'Metal', 'Water', 'Water', 'Wood', 'Wood', 'Fire', 'Fire', 'Earth', 'Earth'];
+const CNY_DATES: Record<number, [number, number]> = { 1950:[1,27],1951:[2,6],1952:[1,27],1953:[2,14],1954:[2,3],1955:[1,24],1956:[2,12],1957:[1,31],1958:[2,18],1959:[2,8],1960:[1,28],1961:[2,15],1962:[2,5],1963:[1,25],1964:[2,13],1965:[2,2],1966:[1,21],1967:[2,9],1968:[1,30],1969:[2,17],1970:[2,6],1971:[1,27],1972:[2,15],1973:[2,3],1974:[1,23],1975:[2,11],1976:[1,31],1977:[2,18],1978:[2,7],1979:[1,28],1980:[2,16],1981:[2,5],1982:[1,25],1983:[2,13],1984:[2,2],1985:[2,20],1986:[2,9],1987:[1,29],1988:[2,17],1989:[2,6],1990:[1,27],1991:[2,15],1992:[2,4],1993:[1,23],1994:[2,10],1995:[1,31],1996:[2,19],1997:[2,7],1998:[1,28],1999:[2,16],2000:[2,5],2001:[1,24],2002:[2,12],2003:[2,1],2004:[1,22],2005:[2,9],2006:[1,29],2007:[2,18],2008:[2,7],2009:[1,26],2010:[2,14],2011:[2,3],2012:[1,23],2013:[2,10],2014:[1,31],2015:[2,19],2016:[2,8],2017:[1,28],2018:[2,16],2019:[2,5],2020:[1,25],2021:[2,12],2022:[2,1],2023:[1,22],2024:[2,10],2025:[1,29],2026:[2,17] };
+function chineseYear(y: number, birthMonth?: number, birthDay?: number): { animal: string; element: string } {
+  let eff = y;
+  if (birthMonth && birthDay && CNY_DATES[y]) {
+    const cny = CNY_DATES[y];
+    if (birthMonth < cny[0] || (birthMonth === cny[0] && birthDay < cny[1])) eff = y - 1;
+  }
+  const base = 1900;
+  const idx = (((eff - base) % 12) + 12) % 12;
+  const eidx = (((eff - base) % 10) + 10) % 10;
+  return { animal: CHINESE_ANIMALS[idx], element: CHINESE_ELEMENTS[eidx] };
+}
+
+/* ---- the slow transits of this era, ported from the monolith, rewritten to house style ---- */
+const SLOW_TRANSITS: Array<{ glyph: string; name: string; duration: string; desc: string }> = [
+  { glyph: '\u2644', name: 'Saturn in Aries', duration: 'May 2025 to Apr 2028',
+    desc: 'Saturn in Aries is a passage that comes once in twenty nine years. The archetype of structure, discipline, and karma moves through the sign of the self, of initiative and new beginnings. The personal challenge is to build with courage rather than to retreat into what is already known. Structures that no longer serve collapse, and new ones built with integrity last a generation. This transit rewards those who act from conviction rather than convention.' },
+  { glyph: '\u2646', name: 'Neptune in Aries', duration: 'Mar 2025 to Jan 2039',
+    desc: 'Neptune enters Aries for the first time since the years 1861 to 1875, the era of the national unification movements across Europe. The planet of dissolution, spirituality, and collective dreams moves into the sign of individual will and fresh beginnings. The invitation is to act from vision rather than ego, to pioneer something larger than personal ambition. The risk is idealism mistaken for action, or martyrdom mistaken for sacrifice.' },
+  { glyph: '\u2644\u2229\u2646', name: 'Saturn conjunct Neptune, first degree of Aries', duration: 'Exact Feb to Jul 2026',
+    desc: 'This is the civilisational hinge of our era. Saturn, the planet of structure, karma, and material reality, meets Neptune, the planet of dissolution, vision, and the collective dream, at the very first degree of the zodiac, the point of absolute beginning. The last Saturn and Neptune conjunction was in 1989, the year the Berlin Wall fell. Before that came 1952 and the post war rebuilding, and 1917 and the Russian Revolution. These conjunctions mark the moments when an old order dissolves and a new architecture of collective life must be consciously chosen. The window runs across 2025 to 2027.' },
+  { glyph: '\u2645', name: 'Jupiter in Cancer', duration: 'Jun 2025 to Jun 2026',
+    desc: 'Jupiter in Cancer is held to be one of its most fortunate placements, the planet of expansion in the sign of home, nourishment, memory, and belonging. This year favours emotional intelligence, the deepening of roots, and growth that comes through care rather than conquest. Family matters, ancestral healing, and investment in place and community are all strongly supported.' },
+  { glyph: '\u26e2', name: 'Uranus in Gemini', duration: 'Jul 2025 to Aug 2033',
+    desc: 'Uranus moves into Gemini for the first time since the years 1941 to 1949, the era of radio, radar, and the first computers. The planet of disruption and revolution enters the sign of communication, information, and the mind. Expect rapid and unpredictable transformation in how humanity thinks, communicates, and connects. Artificial intelligence, language, transport networks, and the very structure of knowledge are all in flux.' },
+];
+
 
 /* ---- sources, quiet, from the bibliography -------------------------------- */
 function sourcesLine(): string {
@@ -133,6 +165,12 @@ function ensureStyle(): void {
     '.cdp-surface .yr-dd-x{background:none;border:none;color:var(--text-dim,#D4C8AE);font-size:20px;cursor:pointer}',
     '.cdp-surface .yr-dd-q{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--gold-soft,#E8C878);margin:0 0 8px}',
     '.cdp-surface .yr-dd-a{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .yr-ctx{border:1px solid var(--gold-line,#3A3320);border-radius:5px;background:var(--navy,#0D1E33);padding:14px 16px;margin-bottom:11px}',
+    '.cdp-surface .yr-ctx-h{font-family:Cinzel,Georgia,serif;font-size:13px;color:var(--gold,#C9A050);display:flex;align-items:baseline;gap:9px}',
+    '.cdp-surface .yr-ctx-glyph{font-size:16px;color:var(--gold-soft,#E8C878)}',
+    '.cdp-surface .yr-ctx-meta{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:4px 0 9px}',
+    '.cdp-surface .yr-ctx-desc{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .yr-ctx-ask{display:inline-block;background:none;border:none;cursor:pointer;font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--teal,#81CDB6);padding:9px 0 0}',
   ].join('');
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -256,8 +294,65 @@ export function openYear(o: OpenYearOptions): YearHandle {
     if (o.composeAsk) attachTap(kb, { framework: 'dreamspell', section: 'birth-kin' }, 'this landed');
     kinCard.appendChild(kb);
     content.appendChild(kinCard);
+
+    const _by = Number(prof.birthDate.slice(0, 4));
+    const _bm = Number(prof.birthDate.slice(5, 7));
+    const _bd = Number(prof.birthDate.slice(8, 10));
+    const bc = chineseYear(_by, _bm, _bd);
+    const cc = chineseYear(new Date().getUTCFullYear());
+    const chCard = el('div', { class: 'yr-ctx' });
+    chCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Chinese zodiac'));
+    chCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'Born in the year of the ' + bc.element + ' ' + bc.animal + '. This year carries the ' + cc.element + ' ' + cc.animal + '.'));
+    chCard.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, the sexagenary cycle, animal and heavenly stem element.'));
+    content.appendChild(chCard);
+
   } else {
     content.appendChild(el('div', { class: 'yr-empty' }, 'Add your birth date in your Cosmic Profile, and your personal year and fixed signature appear here alongside the universal year.'));
+  }
+
+  /* ---- the wider sky, the cosmic context ---- */
+  content.appendChild(el('div', { class: 'yr-section' }, 'The wider sky, your cosmic context'));
+  {
+    const wsKin = kinForDate(today);
+    const wsStart = Math.floor((wsKin - 1) / 13) * 13 + 1;
+    const wsD = descriptorForKin(wsStart);
+    const wsDay = ((wsKin - 1) % 13) + 1;
+    const wsLeft = 13 - wsDay;
+    const wsCard = el('div', { class: 'yr-ctx' });
+    wsCard.appendChild(el('div', { class: 'yr-ctx-h' }, wsD.colour + ' ' + wsD.seal + ' Wavespell'));
+    wsCard.appendChild(el('div', { class: 'yr-ctx-meta' }, 'Day ' + wsDay + ' of 13, ' + wsLeft + ' remaining'));
+    wsCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'The thirteen day wave the day sits within, the larger rhythm beneath the single day.'));
+    wsCard.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Dreamspell after Arguelles 1987.'));
+    attachTap(wsCard, { framework: 'dreamspell', section: 'wavespell' }, 'this landed');
+    content.appendChild(wsCard);
+  }
+  if (hasBirth && prof && prof.birthDate && o.composeAsk) {
+    const ndCard = el('div', { class: 'yr-ctx' });
+    ndCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Your natural direction'));
+    ndCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'The direction your work and life lean toward now, read across your Life Path, your Personal Year, and your Birth Kin.'));
+    const ndAsk = el('button', { type: 'button', class: 'yr-ctx-ask' }, 'Read my natural direction');
+    ndAsk.addEventListener('click', () => { openAsk('Drawing on my Life Path, my Personal Year, and my Birth Kin, what is the natural direction for my work and my life path right now.', { framework: 'convergence', section: 'natural-direction' }); });
+    ndCard.appendChild(ndAsk);
+    content.appendChild(ndCard);
+  }
+
+  content.appendChild(el('div', { class: 'yr-section' }, 'The slow sky, the transits of this era'));
+  for (const tr of SLOW_TRANSITS) {
+    const card = el('div', { class: 'yr-ctx' });
+    const h = el('div', { class: 'yr-ctx-h' });
+    h.appendChild(el('span', { class: 'yr-ctx-glyph' }, tr.glyph));
+    h.appendChild(el('span', {}, tr.name));
+    card.appendChild(h);
+    card.appendChild(el('div', { class: 'yr-ctx-meta' }, tr.duration));
+    card.appendChild(el('div', { class: 'yr-ctx-desc' }, tr.desc));
+    card.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic interpretation of a real transit. Positions from Swiss Ephemeris.'));
+    if (o.composeAsk) {
+      const trAsk = el('button', { type: 'button', class: 'yr-ctx-ask' }, 'How this touches your life');
+      trAsk.addEventListener('click', () => { openAsk('The transit ' + tr.name + ' is in effect now. How is this transit relevant to my current situation and my life arc right now.', { framework: 'astrology', section: 'transit' }); });
+      card.appendChild(trAsk);
+    }
+    attachTap(card, { framework: 'astrology', section: 'transit' }, 'this landed');
+    content.appendChild(card);
   }
 
   /* ============ ZONE TWO: the measurable impact engine ==================== */
