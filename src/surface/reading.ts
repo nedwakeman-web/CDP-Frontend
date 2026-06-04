@@ -34,6 +34,9 @@ import { NUM_DATA } from '../data/numerology-content';
 import {
   kinDescriptor, universalDay, personalNumerology, reduceNumber, lunarWindow,
 } from '../coordinates-core';
+import {
+  citationsForClaim, bibliographyVersion, type ReadingCitation,
+} from '../data/bibliography';
 
 /* ---- the minimum birth fields the server reading pipeline reads ----------- */
 export interface ReadingProfile {
@@ -418,25 +421,33 @@ function ensureStyle(): void {
 .cdp-surface .rdg-backdrop { border-left:2px solid var(--gold-line, #3A3320); margin:4px 16px 12px; padding:8px 0 8px 14px; }
 .cdp-surface .rdg-backdrop .rdg-backdrop-label { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint, #9E9282); margin-bottom:5px; }
 .cdp-surface .rdg-backdrop p { font-family:Georgia, serif; font-size:14px; line-height:1.7; color:var(--text-dim, #D4C8AE); margin:0; }
-.cdp-surface .rdg-disclaimer { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; line-height:1.6; color:var(--text-faint, #9E9282); margin:8px 16px 0; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
+.cdp-surface .rdg-disclaimer { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:8px 16px 0; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
 .cdp-surface .rdg-ask { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--gold, #C9A050); font-family:'EB Garamond', Georgia, serif; font-size:12px; letter-spacing:.06em; padding:7px 13px; border-radius:2px; cursor:pointer; margin:2px 16px 14px; -webkit-appearance:none; appearance:none; }
 .cdp-surface .rdg-ask:hover { border-color:var(--gold, #C9A050); color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-cites { display:flex; flex-wrap:wrap; gap:6px; margin:4px 16px 14px; }
-.cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-faint, #9E9282); font-family:Georgia, serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
+.cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-dim, #D4C8AE); font-family:Georgia, serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
 .cdp-surface .rdg-cite:hover { color:var(--gold-soft, #E8C878); border-color:var(--gold, #C9A050); }
 .cdp-surface .rdg-cite-detail { font-family:Georgia, serif; font-size:11px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 16px 14px; padding:9px 12px; border:1px solid var(--gold-line, #3A3320); border-radius:3px; background:rgba(0,0,0,.14); display:none; }
 .cdp-surface .rdg-cite-detail.open { display:block; }
 .cdp-surface .rdg-cite-detail .rdg-cite-title { color:var(--text-light, #F0E6CC); }
 .cdp-surface .rdg-sources { margin:22px 0 0; }
-.cdp-surface .rdg-sources-toggle { background:none; border:none; cursor:pointer; font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-faint, #9E9282); padding:6px 0; display:flex; align-items:center; gap:8px; }
+.cdp-surface .rdg-sources-toggle { background:none; border:none; cursor:pointer; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-dim, #D4C8AE); padding:6px 0; display:flex; align-items:center; gap:8px; }
 .cdp-surface .rdg-sources-toggle:hover { color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-sources-caret { font-size:11px; transition:transform .2s; }
 .cdp-surface .rdg-sources.open .rdg-sources-caret { transform:rotate(90deg); }
 .cdp-surface .rdg-sources-body { display:none; margin-top:8px; }
 .cdp-surface .rdg-sources.open .rdg-sources-body { display:block; }
-.cdp-surface .rdg-source-line { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 7px; }
+.cdp-surface .rdg-source-line { font-family:Georgia, serif; font-size:12px; line-height:1.7; color:var(--text-dim, #D4C8AE); margin:0 0 7px; }
 .cdp-surface .rdg-source-line b { color:var(--text-dim, #D4C8AE); font-weight:600; }
-.cdp-surface .rdg-source-note { font-family:Georgia, serif; font-size:11px; line-height:1.65; color:var(--text-faint, #9E9282); margin:0 0 8px; }
+.cdp-surface .rdg-source-note { font-family:Georgia, serif; font-size:12px; line-height:1.7; color:var(--text-dim, #D4C8AE); margin:0 0 8px; }
+.cdp-surface .rdg-cite.counter { border-style:dashed; }
+.cdp-surface .rdg-cite-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:7px; }
+.cdp-surface .rdg-cite-tag { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-dim, #D4C8AE); border:1px solid var(--gold-line, #3A3320); border-radius:2px; padding:2px 6px; }
+.cdp-surface .rdg-cite-tag.counter { color:var(--gold-soft, #E8C878); border-color:rgba(201,160,80,.5); }
+.cdp-surface .rdg-source-line.counter b { color:var(--gold-soft, #E8C878); }
+.cdp-surface .rdg-source-reg { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim, #D4C8AE); margin-left:6px; white-space:nowrap; }
+.cdp-surface .rdg-source-reg.counter { color:var(--gold-soft, #E8C878); }
+.cdp-surface .rdg-source-ver { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:11px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin-top:13px; padding-top:10px; border-top:1px solid var(--gold-line, #3A3320); }
 .cdp-surface .rdg-dd-scrim { position:fixed; inset:0; background:rgba(3,12,24,.62); z-index:80; display:flex; align-items:flex-end; justify-content:center; }
 .cdp-surface .rdg-dd { width:100%; max-width:40rem; max-height:82vh; background:var(--navy, #0D1E33); border:1px solid var(--gold-line, #BFA363); border-bottom:none; border-radius:10px 10px 0 0; box-shadow:0 -10px 40px rgba(0,0,0,.45); display:flex; flex-direction:column; overflow:hidden; }
 .cdp-surface .rdg-dd-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(191,163,99,.22); }
@@ -955,36 +966,110 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     }
   }
 
-  function citationRow(cites: unknown): HTMLElement | null {
+  /* ---- the curated bibliography spine, wired as the floor for every claim ---
+   * Each framework section names what it is a claim about; the spine returns the
+   * named authorities for that claim, counterweights ordered last, so a
+   * contested claim shows its sceptical literature beside its support. The
+   * server may add citations of its own; they merge over the curated floor,
+   * never under it, so a framework section is never left unsourced. The
+   * register of each source is carried through and shown, so a symbolic source
+   * reads as symbolic and an empirical one as empirical.
+   */
+  interface NormCite {
+    ref: string; display: string; authors: string; year: string; title: string;
+    journal: string; publisher: string; doi: string; lineage: string;
+    register: string; counterweight: boolean;
+  }
+  const REGISTER_LABEL: Record<string, string> = {
+    symbolic: 'symbolic', astronomical: 'astronomical', empirical: 'empirical',
+    depth_psychology: 'depth psychology', anthropology: 'anthropology',
+    contemplative: 'contemplative', strategic: 'strategic', synthesis: 'synthesis',
+  };
+  function normCite(raw: unknown): NormCite | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const c = raw as Record<string, unknown>;
+    const ref = String(c.ref || c.display || '').trim();
+    const display = String(c.display || '').trim();
+    if (!ref && !display) return null;
+    return {
+      ref: ref || display,
+      display,
+      authors: String(c.authors || '').trim(),
+      year: String(c.year || '').trim(),
+      title: String(c.title || '').trim(),
+      journal: String(c.journal || c.venue || '').trim(),
+      publisher: String(c.publisher || '').trim(),
+      doi: String(c.doi || '').trim().replace(/^https?:\/\/doi\.org\//, ''),
+      lineage: String(c.lineage || '').trim(),
+      register: String(c.register || '').trim(),
+      counterweight: c.counterweight === true,
+    };
+  }
+  function curatedFor(claimTag?: string): NormCite[] {
+    if (!claimTag) return [];
+    return citationsForClaim(claimTag).map((e: ReadingCitation): NormCite => ({
+      ref: e.ref, display: e.display, authors: e.authors, year: e.year, title: e.title,
+      journal: e.journal, publisher: e.publisher, doi: e.doi, lineage: e.lineage,
+      register: e.register, counterweight: e.counterweight,
+    }));
+  }
+  function uniqueSorted(parts: NormCite[][]): NormCite[] {
+    const out: NormCite[] = [];
+    const seen = new Set<string>();
+    for (const list of parts) {
+      for (const n of list) {
+        if (!n) continue;
+        const k = (n.ref || n.display).toLowerCase();
+        if (seen.has(k)) continue;
+        seen.add(k); out.push(n);
+      }
+    }
+    out.sort((a, b) => Number(a.counterweight) - Number(b.counterweight));
+    return out;
+  }
+  function mergeCites(serverCites: unknown, claimTag?: string): NormCite[] {
+    const server = Array.isArray(serverCites)
+      ? (serverCites.map(normCite).filter(Boolean) as NormCite[]) : [];
+    return uniqueSorted([curatedFor(claimTag), server]);
+  }
+  const DAY_CLAIM_TAGS = [
+    'convergence', 'numerology_day_quality', 'lunar_phase_timing', 'pacing_circadian',
+    'astrology_transit', 'dreamspell_count', 'body_somatic', 'shadow_depth',
+  ];
+  function dayCites(serverUnion: unknown): NormCite[] {
+    const curated = DAY_CLAIM_TAGS.map((t) => curatedFor(t));
+    const server = Array.isArray(serverUnion)
+      ? (serverUnion.map(normCite).filter(Boolean) as NormCite[]) : [];
+    return uniqueSorted(curated.concat([server]));
+  }
+
+  function citationRow(cites: NormCite[]): HTMLElement | null {
     if (!Array.isArray(cites) || cites.length === 0) return null;
     const wrap = el('div');
     const row = el('div', { class: 'rdg-cites' });
     const detail = el('div', { class: 'rdg-cite-detail' });
     let openRef = '';
-    const seen = new Set<string>();
-    for (const raw of cites) {
-      if (!raw || typeof raw !== 'object') continue;
-      const c = raw as Record<string, unknown>;
-      const ref = String(c.ref || c.display || '');
-      if (!ref || seen.has(ref)) continue;
-      seen.add(ref);
-      const label = String(c.display || '').trim()
-        || [String(c.authors || '').trim(), String(c.year || '').trim()].filter(Boolean).join(' ')
+    for (const c of cites) {
+      const label = c.display
+        || [c.authors, c.year].filter(Boolean).join(' ')
         || 'Source';
-      const chip = el('button', { type: 'button', class: 'rdg-cite' }, label);
+      const chip = el('button', { type: 'button', class: 'rdg-cite' + (c.counterweight ? ' counter' : '') }, label);
+      if (c.counterweight) chip.setAttribute('title', 'Sceptical counterweight');
       chip.addEventListener('click', () => {
-        if (openRef === ref && detail.classList.contains('open')) { detail.classList.remove('open'); openRef = ''; return; }
-        openRef = ref;
+        if (openRef === c.ref && detail.classList.contains('open')) { detail.classList.remove('open'); openRef = ''; return; }
+        openRef = c.ref;
         clear(detail);
-        const title = String(c.title || '').trim();
-        const venue = String(c.journal || c.publisher || '').trim();
-        const year = String(c.year || '').trim();
-        const authors = String(c.authors || '').trim();
-        const doi = String(c.doi || '').trim();
-        if (authors || year) detail.appendChild(el('div', {}, [authors, year].filter(Boolean).join(', ')));
-        if (title) detail.appendChild(el('div', { class: 'rdg-cite-title' }, title));
+        const tags = el('div', { class: 'rdg-cite-tags' });
+        const reg = REGISTER_LABEL[c.register] || c.register;
+        if (reg) tags.appendChild(el('span', { class: 'rdg-cite-tag' }, reg));
+        if (c.counterweight) tags.appendChild(el('span', { class: 'rdg-cite-tag counter' }, 'sceptical counterweight'));
+        if (tags.firstChild) detail.appendChild(tags);
+        if (c.authors || c.year) detail.appendChild(el('div', {}, [c.authors, c.year].filter(Boolean).join(', ')));
+        if (c.title) detail.appendChild(el('div', { class: 'rdg-cite-title' }, c.title));
+        const venue = c.journal || c.publisher;
         if (venue) detail.appendChild(el('div', {}, venue));
-        if (doi) detail.appendChild(el('div', {}, 'doi ' + doi));
+        if (c.lineage) detail.appendChild(el('div', {}, 'Lineage, ' + c.lineage));
+        if (c.doi) detail.appendChild(el('div', {}, 'doi ' + c.doi));
         detail.classList.add('open');
       });
       row.appendChild(chip);
@@ -996,35 +1081,32 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   }
 
   function sourcesBlock(union: unknown, sourcesText: string): HTMLElement | null {
-    const entries: Record<string, unknown>[] = Array.isArray(union)
-      ? (union as unknown[]).filter((x) => x && typeof x === 'object') as Record<string, unknown>[]
-      : [];
+    const cites = dayCites(union);
     const note = String(sourcesText || '').trim();
-    if (entries.length === 0 && !note) return null;
+    if (cites.length === 0 && !note) return null;
     const wrap = el('div', { class: 'rdg-sources' });
     const toggle = el('button', { type: 'button', class: 'rdg-sources-toggle' });
     toggle.appendChild(el('span', { class: 'rdg-sources-caret' }, '\u203a'));
-    toggle.appendChild(el('span', {}, 'Sources'));
+    toggle.appendChild(el('span', {}, 'Sources, ' + cites.length + ' references'));
     const body = el('div', { class: 'rdg-sources-body' });
     if (note) body.appendChild(el('div', { class: 'rdg-source-note' }, note));
-    const seen = new Set<string>();
-    for (const c of entries) {
-      const ref = String(c.ref || c.display || '');
-      if (ref && seen.has(ref)) continue;
-      if (ref) seen.add(ref);
-      const authors = String(c.authors || '').trim();
-      const year = String(c.year || '').trim();
-      const title = String(c.title || '').trim();
-      const venue = String(c.journal || c.publisher || '').trim();
-      const doi = String(c.doi || '').trim();
-      const line = el('div', { class: 'rdg-source-line' });
-      const lead = [authors, year].filter(Boolean).join(', ');
+    for (const c of cites) {
+      const line = el('div', { class: 'rdg-source-line' + (c.counterweight ? ' counter' : '') });
+      const lead = [c.authors, c.year].filter(Boolean).join(', ');
       if (lead) { line.appendChild(el('b', {}, lead)); line.appendChild(document.createTextNode('. ')); }
-      if (title) line.appendChild(document.createTextNode(title + '. '));
+      if (c.title) line.appendChild(document.createTextNode(c.title + '. '));
+      const venue = c.journal || c.publisher;
       if (venue) line.appendChild(document.createTextNode(venue + '. '));
-      if (doi) line.appendChild(document.createTextNode('doi ' + doi));
+      if (c.doi) line.appendChild(document.createTextNode('doi ' + c.doi + '. '));
+      const reg = REGISTER_LABEL[c.register] || c.register;
+      if (reg || c.counterweight) {
+        const t = (c.counterweight ? 'sceptical counterweight' : reg);
+        line.appendChild(el('span', { class: 'rdg-source-reg' + (c.counterweight ? ' counter' : '') }, t));
+      }
       if (line.firstChild) body.appendChild(line);
     }
+    const ver = bibliographyVersion();
+    if (ver) body.appendChild(el('div', { class: 'rdg-source-ver' }, 'CDP consolidated bibliography, version ' + ver + '. Symbolic sources are labelled symbolic, empirical sources empirical, and contested claims carry their sceptical counterweight.'));
     if (!body.firstChild) return null;
     toggle.addEventListener('click', () => wrap.classList.toggle('open'));
     wrap.appendChild(toggle);
@@ -1040,6 +1122,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     preBody?: HTMLElement[];
     postBody?: HTMLElement[];
     citations?: unknown;
+    claim?: string;
     askPrompt?: string;
     collapsed: boolean;
     lead?: boolean;
@@ -1060,7 +1143,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     if (spec.postBody) for (const n of spec.postBody) card.appendChild(n);
     const cue = spec.askPrompt ? askCue('Ask the Oracle about this', spec.askPrompt) : null;
     if (cue) card.appendChild(cue);
-    const cites = citationRow(spec.citations);
+    const cites = citationRow(mergeCites(spec.citations, spec.claim));
     if (cites) card.appendChild(cites);
     const lt = landedTap(spec.title, frameworkForTitle(spec.title));
     if (lt) card.appendChild(lt);
@@ -1098,7 +1181,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
 
     const conv = (normaliseVoice(r.depth_synthesis as SectionValue) ? r.depth_synthesis : r.framework_convergence) as SectionValue;
     const convCites = (r.depth_synthesis && typeof r.depth_synthesis === 'object') ? (r.depth_synthesis as Record<string, unknown>).citations : undefined;
-    const convCard = buildRichSection({ title: 'Where the frameworks meet', body: conv, citations: convCites, askPrompt: 'Go deeper on where the frameworks converge today.', collapsed: false });
+    const convCard = buildRichSection({ title: 'Where the frameworks meet', body: conv, citations: convCites, claim: 'convergence', askPrompt: 'Go deeper on where the frameworks converge today.', collapsed: false });
     if (convCard) aiZone.appendChild(convCard);
 
     const numObj = (r.numerology && typeof r.numerology === 'object') ? r.numerology as Record<string, unknown> : null;
@@ -1109,6 +1192,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         hook: el('div', { class: 'rdg-hook' }, NUMEROLOGY_HOOK),
         body: r.numerology as SectionValue,
         citations: numObj ? numObj.citations : undefined,
+        claim: 'numerology_day_quality',
         askPrompt: 'How does today\u2019s number energy work for me.',
         collapsed: true,
       });
@@ -1133,6 +1217,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         preBody: pre,
         body: r.moon_section as SectionValue,
         citations: moonObj ? moonObj.citations : undefined,
+        claim: 'lunar_phase_timing',
         askPrompt: 'What does this Moon mean for me today.',
         collapsed: true,
       });
@@ -1147,6 +1232,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         hook: el('div', { class: 'rdg-hook' }, PACING_HOOK),
         body: r.pacing_section as SectionValue,
         citations: pacingObj.citations,
+        claim: 'pacing_circadian',
         collapsed: true,
       });
       if (card) aiZone.appendChild(card);
@@ -1172,6 +1258,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         body: transitBody,
         postBody: post,
         citations: astroObj.citations,
+        claim: 'astrology_transit',
         askPrompt: 'What do today\u2019s transits mean for me.',
         collapsed: true,
       });
@@ -1186,6 +1273,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         hook: el('div', { class: 'rdg-hook' }, NATAL_HOOK),
         body: r.natal_integration as SectionValue,
         citations: natalObj.citations,
+        claim: 'astrology_transit',
         collapsed: true,
       });
       if (card) aiZone.appendChild(card);
@@ -1208,6 +1296,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         body: r.dreamspell as SectionValue,
         postBody: post,
         citations: dsObj ? dsObj.citations : undefined,
+        claim: 'dreamspell_count',
         askPrompt: 'What does my Kin mean for me today.',
         collapsed: true,
       });
@@ -1227,12 +1316,12 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
 
     const bodyObj = (r.body_section && typeof r.body_section === 'object') ? r.body_section as Record<string, unknown> : null;
     if (bodyObj && normaliseVoice(r.body_section as SectionValue)) {
-      const card = buildRichSection({ title: 'Body, today', subhead: asString(bodyObj.headline), body: r.body_section as SectionValue, citations: bodyObj.citations, collapsed: true });
+      const card = buildRichSection({ title: 'Body, today', subhead: asString(bodyObj.headline), body: r.body_section as SectionValue, citations: bodyObj.citations, claim: 'body_somatic', collapsed: true });
       if (card) aiZone.appendChild(card);
     }
     const shadowObj = (r.shadow_section && typeof r.shadow_section === 'object') ? r.shadow_section as Record<string, unknown> : null;
     if (shadowObj && normaliseVoice(r.shadow_section as SectionValue)) {
-      const card = buildRichSection({ title: 'Where today might catch you', subhead: asString(shadowObj.headline), body: r.shadow_section as SectionValue, citations: shadowObj.citations, askPrompt: 'Help me work with this shadow today.', collapsed: true });
+      const card = buildRichSection({ title: 'Where today might catch you', subhead: asString(shadowObj.headline), body: r.shadow_section as SectionValue, citations: shadowObj.citations, claim: 'shadow_depth', askPrompt: 'Help me work with this shadow today.', collapsed: true });
       if (card) aiZone.appendChild(card);
     }
 
