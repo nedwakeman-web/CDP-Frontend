@@ -28,7 +28,7 @@
  * dashes, no en dashes, no exclamation marks, and no spaced hyphen patterns.
  */
 
-import type { Lens } from '../data/model';
+import type { Lens, VesselSignal } from '../data/model';
 import { shareControls } from './share';
 import { NUM_DATA } from '../data/numerology-content';
 import {
@@ -77,6 +77,8 @@ export interface OpenReadingOptions {
    * returns here, and it takes follow up questions.
    */
   composeAsk?: (prompt: string) => Promise<string>;
+  /** Records a located outcome signal, the spine of the measurable impact model. */
+  recordSignal?: (s: VesselSignal) => void;
 }
 
 export interface ReadingHandle {
@@ -456,6 +458,10 @@ function ensureStyle(): void {
 @media (max-width: 640px) {
   .cdp-surface .rdg-coords { grid-template-columns:repeat(2,1fr); }
 }
+.cdp-surface .rdg-landed { display:inline-flex; align-items:center; gap:7px; cursor:pointer; margin:10px 0 2px; font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:12.5px; color:var(--text-faint, #9E9282); }
+.cdp-surface .rdg-landed .rdg-landed-dot { width:11px; height:11px; border-radius:50%; border:1.2px solid var(--text-faint, #9E9282); }
+.cdp-surface .rdg-landed.on { color:var(--teal, #81CDB6); }
+.cdp-surface .rdg-landed.on .rdg-landed-dot { background:var(--teal, #81CDB6); border-color:var(--teal, #81CDB6); }
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -599,6 +605,15 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     foot.appendChild(fin);
     foot.appendChild(fbtn);
     panel.appendChild(foot);
+    const bridge = el('button', { type: 'button', class: 'rdg-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other telescope');
+    bridge.addEventListener('click', () => {
+      const home = o.getLens();
+      const other: Lens = home === 'science' ? 'tradition' : 'science';
+      const base = lastPrompt || firstPrompt;
+      if (o.recordSignal) o.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'reading', voice: other, bridge: true });
+      void run(base + ' Show me this same coordinate through the ' + (other === 'science' ? 'science' : 'symbolic') + ' telescope, the other lens on the same sky.', lensName(other));
+    });
+    panel.appendChild(bridge);
     scrim.appendChild(panel);
     view.appendChild(scrim);
 
@@ -606,13 +621,15 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     x.addEventListener('click', closeDD);
     scrim.addEventListener('click', (e: Event) => { if (e.target === scrim) closeDD(); });
 
+    let lastPrompt = '';
     let busy = false;
-    async function run(prompt: string): Promise<void> {
+    async function run(prompt: string, voiceLabel?: string): Promise<void> {
       const q = prompt.trim();
       if (!q || busy) return;
+      lastPrompt = q;
       busy = true; fbtn.setAttribute('disabled', 'disabled');
       thread.appendChild(el('div', { class: 'rdg-dd-q' }, q));
-      const aEl = el('div', { class: 'rdg-dd-a rdg-dd-wait' }, 'Composing in the ' + lensName(o.getLens()) + ' voice.');
+      const aEl = el('div', { class: 'rdg-dd-a rdg-dd-wait' }, 'Composing in the ' + (voiceLabel || lensName(o.getLens())) + ' voice.');
       thread.appendChild(aEl);
       panel.scrollTop = panel.scrollHeight;
       try {
@@ -811,6 +828,33 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     }
   }
 
+  function frameworkForTitle(s: string): string | undefined {
+    const t = s.toLowerCase();
+    if (t.indexOf('numerolog') >= 0 || t.indexOf('personal day') >= 0) return 'numerology';
+    if (t.indexOf('moon') >= 0 || t.indexOf('lunar') >= 0) return 'lunar';
+    if (t.indexOf('dreamspell') >= 0 || t.indexOf('kin') >= 0) return 'dreamspell';
+    if (t.indexOf('astrolog') >= 0 || t.indexOf('transit') >= 0 || t.indexOf('planet') >= 0) return 'astrology';
+    if (t.indexOf('converg') >= 0 || t.indexOf('frameworks meet') >= 0) return 'convergence';
+    if (t.indexOf('pacing') >= 0) return 'pacing';
+    return undefined;
+  }
+  function landedTap(section: string, framework?: string): HTMLElement | null {
+    if (!o.recordSignal) return null;
+    const wrap = el('div', { class: 'rdg-landed' });
+    wrap.appendChild(el('span', { class: 'rdg-landed-dot' }));
+    const lab = el('span', {}, 'this landed');
+    wrap.appendChild(lab);
+    let done = false;
+    wrap.addEventListener('click', () => {
+      if (done) return;
+      done = true;
+      wrap.classList.add('on');
+      lab.textContent = 'noted';
+      o.recordSignal!({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'reading', section: section, framework: framework, voice: o.getLens() });
+      if (o.reflect) o.reflect('You marked what landed in your reading.');
+    });
+    return wrap;
+  }
   function coordCard(
     label: string, glyph: string, glyphCls: string, value: string, sub: string,
     tap: { label: string; prompt: string } | null,
@@ -1018,6 +1062,8 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     if (cue) card.appendChild(cue);
     const cites = citationRow(spec.citations);
     if (cites) card.appendChild(cites);
+    const lt = landedTap(spec.title, frameworkForTitle(spec.title));
+    if (lt) card.appendChild(lt);
     if (!spec.lead) head.addEventListener('click', () => card.classList.toggle('open'));
     return card;
   }

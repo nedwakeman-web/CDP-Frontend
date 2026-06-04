@@ -24,7 +24,7 @@
  * dashes, no en dashes, no exclamation marks, and no spaced hyphen patterns.
  */
 
-import type { Lens } from '../data/model';
+import type { Lens, VesselSignal } from '../data/model';
 import {
   kinDescriptor,
   personalNumerology,
@@ -73,6 +73,8 @@ export interface OpenCardOptions {
   reflect?: (note: string) => void;
   /** Composes the Compass answer in place and returns it, for the popup. */
   composeAsk?: (prompt: string) => Promise<string>;
+  /** Records a located outcome signal, the spine of the measurable impact model. */
+  recordSignal?: (s: VesselSignal) => void;
   /** The prewarmed reading result, so the card enriches without its own job. */
   getReadingResult?: () => CardReadingResult | null;
   /** Opens the full reading from the card footer. */
@@ -357,7 +359,7 @@ export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'aftern
   L.add('', 68);
   L.add(txt([(m.weekday + '  \u00b7  ' + m.dateLong).toUpperCase()], cx, L.y, 17, C.goldBright, 0, FONT.caps, { anchor: 'middle', spacing: 5 }), 30);
   if (m.place) L.add(txt([m.place.toUpperCase()], cx, L.y, 11, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 3 }), 0);
-  L.add('', 66);
+  L.add('', 40);
   L.add(ruleLine(L.y, PAD, W - PAD, 0.35), 54);
 
   // reflection (tappable)
@@ -378,7 +380,7 @@ export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'aftern
   // For Today, the hold
   const ftLines = wrap(m.forToday, wSerif);
   L.add(capLabel('For Today', cx, L.y, C.teal), 42);
-  L.add(txt(ftLines, PAD, L.y, 22, C.text, 35, FONT.serif), ftLines.length * 35 + 46);
+  L.add(txt(ftLines, cx, L.y, 22, C.text, 35, FONT.serif, { anchor: 'middle' }), ftLines.length * 35 + 46);
 
   // Personal Day panel (tappable)
   if (m.personalDay) {
@@ -494,6 +496,13 @@ export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'aftern
     L.add(txt(fmLines, cx, L.y, 15.5, C.dim, 24, FONT.serif, { anchor: 'middle', italic: true }), fmLines.length * 24 + 30);
   }
 
+  // closing epigraph, a maxim on the keel
+  {
+    L.add('<circle cx="' + cx + '" cy="' + (L.y - 6) + '" r="1.6" fill="' + C.gold + '"/>', 18);
+    L.add(txt(['Your life is what your thoughts make it.'], cx, L.y, 14.5, C.dim, 0, FONT.serif, { anchor: 'middle', italic: true }), 22);
+    L.add(txt(['MARCUS AURELIUS'], cx, L.y, 9.5, C.faint, 0, FONT.caps, { anchor: 'middle', spacing: 3 }), 30);
+  }
+
   // sources, quiet, tied to the bibliography
   if (m.sources.length) {
     const src = 'Grounded in ' + m.sources.slice(0, 5).join(', ');
@@ -507,8 +516,7 @@ export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'aftern
 
   const stars = [[58,42],[150,92],[300,54],[430,104],[560,70],[662,120],[96,150],[505,140],[640,38],[214,128],[372,150],[700,86],[44,108],[600,150],[260,40]]
     .map((p) => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (0.8 + ((p[0] * p[1]) % 5) / 5) + '" fill="' + C.text + '" opacity="' + (0.1 + ((p[0] + p[1]) % 6) / 60) + '"/>').join('');
-  const horizon = '<path d="M0,262 L0,206 L120,172 L240,204 L360,168 L480,198 L600,176 L720,206 L720,262 Z" fill="' + C.glow + '" opacity="0.5"/>'
-    + '<path d="M0,262 L0,232 L110,200 L220,228 L340,196 L470,224 L590,202 L720,230 L720,262 Z" fill="#1A3658" opacity="0.6"/>';
+  const horizon = '';
   const H = Math.round(L.y);
   const defs = '<defs>'
     + '<linearGradient id="cardbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + C.panel + '"/><stop offset="0.14" stop-color="' + C.page + '"/><stop offset="1" stop-color="' + C.page + '"/></linearGradient>'
@@ -671,6 +679,20 @@ export function openCard(o: OpenCardOptions): CardHandle {
   });
   tools.appendChild(voice);
 
+  const landed = el('button', { type: 'button', class: 'card-btn' }, 'This landed');
+  if (o.recordSignal) {
+    let landedDone = false;
+    landed.addEventListener('click', () => {
+      if (landedDone) return;
+      landedDone = true;
+      landed.classList.add('on');
+      landed.textContent = 'Noted';
+      o.recordSignal!({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'card', voice: lens });
+      if (o.reflect) o.reflect('You marked that today landed.');
+    });
+    tools.appendChild(landed);
+  }
+
   const saveImg = el('button', { type: 'button', class: 'card-btn' }, 'Save image');
   const savePdf = el('button', { type: 'button', class: 'card-btn' }, 'Save PDF');
   const shareBtn = el('button', { type: 'button', class: 'card-btn' }, 'Share');
@@ -739,6 +761,14 @@ export function openCard(o: OpenCardOptions): CardHandle {
     const fbtn = el('button', { type: 'button', class: 'card-dd-ask' }, 'Ask');
     foot.appendChild(fin); foot.appendChild(fbtn);
     panel.appendChild(foot);
+    const bridge = el('button', { type: 'button', class: 'card-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other telescope');
+    bridge.addEventListener('click', () => {
+      const other: Lens = lens === 'science' ? 'tradition' : 'science';
+      const base = lastPrompt || firstPrompt;
+      if (o.recordSignal) o.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'card', voice: other, bridge: true });
+      void run(base + ' Show me this same coordinate through the ' + (other === 'science' ? 'science' : 'symbolic') + ' telescope, the other lens on the same sky.', lensName(other));
+    });
+    panel.appendChild(bridge);
     scrim.appendChild(panel);
     view.appendChild(scrim);
 
@@ -747,12 +777,14 @@ export function openCard(o: OpenCardOptions): CardHandle {
     scrim.addEventListener('click', (e: Event) => { if (e.target === scrim) closeDD(); });
 
     let busy = false;
-    async function run(prompt: string): Promise<void> {
+    let lastPrompt = '';
+    async function run(prompt: string, voiceLabel?: string): Promise<void> {
       const q = prompt.trim();
       if (!q || busy) return;
+      lastPrompt = q;
       busy = true; fbtn.setAttribute('disabled', 'disabled');
       thread.appendChild(el('div', { class: 'card-dd-q' }, q));
-      const aEl = el('div', { class: 'card-dd-a card-dd-wait' }, 'Composing in the ' + lensName(lens) + ' voice.');
+      const aEl = el('div', { class: 'card-dd-a card-dd-wait' }, 'Composing in the ' + (voiceLabel || lensName(lens)) + ' voice.');
       thread.appendChild(aEl);
       panel.scrollTop = panel.scrollHeight;
       try {
