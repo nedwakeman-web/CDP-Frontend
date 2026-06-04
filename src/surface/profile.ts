@@ -22,6 +22,7 @@ import type { VesselRepository } from '../data/repository';
 import type { Lens, VesselProfile } from '../data/model';
 import { kinDescriptor, personalNumerology, reduceNumber } from '../coordinates-core';
 import { NUM_DATA, PY_ARC } from '../data/numerology-content';
+import { searchPlaces, type PlaceResult } from '../data/geocode';
 
 export interface OpenProfileOptions {
   container: HTMLElement;
@@ -87,25 +88,36 @@ function ensureStyle(): void {
     '.cdp-surface .pc-close:hover{color:var(--gold,#C9A050)}',
     '.cdp-surface .pc-title{font-family:\'EB Garamond\',Georgia,serif;font-size:26px;color:var(--gold,#C9A050);text-align:center;margin:8px 0 6px}',
     '.cdp-surface .pc-intro{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;line-height:1.6;margin:0 auto 6px;max-width:32rem}',
-    '.cdp-surface .pc-save-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--text-faint,#9E9282);text-align:center;margin-bottom:18px}',
+    '.cdp-surface .pc-save-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--text-dim,#D4C8AE);text-align:center;margin-bottom:18px}',
     '.cdp-surface .pc-saved{color:var(--teal,#81CDB6)}',
-    '.cdp-surface .pc-section{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:24px 0 4px;border-top:1px solid rgba(191,163,99,.12);padding-top:18px}',
+    '.cdp-surface .pc-section{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:24px 0 4px;border-top:1px solid rgba(191,163,99,.12);padding-top:18px}',
     '.cdp-surface .pc-field{margin:12px 0}',
-    '.cdp-surface .pc-label{display:block;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:5px}',
-    '.cdp-surface .pc-label .pc-hint{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;letter-spacing:0;text-transform:none;color:var(--text-faint,#9E9282);margin-left:8px}',
+    '.cdp-surface .pc-label{display:block;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin-bottom:5px}',
+    '.cdp-surface .pc-label .pc-hint{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;letter-spacing:0;text-transform:none;color:var(--text-dim,#D4C8AE);margin-left:8px}',
     '.cdp-surface .pc-in,.cdp-surface .pc-sel,.cdp-surface .pc-ta{width:100%;box-sizing:border-box;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:16px;padding:11px 13px}',
     '.cdp-surface .pc-ta{min-height:84px;resize:vertical;line-height:1.5}',
-    '.cdp-surface .pc-hintline{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-faint,#9E9282);margin-top:4px}',
+    '.cdp-surface .pc-hintline{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
     '.cdp-surface .pc-dob{display:flex;gap:8px}',
     '.cdp-surface .pc-dob .pc-sel{flex:1}',
+    '.cdp-surface .pc-ac{position:relative}',
+    '.cdp-surface .pc-ac-list{display:none;position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:4px;background:var(--raised,#13284A);border:1px solid var(--gold-line,#3A3320);border-radius:4px;box-shadow:0 12px 30px rgba(0,0,0,.45);overflow:hidden;max-height:280px;overflow-y:auto}',
+    '.cdp-surface .pc-ac-list.open{display:block}',
+    '.cdp-surface .pc-ac-item{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid rgba(191,163,99,.1);cursor:pointer;padding:10px 13px}',
+    '.cdp-surface .pc-ac-item:last-child{border-bottom:none}',
+    '.cdp-surface .pc-ac-item.active,.cdp-surface .pc-ac-item:hover{background:rgba(201,160,80,.1)}',
+    '.cdp-surface .pc-ac-name{font-family:\'EB Garamond\',Georgia,serif;font-size:16px;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .pc-ac-sub{font-family:Georgia,serif;font-size:12px;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .pc-ac-tz{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-soft,#E8C878)}',
+    '.cdp-surface .pc-resolved{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin-top:6px}',
+    '.cdp-surface .pc-resolved.ok{color:var(--teal,#81CDB6)}',
     '.cdp-surface .pc-sig{border:1px solid var(--gold-line,#3A3320);border-radius:5px;background:var(--navy,#0D1E33);padding:18px 18px;margin:18px 0}',
     '.cdp-surface .pc-sig-head{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;color:var(--gold,#C9A050);margin-bottom:3px}',
     '.cdp-surface .pc-sig-sub{font-family:Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE);margin-bottom:14px}',
-    '.cdp-surface .pc-sig-empty{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--text-faint,#9E9282);text-align:center;padding:8px 0}',
-    '.cdp-surface .pc-meanlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:14px 0 8px}',
+    '.cdp-surface .pc-sig-empty{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;padding:8px 0}',
+    '.cdp-surface .pc-meanlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:14px 0 8px}',
     '.cdp-surface .pc-cards{display:flex;gap:10px;flex-wrap:wrap}',
     '.cdp-surface .pc-mcard{flex:1;min-width:200px;border:1px solid rgba(191,163,99,.18);border-radius:4px;background:rgba(0,0,0,.12);padding:12px 13px}',
-    '.cdp-surface .pc-mlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:5px}',
+    '.cdp-surface .pc-mlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin-bottom:5px}',
     '.cdp-surface .pc-mbig{font-family:\'EB Garamond\',Georgia,serif;font-size:26px;color:var(--gold,#C9A050);line-height:1.1}',
     '.cdp-surface .pc-mbig.master{color:var(--master,#C8A0FF)}',
     '.cdp-surface .pc-mname{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--gold-soft,#E8C878);margin:2px 0 6px}',
@@ -196,10 +208,137 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   dobWrap.appendChild(dobRow);
   shell.appendChild(dobWrap);
 
-  textField('Birth time', 'for rising sign', current.birthTime || '', (v) => { current.birthTime = v; queueSave(); });
-  shell.lastElementChild?.appendChild(el('div', { class: 'pc-hintline' }, 'Used for Ascendant calculation at Mystic and Oracle tiers.'));
-  textField('Place of birth', 'city and country', current.birthPlace || '', (v) => { current.birthPlace = v; queueSave(); });
-  shell.lastElementChild?.appendChild(el('div', { class: 'pc-hintline' }, 'Essential for natal chart precision. Rising sign, house cusps, and transit timing all require birth coordinates.'));
+  // Birth time as a real time field, so the value is always a clean HH:MM the
+  // ephemeris can read for the Ascendant, never a free hand typed string.
+  {
+    const wrap = el('div', { class: 'pc-field' });
+    const lab = el('label', { class: 'pc-label' }, 'Birth time');
+    lab.appendChild(el('span', { class: 'pc-hint' }, 'for rising sign'));
+    wrap.appendChild(lab);
+    const t = el('input', { class: 'pc-in' }) as HTMLInputElement;
+    t.type = 'time';
+    t.value = current.birthTime || '';
+    t.addEventListener('input', () => { current.birthTime = t.value; queueSave(); });
+    wrap.appendChild(t);
+    wrap.appendChild(el('div', { class: 'pc-hintline' }, 'Used for Ascendant calculation at Mystic and Oracle tiers. Leave blank if unknown.'));
+    shell.appendChild(wrap);
+  }
+
+  // Place of birth as a coordinate, not a string. Typing searches a keyless
+  // geocoder; choosing a result captures latitude, longitude, and timezone, the
+  // three things the natal chart needs. Typing without choosing keeps the words
+  // as a plain place name and clears any stale coordinates, and the line below
+  // is honest about whether the chart can be cast.
+  {
+    const wrap = el('div', { class: 'pc-field pc-ac' });
+    const lab = el('label', { class: 'pc-label' }, 'Place of birth');
+    lab.appendChild(el('span', { class: 'pc-hint' }, 'city and country'));
+    wrap.appendChild(lab);
+    const input = el('input', { class: 'pc-in', autocomplete: 'off', 'aria-autocomplete': 'list' }) as HTMLInputElement;
+    input.type = 'text';
+    input.value = current.birthPlace || '';
+    wrap.appendChild(input);
+    const list = el('div', { class: 'pc-ac-list' });
+    wrap.appendChild(list);
+    const resolved = el('div', { class: 'pc-resolved' });
+    wrap.appendChild(resolved);
+    const hint = el('div', { class: 'pc-hintline' }, 'Essential for natal chart precision. Rising sign, house cusps, and transit timing all require birth coordinates.');
+    wrap.appendChild(hint);
+
+    function renderResolved(): void {
+      clear(resolved);
+      if (typeof current.birthLat === 'number' && typeof current.birthLon === 'number') {
+        const lat = current.birthLat.toFixed(3);
+        const lon = current.birthLon.toFixed(3);
+        const tz = current.birthTimezone ? (', ' + current.birthTimezone) : '';
+        resolved.classList.add('ok');
+        resolved.textContent = 'Coordinates captured, ' + lat + ', ' + lon + tz + '. The natal chart can be cast.';
+      } else if ((current.birthPlace || '').trim()) {
+        resolved.classList.remove('ok');
+        resolved.textContent = 'Choose a place from the list to capture coordinates for the natal chart.';
+      }
+    }
+    renderResolved();
+
+    let items: PlaceResult[] = [];
+    let active = -1;
+    let controller: AbortController | null = null;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+
+    function closeList(): void { clear(list); list.classList.remove('open'); items = []; active = -1; }
+
+    function paintActive(): void {
+      const rows = list.querySelectorAll('.pc-ac-item');
+      rows.forEach((r, i) => {
+        if (i === active) r.classList.add('active'); else r.classList.remove('active');
+      });
+    }
+
+    function choose(p: PlaceResult): void {
+      current.birthPlace = p.display;
+      current.birthLat = p.latitude;
+      current.birthLon = p.longitude;
+      current.birthTimezone = p.timezone;
+      current.birthCountry = p.country;
+      input.value = p.display;
+      closeList();
+      renderResolved();
+      queueSave();
+    }
+
+    function renderList(): void {
+      clear(list);
+      if (items.length === 0) { list.classList.remove('open'); return; }
+      items.forEach((p, i) => {
+        const row = el('button', { type: 'button', class: 'pc-ac-item', role: 'option' });
+        row.appendChild(el('span', { class: 'pc-ac-name' }, p.name));
+        const sub = [p.admin1, p.country].filter(Boolean).join(', ');
+        if (sub) row.appendChild(el('span', { class: 'pc-ac-sub' }, sub));
+        if (p.timezone) row.appendChild(el('span', { class: 'pc-ac-tz' }, p.timezone));
+        row.addEventListener('mousedown', (e: Event) => { e.preventDefault(); choose(p); });
+        row.addEventListener('mouseenter', () => { active = i; paintActive(); });
+        list.appendChild(row);
+        void i;
+      });
+      list.classList.add('open');
+      active = -1;
+    }
+
+    async function run(q: string): Promise<void> {
+      if (controller) controller.abort();
+      controller = new AbortController();
+      const found = await searchPlaces(q, 6, controller.signal);
+      // ignore a stale resolve whose query no longer matches the field
+      if (input.value.trim() !== q.trim()) return;
+      items = found;
+      renderList();
+    }
+
+    input.addEventListener('input', () => {
+      const q = input.value;
+      // typing changes the place, so any previously captured coordinates no
+      // longer describe what is in the field; clear them until a new choice
+      current.birthPlace = q;
+      current.birthLat = undefined;
+      current.birthLon = undefined;
+      current.birthTimezone = undefined;
+      current.birthCountry = undefined;
+      renderResolved();
+      queueSave();
+      if (debounce) clearTimeout(debounce);
+      if (q.trim().length < 2) { closeList(); return; }
+      debounce = setTimeout(() => { void run(q); }, 280);
+    });
+    input.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (!list.classList.contains('open') || items.length === 0) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = (active + 1) % items.length; paintActive(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = (active - 1 + items.length) % items.length; paintActive(); }
+      else if (e.key === 'Enter') { if (active >= 0 && active < items.length) { e.preventDefault(); choose(items[active]); } }
+      else if (e.key === 'Escape') { closeList(); }
+    });
+    input.addEventListener('blur', () => { setTimeout(closeList, 140); });
+    shell.appendChild(wrap);
+  }
 
   /* ---- The live Cosmic Signature ---------------------------------------- */
   const sig = el('div', { class: 'pc-sig' });
