@@ -38,6 +38,8 @@ import { openYear } from './year';
 import type { YearHandle } from './year';
 import { openCompatibility } from './compatibility';
 import type { CompatibilityHandle } from './compatibility';
+import { openCalendar as openCalendarSurface } from './calendar';
+import type { CalendarHandle } from './calendar';
 
 export interface VesselOptions {
   root: HTMLElement;
@@ -428,6 +430,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let profilesHandle: ProfilesHandle | null = null;
   let yearHandle: YearHandle | null = null;
   let compatHandle: CompatibilityHandle | null = null;
+  let calendarHandle: CalendarHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1241,12 +1244,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function openCalendar(): void {
     closeDrawer('left');
     closeDrawer('right');
-    selectedDay = dateStr;
-    viewYear = calToday.getUTCFullYear();
-    viewMonth = calToday.getUTCMonth();
-    renderCalGrid();
-    renderCalDetail();
-    calview.classList.add('open');
+    if (calendarHandle) calendarHandle.close();
+    calendarHandle = openCalendarSurface({
+      container: surface,
+      getProfile: () => profile ?? null,
+      getLens: () => lens,
+      reflect: (n) => reflect(n),
+      composeAsk,
+      recordSignal: (s) => { void repo.recordSignal(s); },
+      getSignals: () => repo.listSignals(),
+    });
   }
   function closeCalendar(): void { calview.classList.remove('open'); }
 
