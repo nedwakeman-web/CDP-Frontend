@@ -138,6 +138,28 @@ export interface StoredProfile extends VesselProfile {
   id: string;
 }
 
+/**
+ * A located outcome signal. The spine of the measurable impact model. A
+ * 'landed' signal is the quiet 'this landed' tap, attached to the section,
+ * voice, and framework that moved the person, so attribution is carried by the
+ * tap rather than asked for. The bridge flag marks a cross telescope moment, a
+ * lens that is not the person's home, which is the higher value breakthrough.
+ * An 'outcome' signal is the person's own verdict on a held intention. Both are
+ * the person's own data, read as honest observation, never as forecast.
+ */
+export interface VesselSignal {
+  at: number;
+  date: string;
+  kind: 'landed' | 'outcome';
+  surface?: string;
+  section?: string;
+  voice?: Lens;
+  framework?: string;
+  bridge?: boolean;
+  intentionId?: string;
+  moved?: 'well' | 'waiting' | 'mixed';
+}
+
 /** The whole of what the vessel holds for one person. The unit of persistence. */
 export interface VesselState {
   rooms: Room[];
@@ -149,6 +171,8 @@ export interface VesselState {
   profile?: VesselProfile;
   /** Other saved people, callable for a reading or a comparison. */
   savedProfiles?: StoredProfile[];
+  /** The located outcome signals, the spine of the measurable impact model. */
+  signals?: VesselSignal[];
   /** Schema version, so migrations are explicit and safe. */
   version: number;
 }
