@@ -30,7 +30,6 @@ import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, p
 import type { Coordinate } from '../coordinates-core';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
-import { openCard } from './card';
 import type { ReadingHandle } from './reading';
 import { openProfiles } from './profiles';
 import type { ProfilesHandle } from './profiles';
@@ -197,7 +196,7 @@ const STYLES = `
 .cdp-surface .move { background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 4px; }
 .cdp-surface .move:hover { color:var(--gold); }
 .cdp-surface .module-name { cursor:pointer; flex:1; }
-.cdp-surface .rdg-link { display:block; width:100%; box-sizing:border-box; text-align:left; background:none; border:none; border-bottom:1px solid var(--gold-line); -webkit-appearance:none; appearance:none; padding:8px 2px; color:var(--text-light); text-decoration:none; font-family:'EB Garamond', Georgia, serif; font-size:14px; letter-spacing:0.02em; cursor:pointer; }
+.cdp-surface .rdg-link { display:block; padding:8px 2px; color:var(--text-light); text-decoration:none; border-bottom:1px solid var(--gold-line); font-size:14px; }
 .cdp-surface .rdg-link:hover { color:var(--gold); }
 .cdp-surface .module.collapsed .module-body { display:none; }
 .cdp-surface .module-body { padding:11px; }
@@ -426,7 +425,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   if (!repo.isLoaded) await repo.init();
   let lens: Lens = repo.getLens();
   let readingHandle: ReadingHandle | null = null;
-  let cardHandle: { close(): void; repaintVoice(l: Lens): void } | null = null;
   let profilesHandle: ProfilesHandle | null = null;
   let yearHandle: YearHandle | null = null;
   let compatHandle: CompatibilityHandle | null = null;
@@ -887,7 +885,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (d[1] === 'scard' || d[1] === 'sr') {
         const screenName = d[1];
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
-        link.addEventListener('click', () => { if (screenName === 'scard') openCardFor(profile ?? null); else openReadingFor(profile ?? null, 'Today\u2019s reading'); });
+        link.addEventListener('click', () => openReadingFor(profile ?? null, screenName === 'scard' ? 'Today\u2019s card' : 'Today\u2019s reading'));
         list.appendChild(link);
       } else if (d[1] === 'sp') {
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
@@ -914,6 +912,20 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     });
     return { drawer };
   }
+  async function composeAsk(prompt: string): Promise<string> {
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: prompt, profile: profile ?? null, lens }),
+      });
+      if (!res.ok) return '';
+      const data = (await res.json()) as { answer?: string };
+      return data && data.answer ? data.answer : '';
+    } catch (_e) {
+      return '';
+    }
+  }
   function openReadingFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null, title: string): void {
     closeDrawer('right');
     if (readingHandle) readingHandle.close();
@@ -924,22 +936,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       tier: 'oracle',
       userId: null,
       reflect: (n) => reflect(n),
-      composeAsk: (prompt: string) => composeDepth(prompt),
       title,
-    });
-  }
-  function openCardFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null): void {
-    closeDrawer('right');
-    if (cardHandle) cardHandle.close();
-    cardHandle = openCard({
-      container: surface,
-      getLens: () => lens,
-      getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
-      reflect: (n) => reflect(n),
-      composeAsk: (prompt: string) => composeDepth(prompt),
-      getReadingResult: () => null,
-      onOpenFullReading: () => openReadingFor(prof, 'Today\u2019s reading'),
-      title: 'Today\u2019s card',
+      composeAsk,
+      recordSignal: (s) => { void repo.recordSignal(s); },
     });
   }
   function openProfilesView(): void {
@@ -962,6 +961,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getProfile: () => profile ?? null,
       getLens: () => lens,
       reflect: (n) => reflect(n),
+      composeAsk,
+      recordSignal: (s) => { void repo.recordSignal(s); },
+      getSignals: () => repo.listSignals(),
+      getIntentions: () => repo.live(Date.now()),
+      recordOutcome: (id, moved) => { void repo.recordOutcome(id, moved); },
     });
   }
   function openCompatView(): void {
@@ -1404,7 +1408,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     trackEvent('voice_changed', { lens: next });
     if (activeReplyId) void revoice(activeReplyId);
     if (readingHandle) readingHandle.repaintVoice(next);
-    if (cardHandle) cardHandle.repaintVoice(next);
   }
   reflectVoice();
 
@@ -1457,25 +1460,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (composed.summary) await repo.setSummary(intentionId, composed.summary);
     const fresh = repo.byId(intentionId);
     if (fresh) renderReply(fresh);
-  }
-
-  // The Compass composed in place, for the reading and card deep dives. It
-  // holds the intention so it is remembered, composes in the current voice,
-  // leaves a quiet reflection, and returns the answer text for the surface to
-  // show in its own popup. It does not render to the home reply area.
-  async function composeDepth(prompt: string): Promise<string> {
-    const text = prompt.trim();
-    if (text.length === 0) return '';
-    trackEvent('reply_requested', { lens });
-    const room = await repo.ensureRoom(ROOM_DEFAULT);
-    const held = await repo.hold({ text, roomId: room.id, kind: 'acute' });
-    trackEvent('intention_held', {});
-    const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id) });
-    await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
-    if (composed.summary) await repo.setSummary(held.id, composed.summary);
-    trackEvent('reply_delivered', { lens });
-    reflect('Held, and answered in place. It is kept in what you are holding.');
-    return composed.text;
   }
 
   async function compose(text: string): Promise<void> {
