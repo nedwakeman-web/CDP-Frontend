@@ -22,7 +22,7 @@
  */
 
 import type { VesselRepository } from '../data/repository';
-import type { Lens, VesselProfile } from '../data/model';
+import type { Lens, VesselProfile, VesselSignal } from '../data/model';
 import { shareControls } from './share';
 import { NUM_DATA } from '../data/numerology-content';
 import { kinForDate, kinDescriptor, personalNumerology, reduceNumber, isoToUTC } from '../coordinates-core';
@@ -36,6 +36,10 @@ export interface OpenCompatibilityOptions {
   reflect?: (note: string) => void;
   /** When present, sections become tappable into the Compass, held and reflected. */
   composeAsk?: (prompt: string) => Promise<string>;
+  /** Record a located 'this landed' tap, the person's own signal. */
+  recordSignal?: (s: VesselSignal) => void;
+  /** The accumulated signal, for continuity. */
+  getSignals?: () => VesselSignal[];
 }
 export interface CompatibilityHandle { close(): void; }
 
@@ -199,8 +203,8 @@ function ensureStyle(): void {
     '.cdp-surface .cm-gloss{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-dim,#D4C8AE);margin-top:4px}',
     '.cdp-surface .cm-question{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--gold-soft,#E8C878);border-left:2px solid var(--gold-line,#3A3320);padding-left:14px;margin:16px 0}',
     '.cdp-surface .cm-closing{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--text-light,#F0E6CC);text-align:center;margin:18px 2px}',
-    '.cdp-surface .cm-sources{font-family:Georgia,serif;font-size:11px;line-height:1.6;color:var(--text-faint,#9E9282);margin-top:18px;text-align:center}',
-    '.cdp-surface .cm-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-faint,#9E9282);margin-top:4px}',
+    '.cdp-surface .cm-sources{font-family:Georgia,serif;font-size:11px;line-height:1.6;color:var(--text-dim,#D4C8AE);margin-top:18px;text-align:center}',
+    '.cdp-surface .cm-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
     '.cdp-surface .cm-dd-scrim{position:fixed;inset:0;z-index:80;background:rgba(4,12,24,.62);display:flex;align-items:flex-end;justify-content:center}',
     '.cdp-surface .cm-dd{width:100%;max-width:44rem;max-height:80vh;overflow-y:auto;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:12px 12px 0 0;padding:18px 18px 28px}',
     '.cdp-surface .cm-dd-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}',
@@ -208,6 +212,12 @@ function ensureStyle(): void {
     '.cdp-surface .cm-dd-x{background:none;border:none;color:var(--text-dim,#D4C8AE);font-size:20px;cursor:pointer}',
     '.cdp-surface .cm-dd-q{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--gold-soft,#E8C878);margin:0 0 8px}',
     '.cdp-surface .cm-dd-a{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .cm-tapmark{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px}',
+    '.cdp-surface .cm-tapdot{width:12px;height:12px;border-radius:50%;border:1.2px solid var(--text-dim,#D4C8AE);display:inline-block}',
+    '.cdp-surface .cm-tapmark.on .cm-tapdot{background:var(--teal,#81CDB6);border-color:var(--teal,#81CDB6)}',
+    '.cdp-surface .cm-taplabel{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .cm-tapmark.on .cm-taplabel{color:var(--teal,#81CDB6)}',
+    '.cdp-surface .cm-bridge{display:block;background:none;border:none;text-align:left;cursor:pointer;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal,#81CDB6);padding:10px 0 4px}',
   ].join('');
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -312,6 +322,25 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     node.classList.add('cm-tap');
     node.addEventListener('click', () => { openAsk(prompt); });
   }
+  const today = new Date().toISOString().slice(0, 10);
+  function attachTap(parent: HTMLElement, sig: Partial<VesselSignal>, label: string): void {
+    if (!o.recordSignal) return;
+    const wrap = el('div', { class: 'cm-tapmark' });
+    wrap.appendChild(el('span', { class: 'cm-tapdot' }));
+    const lab = el('span', { class: 'cm-taplabel' }, label);
+    wrap.appendChild(lab);
+    let done = false;
+    wrap.addEventListener('click', (e: Event) => {
+      e.stopPropagation();
+      if (done) return;
+      done = true;
+      wrap.classList.add('on');
+      lab.textContent = 'noted';
+      o.recordSignal!({ at: Date.now(), date: today, kind: 'landed', surface: 'compatibility', voice: o.getLens(), ...sig });
+      if (o.reflect) o.reflect('You marked what landed.');
+    });
+    parent.appendChild(wrap);
+  }
 
   function row(parent: HTMLElement, label: string, value: string, master?: boolean): void {
     const r = el('div', { class: 'cm-row' });
@@ -362,6 +391,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     lpCard.appendChild(el('div', { class: 'cm-big' + (freq.isMaster ? ' master' : '') }, lpA.value + ' and ' + lpB.value + ' meet at ' + freq.value));
     lpCard.appendChild(el('div', { class: 'cm-gloss' }, 'The combined frequency is ' + freq.value + ', ' + numName(freq.value) + '. This is the symbolic Pythagorean signature of the pair, master numbers preserved.'));
     tappable(lpCard, 'Our Life Paths are ' + lpA.value + ' and ' + lpB.value + ', combining to ' + freq.value + ', ' + numName(freq.value) + '. What does this pairing ask of us.');
+    attachTap(lpCard, { framework: 'numerology', section: 'life-path-cross' }, 'this landed');
     computed.appendChild(lpCard);
 
     // Dreamspell combined Kin
@@ -379,6 +409,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       : 'Different colour families, ' + colourA + ' and ' + colourB + ', so your modes of engaging reality differ and ask for translation.';
     dsCard.appendChild(el('div', { class: 'cm-gloss' }, colourLine + ' Symbolic, Argueelles 1987, held distinct from the living K\u2019iche\u2019 count.'));
     tappable(dsCard, 'Our combined Dreamspell Kin is ' + kinFull(ck) + '. What does this union signature mean for us.');
+    attachTap(dsCard, { framework: 'dreamspell', section: 'combined-kin' }, 'this landed');
     computed.appendChild(dsCard);
 
     // Natal moon phase polarity
@@ -419,7 +450,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     }));
   }
 
-  function strCard(title: string, value: unknown, askPrompt?: string): void {
+  function strCard(title: string, value: unknown, askPrompt?: string, sig?: Partial<VesselSignal>): void {
     const ps = paragraphs(value);
     if (!ps.length) return;
     const card = el('div', { class: 'cm-card' });
@@ -429,9 +460,10 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     card.appendChild(t);
     for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
     if (askPrompt) tappable(card, askPrompt);
+    if (sig) attachTap(card, sig, 'this landed');
     content.appendChild(card);
   }
-  function pairCard(title: string, value: unknown, askPrompt?: string): void {
+  function pairCard(title: string, value: unknown, askPrompt?: string, sig?: Partial<VesselSignal>): void {
     if (!value || typeof value !== 'object') { strCard(title, value, askPrompt); return; }
     const v = value as Record<string, unknown>;
     const ps = paragraphs(v.body);
@@ -444,6 +476,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (v.headline) card.appendChild(el('div', { class: 'cm-sub' }, String(v.headline)));
     for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
     if (askPrompt) tappable(card, askPrompt);
+    if (sig) attachTap(card, sig, 'this landed');
     content.appendChild(card);
   }
 
@@ -455,8 +488,18 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       return;
     }
     if (r.headline) content.appendChild(el('div', { class: 'cm-headline' }, String(r.headline)));
-    strCard('The synthesis', r.synthesis, 'Read me the synthesis of ' + nameA + ' and ' + nameB + ' in more depth.');
-    strCard('Where the frameworks meet', r.framework_convergence, 'Where do the frameworks converge for ' + nameA + ' and ' + nameB + ', and where do they diverge.');
+    strCard('The synthesis', r.synthesis, 'Read me the synthesis of ' + nameA + ' and ' + nameB + ' in more depth.', { framework: 'convergence', section: 'synthesis' });
+    if (o.composeAsk) {
+      const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
+      const otherWord = otherLens === 'science' ? 'science' : 'symbolic';
+      const bridge = el('button', { type: 'button', class: 'cm-bridge' }, 'Through the other telescope');
+      bridge.addEventListener('click', () => {
+        if (o.recordSignal) o.recordSignal({ at: Date.now(), date: today, kind: 'landed', surface: 'compatibility', voice: otherLens, bridge: true, framework: 'convergence', section: 'synthesis' });
+        openAsk('Show me the connection between ' + nameA + ' and ' + nameB + ' through the ' + otherWord + ' telescope, the same bond seen with the other lens.');
+      });
+      content.appendChild(bridge);
+    }
+    strCard('Where the frameworks meet', r.framework_convergence, 'Where do the frameworks converge for ' + nameA + ' and ' + nameB + ', and where do they diverge.', { framework: 'convergence', section: 'convergence' });
     pairCard('Gifts', r.gifts, 'What are the gifts of the connection between ' + nameA + ' and ' + nameB + '.');
     pairCard('Tensions', r.tensions, 'What are the tensions between ' + nameA + ' and ' + nameB + ', and how do we work with them.');
     pairCard('On this', r.topic_specific, 'Tell me more about ' + nameA + ' and ' + nameB + ' on this specific relationship.');
@@ -474,9 +517,9 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         content.appendChild(card);
       }
     }
-    strCard('Numerology', r.numerology_connection, 'Read our numerology pairing in more depth.');
-    strCard('Dreamspell', r.dreamspell_connection, 'Read our Dreamspell connection in more depth.');
-    strCard('Natal moon', r.natal_moon_connection, 'Read our natal moon phase polarity in more depth.');
+    strCard('Numerology', r.numerology_connection, 'Read our numerology pairing in more depth.', { framework: 'numerology', section: 'numerology' });
+    strCard('Dreamspell', r.dreamspell_connection, 'Read our Dreamspell connection in more depth.', { framework: 'dreamspell', section: 'dreamspell' });
+    strCard('Natal moon', r.natal_moon_connection, 'Read our natal moon phase polarity in more depth.', { framework: 'moon', section: 'natal-moon' });
     strCard('Biorhythm today', r.biorhythm_today, 'What does our shared biorhythm ask of us today.');
     const forThem = r.for_them as Record<string, unknown> | undefined;
     if (forThem) {

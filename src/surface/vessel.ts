@@ -977,6 +977,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getProfile: () => profile ?? null,
       getLens: () => lens,
       reflect: (n) => reflect(n),
+      composeAsk,
+      recordSignal: (s) => { void repo.recordSignal(s); },
+      getSignals: () => repo.listSignals(),
     });
   }
   const rightBuilt = buildReadingsDrawer();
