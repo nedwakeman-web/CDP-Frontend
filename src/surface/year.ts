@@ -180,6 +180,19 @@ function ensureStyle(): void {
     '.cdp-surface .yr-ctx-meta{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:4px 0 9px}',
     '.cdp-surface .yr-ctx-desc{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
     '.cdp-surface .yr-ctx-ask{display:inline-block;background:none;border:none;cursor:pointer;font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--teal,#81CDB6);padding:9px 0 0}',
+    '.cdp-surface .yr-nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 14px;background:var(--bg,#0A1828)}',
+    '.cdp-surface .yr-nav-chip{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);border:1px solid var(--gold-line,#3A3320);border-radius:999px;background:var(--navy,#0D1E33);padding:6px 13px;cursor:pointer}',
+    '.cdp-surface .yr-nav-chip:hover{color:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
+    '.cdp-surface .yr-mv-title{font-family:\'EB Garamond\',Georgia,serif;font-size:25px;color:var(--gold-soft,#E8C878);margin:16px 0 4px}',
+    '.cdp-surface .yr-mv-intro{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC);margin:0 0 14px}',
+    '.cdp-surface .yr-cue{display:inline-flex;align-items:center;gap:6px;font-family:\'EB Garamond\',Georgia,serif;font-size:13px;color:var(--teal,#81CDB6);margin-top:9px;cursor:pointer}',
+    '.cdp-surface .yr-now{border:1px solid rgba(201,160,80,.45);border-radius:8px;background:var(--raised,#13284A);padding:16px 18px;margin-bottom:11px;cursor:pointer}',
+    '.cdp-surface .yr-now-label{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft,#E8C878)}',
+    '.cdp-surface .yr-now-big{font-family:\'EB Garamond\',Georgia,serif;font-size:22px;color:var(--text-light,#F0E6CC);margin:3px 0 5px}',
+    '.cdp-surface .yr-ws{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin:8px 0 6px}',
+    '.cdp-surface .yr-ws-cell{text-align:center;padding:6px 0;border:1px solid var(--gold-line,#3A3320);border-radius:3px;font-family:\'EB Garamond\',Georgia,serif;font-size:12px;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .yr-ws-cell.on{border-color:var(--gold,#C9A050);color:var(--gold,#C9A050);background:var(--navy,#0D1E33)}',
+    '.cdp-surface .yr-note{font-family:Georgia,serif;font-size:13.5px;line-height:1.65;color:var(--text-dim,#D4C8AE);margin:2px 0 10px}',
   ].join('');
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -266,120 +279,118 @@ export function openYear(o: OpenYearOptions): YearHandle {
     parent.appendChild(wrap);
   }
 
-  /* ============ ZONE ONE: the computed long view ========================== */
-  content.appendChild(el('div', { class: 'yr-section' }, 'This year, ' + String(curYear)));
-  const uy = NUM_DATA[universalYear];
-  content.appendChild(numCard('Universal Year', universalYear, uy ? uy.n : 'Universal Year', uy ? uy.m : ''));
-  content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Pythagorean numerology. The number everyone shares this year.'));
+  const signals = o.getSignals ? o.getSignals() : [];
+  const intentions = o.getIntentions ? o.getIntentions() : [];
+  const MONTHS_S = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS_L = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  if (hasBirth && prof && prof.birthDate) {
-    const py = personalNumerology(prof.birthDate, today).personalYear;
-    const pyMeaning = NUM_DATA[py.value];
-    const pyCard = numCard('Your Personal Year', py.value, pyMeaning ? pyMeaning.n : 'Personal Year', PY_ARC[py.value] || (pyMeaning ? pyMeaning.m : ''));
-    // the live bridge: the same coordinate, turned to the other telescope
-    if (o.composeAsk) {
-      const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
-      const bridge = el('button', { type: 'button', class: 'yr-bridge' }, 'Through the other telescope');
-      bridge.addEventListener('click', () => {
-        openAsk('My Personal Year is ' + py.value + ', ' + numName(py.value) + '. Show me this same year through the ' + (otherLens === 'science' ? 'science' : 'symbolic') + ' telescope, the same coordinate seen with the other lens.', { bridge: true, framework: 'numerology', section: 'personal-year' });
-      });
-      (pyCard.querySelector('.yr-body') as HTMLElement).appendChild(bridge);
-    }
-    attachTap(pyCard.querySelector('.yr-body') as HTMLElement, { framework: 'numerology', section: 'personal-year' }, 'this landed');
-    content.appendChild(pyCard);
-    content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. Your own year within the nine year cycle, drawn from your birth date.'));
-
-    {
-      const pos = py.reducesTo;
-      content.appendChild(el('div', { class: 'yr-section' }, 'Where this year sits in the cycle'));
-      const strip = el('div', { class: 'yr-cycle' });
-      for (let i = 1; i <= 9; i++) strip.appendChild(el('div', { class: 'yr-cycle-cell' + (i === pos ? ' on' : '') }, String(i)));
-      content.appendChild(strip);
-      const prev = ((pos + 7) % 9) + 1;
-      const next = (pos % 9) + 1;
-      const arcLine = 'A nine year cycle. You are in year ' + pos + (py.isMaster ? ', carried this year as the master ' + py.value : '') + ', ' + (NUM_DATA[py.value] ? NUM_DATA[py.value].n : '') + '. Behind you, year ' + prev + ', ' + (NUM_DATA[prev] ? NUM_DATA[prev].n : '') + '. Ahead, year ' + next + ', ' + (NUM_DATA[next] ? NUM_DATA[next].n : '') + '.';
-      content.appendChild(el('div', { class: 'yr-arc' }, arcLine));
-      content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. The arc beneath the year, where you have come from and where the cycle turns next.'));
-    }
-
-    {
-      content.appendChild(el('div', { class: 'yr-section' }, 'The year, month by month'));
-      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const grid = el('div', { class: 'yr-months' });
-      for (let mi = 0; mi < 12; mi++) {
-        const mm = (mi + 1 < 10 ? '0' : '') + String(mi + 1);
-        const pmn = personalNumerology(prof.birthDate, curYear + '-' + mm + '-01').personalMonth;
-        const cell = el(o.composeAsk ? 'button' : 'div', { type: 'button', class: 'yr-month-cell' + (pmn.isMaster ? ' master' : '') });
-        cell.appendChild(el('div', { class: 'yr-month-m' }, MONTHS[mi]));
-        cell.appendChild(el('div', { class: 'yr-month-n' }, String(pmn.value)));
-        if (o.composeAsk) {
-          cell.addEventListener('click', () => {
-            openAsk('In ' + MONTHS[mi] + ' ' + curYear + ' my personal month is ' + pmn.value + ', ' + numName(pmn.value) + '. What does this month ask of me, and how best to use it.', { framework: 'numerology', section: 'month-' + mm });
-          });
-        }
-        grid.appendChild(cell);
-      }
-      content.appendChild(grid);
-      content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. Your personal month for each month of the year, master months marked, so you can plan into the texture ahead.'));
-    }
-
-    content.appendChild(el('div', { class: 'yr-section' }, 'Your fixed signature, the constants'));
-    const lp = lifePath(prof.birthDate);
-    const lpMeaning = NUM_DATA[lp.value];
-    content.appendChild(numCard('Life Path', lp.value, lpMeaning ? lpMeaning.n : 'Life Path', lpMeaning ? lpMeaning.m : ''));
-    const desc = kinDescriptor(prof.birthDate);
-    const kinCard = el('div', { class: 'yr-card' });
-    kinCard.appendChild(el('div', { class: 'yr-num' }, String(kinForDate(prof.birthDate))));
-    const kb = el('div', { class: 'yr-body' });
-    kb.appendChild(el('div', { class: 'yr-label' }, 'Birth Kin, your galactic signature'));
-    kb.appendChild(el('div', { class: 'yr-kin' }, desc.full + (desc.isGAP ? ' (Galactic Activation Portal)' : '')));
-    kb.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Dreamspell after Arguelles 1987, distinct from the living K\u2019iche\u2019 count.'));
-    if (o.composeAsk) attachTap(kb, { framework: 'dreamspell', section: 'birth-kin' }, 'this landed');
-    kinCard.appendChild(kb);
-    content.appendChild(kinCard);
-
-    const _by = Number(prof.birthDate.slice(0, 4));
-    const _bm = Number(prof.birthDate.slice(5, 7));
-    const _bd = Number(prof.birthDate.slice(8, 10));
-    const bc = chineseYear(_by, _bm, _bd);
-    const cc = chineseYear(new Date().getUTCFullYear());
-    const chCard = el('div', { class: 'yr-ctx' });
-    chCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Chinese zodiac'));
-    chCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'Born in the year of the ' + bc.element + ' ' + bc.animal + '. This year carries the ' + cc.element + ' ' + cc.animal + '.'));
-    chCard.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, the sexagenary cycle, animal and heavenly stem element.'));
-    content.appendChild(chCard);
-
-  } else {
-    content.appendChild(el('div', { class: 'yr-empty' }, 'Add your birth date in your Cosmic Profile, and your personal year and fixed signature appear here alongside the universal year.'));
+  /* ---- a visible tap cue, so every card reads as openable ----------------- */
+  function cueCard(card: HTMLElement, target: HTMLElement, prompt: string, sig: Partial<VesselSignal>, label: string): void {
+    if (!o.composeAsk) return;
+    const cue = el('div', { class: 'yr-cue' }, label + ' \u2197');
+    target.appendChild(cue);
+    cue.addEventListener('click', (e: Event) => { e.stopPropagation(); openAsk(prompt, sig); });
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => openAsk(prompt, sig));
+  }
+  function movementHead(id: string, kicker: string, title: string, intro: string): void {
+    content.appendChild(el('div', { id: id }));
+    content.appendChild(el('div', { class: 'yr-section' }, kicker));
+    content.appendChild(el('div', { class: 'yr-mv-title' }, title));
+    content.appendChild(el('div', { class: 'yr-mv-intro' }, intro));
   }
 
-  /* ---- the wider sky, the cosmic context ---- */
-  content.appendChild(el('div', { class: 'yr-section' }, 'The wider sky, your cosmic context'));
+  /* ---- angle navigation, the four ways to view the year ------------------- */
+  const nav = el('div', { class: 'yr-nav' });
+  const ANGLES: Array<[string, string]> = [['mv-unfolding', 'Unfolding'], ['mv-guiding', 'Guiding'], ['mv-holding', 'Holding'], ['mv-arc', 'The arc']];
+  for (const a of ANGLES) {
+    const chip = el('button', { type: 'button', class: 'yr-nav-chip' }, a[1]);
+    chip.addEventListener('click', () => { const t = document.getElementById(a[0]); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    nav.appendChild(chip);
+  }
+  content.appendChild(nav);
+
+  /* ============ MOVEMENT ONE: what is unfolding =========================== */
+  movementHead('mv-unfolding', 'Right now', 'What is unfolding', 'Begin with where you are today. The month you are in, the wave beneath it, and what your own signal has started to show.');
+  if (hasBirth && prof && prof.birthDate) {
+    const cmIdx = new Date().getUTCMonth();
+    const cmm = (cmIdx + 1 < 10 ? '0' : '') + String(cmIdx + 1);
+    const pm = personalNumerology(prof.birthDate, curYear + '-' + cmm + '-01').personalMonth;
+    const nowCard = el('div', { class: 'yr-now' });
+    nowCard.appendChild(el('div', { class: 'yr-now-label' }, 'This month, ' + MONTHS_L[cmIdx]));
+    nowCard.appendChild(el('div', { class: 'yr-now-big' }, 'Personal month ' + pm.value + ', ' + numName(pm.value)));
+    if (NUM_DATA[pm.value]) nowCard.appendChild(el('div', { class: 'yr-note' }, NUM_DATA[pm.value].m));
+    cueCard(nowCard, nowCard, 'My personal month this month is ' + pm.value + ', ' + numName(pm.value) + '. What does this month ask of me, and how best to use it.', { framework: 'numerology', section: 'this-month' }, 'Open this month');
+    content.appendChild(nowCard);
+    let nextMaster = '';
+    for (let k = 1; k <= 12; k++) {
+      const d = new Date(Date.UTC(curYear, cmIdx + k, 1));
+      const mm2 = (d.getUTCMonth() + 1 < 10 ? '0' : '') + String(d.getUTCMonth() + 1);
+      const pmn = personalNumerology(prof.birthDate, d.getUTCFullYear() + '-' + mm2 + '-01').personalMonth;
+      if (pmn.isMaster) { nextMaster = MONTHS_L[d.getUTCMonth()] + ', a master ' + pmn.value + ' month'; break; }
+    }
+    if (nextMaster) content.appendChild(el('div', { class: 'yr-note' }, 'Coming up, your next master month falls in ' + nextMaster + '.'));
+  }
   {
     const wsKin = kinForDate(today);
     const wsStart = Math.floor((wsKin - 1) / 13) * 13 + 1;
     const wsD = descriptorForKin(wsStart);
     const wsDay = ((wsKin - 1) % 13) + 1;
-    const wsLeft = 13 - wsDay;
     const wsCard = el('div', { class: 'yr-ctx' });
     wsCard.appendChild(el('div', { class: 'yr-ctx-h' }, wsD.colour + ' ' + wsD.seal + ' Wavespell'));
-    wsCard.appendChild(el('div', { class: 'yr-ctx-meta' }, 'Day ' + wsDay + ' of 13, ' + wsLeft + ' remaining'));
-    wsCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'The thirteen day wave the day sits within, the larger rhythm beneath the single day.'));
+    wsCard.appendChild(el('div', { class: 'yr-ctx-meta' }, 'Day ' + wsDay + ' of 13'));
+    const strip = el('div', { class: 'yr-ws' });
+    for (let i = 1; i <= 13; i++) strip.appendChild(el('div', { class: 'yr-ws-cell' + (i === wsDay ? ' on' : '') }, String(i)));
+    wsCard.appendChild(strip);
+    wsCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'A thirteen day arc of energy, opened by the Magnetic tone and completed by the Cosmic. The seal that opens the wave, ' + wsD.seal + ', sets the theme for all thirteen days.'));
     wsCard.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Dreamspell after Arguelles 1987.'));
+    cueCard(wsCard, wsCard, 'I am on day ' + wsDay + ' of the ' + wsD.colour + ' ' + wsD.seal + ' Wavespell. What does this thirteen day wave ask of me.', { framework: 'dreamspell', section: 'wavespell' }, 'Open this wave');
     attachTap(wsCard, { framework: 'dreamspell', section: 'wavespell' }, 'this landed');
     content.appendChild(wsCard);
   }
-  if (hasBirth && prof && prof.birthDate && o.composeAsk) {
-    const ndCard = el('div', { class: 'yr-ctx' });
-    ndCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Your natural direction'));
-    ndCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'The direction your work and life lean toward now, read across your Life Path, your Personal Year, and your Birth Kin.'));
-    const ndAsk = el('button', { type: 'button', class: 'yr-ctx-ask' }, 'Read my natural direction');
-    ndAsk.addEventListener('click', () => { openAsk('Drawing on my Life Path, my Personal Year, and my Birth Kin, what is the natural direction for my work and my life path right now.', { framework: 'convergence', section: 'natural-direction' }); });
-    ndCard.appendChild(ndAsk);
-    content.appendChild(ndCard);
+  {
+    const home = homeTelescope(signals);
+    const rhythm = intentionRhythm(intentions, signals);
+    const proven = bothTelescopesProven(signals);
+    let line = '';
+    if (proven === true) line = 'The days you let both telescopes speak, your outcomes ran better. The convergence, in your own life.';
+    else if (rhythm) line = 'Your intentions move when you tend them within about ' + rhythm.days + (rhythm.days === 1 ? ' day' : ' days') + '. That rhythm is yours, drawn from your own outcomes.';
+    else if (home) line = 'Across your taps so far, what lands most is ' + home.label + ', and the picture is still building.';
+    if (line) {
+      const cc = el('div', { class: 'yr-em-call' });
+      cc.appendChild(el('div', { class: 'yr-em-em' }, line));
+      content.appendChild(cc);
+      content.appendChild(el('div', { class: 'yr-foot' }, 'From your own signal. The fuller picture sits in The arc, below.'));
+    }
   }
 
+  /* ============ MOVEMENT TWO: what is guiding ============================= */
+  movementHead('mv-guiding', 'The sky that guides', 'What is guiding', 'The slower frequencies the year sits within. The number everyone shares, your own year inside it, and the long transits moving overhead.');
+  {
+    const uy = NUM_DATA[universalYear];
+    const uyCard = numCard('Universal Year', universalYear, uy ? uy.n : 'Universal Year', uy ? uy.m : '');
+    cueCard(uyCard, uyCard.querySelector('.yr-body') as HTMLElement, 'The universal year is ' + universalYear + ', ' + (uy ? uy.n : '') + '. What does this collective year mean, and how does it set the tone for everyone.', { framework: 'numerology', section: 'universal-year' }, 'Open the universal year');
+    content.appendChild(uyCard);
+    content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Pythagorean numerology. The number everyone shares this year.'));
+  }
+  if (hasBirth && prof && prof.birthDate) {
+    const py = personalNumerology(prof.birthDate, today).personalYear;
+    const pyMeaning = NUM_DATA[py.value];
+    const pyCard = numCard('Your Personal Year', py.value, pyMeaning ? pyMeaning.n : 'Personal Year', PY_ARC[py.value] || (pyMeaning ? pyMeaning.m : ''));
+    const pyBody = pyCard.querySelector('.yr-body') as HTMLElement;
+    if (o.composeAsk) {
+      const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
+      const bridge = el('button', { type: 'button', class: 'yr-bridge' }, 'Through the other telescope');
+      bridge.addEventListener('click', (e: Event) => { e.stopPropagation(); openAsk('My Personal Year is ' + py.value + ', ' + numName(py.value) + '. Show me this same year through the ' + (otherLens === 'science' ? 'science' : 'symbolic') + ' telescope, the same coordinate seen with the other lens.', { bridge: true, framework: 'numerology', section: 'personal-year' }); });
+      pyBody.appendChild(bridge);
+    }
+    cueCard(pyCard, pyBody, 'My Personal Year is ' + py.value + ', ' + numName(py.value) + '. What does this year ask of me, and how best to move through it.', { framework: 'numerology', section: 'personal-year' }, 'Open your year');
+    attachTap(pyBody, { framework: 'numerology', section: 'personal-year' }, 'this landed');
+    content.appendChild(pyCard);
+    content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. Your own year within the nine year cycle, drawn from your birth date.'));
+  }
   content.appendChild(el('div', { class: 'yr-section' }, 'The slow sky, the transits of this era'));
+  content.appendChild(el('div', { class: 'yr-note' }, 'These move across months and years. Read once, and let them settle as backdrop. They surface in a daily reading only when the day touches them directly.'));
   for (const tr of SLOW_TRANSITS) {
     const card = el('div', { class: 'yr-ctx' });
     const h = el('div', { class: 'yr-ctx-h' });
@@ -389,72 +400,64 @@ export function openYear(o: OpenYearOptions): YearHandle {
     card.appendChild(el('div', { class: 'yr-ctx-meta' }, tr.duration));
     card.appendChild(el('div', { class: 'yr-ctx-desc' }, tr.desc));
     card.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic interpretation of a real transit. Positions from Swiss Ephemeris.'));
-    if (o.composeAsk) {
-      const trAsk = el('button', { type: 'button', class: 'yr-ctx-ask' }, 'How this touches your life');
-      trAsk.addEventListener('click', () => { openAsk('The transit ' + tr.name + ' is in effect now. How is this transit relevant to my current situation and my life arc right now.', { framework: 'astrology', section: 'transit' }); });
-      card.appendChild(trAsk);
-    }
+    cueCard(card, card, 'The transit ' + tr.name + ' is in effect now. How is this transit relevant to my situation and my life arc right now.', { framework: 'astrology', section: 'transit' }, 'How this touches your life');
     attachTap(card, { framework: 'astrology', section: 'transit' }, 'this landed');
     content.appendChild(card);
   }
 
-  /* ============ ZONE TWO: the measurable impact engine ==================== */
-  const signals = o.getSignals ? o.getSignals() : [];
-  const intentions = o.getIntentions ? o.getIntentions() : [];
+  /* ============ MOVEMENT THREE: what is holding ========================== */
+  movementHead('mv-holding', 'What you carry', 'What is holding', 'The constants you were born with, and the intentions you are holding now. What you carry, what you mean to keep close, and what you are moving toward.');
+  if (hasBirth && prof && prof.birthDate) {
+    const lp = lifePath(prof.birthDate);
+    const lpMeaning = NUM_DATA[lp.value];
+    const lpCard = numCard('Life Path', lp.value, lpMeaning ? lpMeaning.n : 'Life Path', lpMeaning ? lpMeaning.m : '');
+    cueCard(lpCard, lpCard.querySelector('.yr-body') as HTMLElement, 'My Life Path is ' + lp.value + ', ' + numName(lp.value) + '. What does it say about my natural direction, my strengths, and the shadow to know.', { framework: 'numerology', section: 'life-path' }, 'Open your Life Path');
+    content.appendChild(lpCard);
 
-  // The reflection, what gathered
-  content.appendChild(el('div', { class: 'yr-section' }, 'What gathered'));
-  const home = homeTelescope(signals);
-  const cross = crossTelescopeRate(signals);
-  if (!home) {
-    content.appendChild(el('div', { class: 'yr-empty' }, 'This fills from your own signal. Each time you mark that something landed, the picture of what speaks to you, and which lens reached you, builds here.'));
-  } else {
-    const refl = el('div', { class: 'yr-emergent' });
-    refl.appendChild(el('div', { class: 'yr-em-p' }, 'Across ' + home.count + ' of your taps, what lands most is ' + home.label + '.'));
-    if (cross && cross.count > 0) {
-      const cc = el('div', { class: 'yr-em-call' });
-      cc.appendChild(el('div', { class: 'yr-em-em' }, 'And ' + cross.count + ' of those were a lens that is not your home, landing on the same sky. That crossing is the bridge, and it is the thing worth returning for.'));
-      refl.appendChild(cc);
-    } else {
-      refl.appendChild(el('div', { class: 'yr-foot' }, 'When a lens that is not your home lands, it will be marked here as the bridge.'));
+    const desc = kinDescriptor(prof.birthDate);
+    const kinCard = el('div', { class: 'yr-card' });
+    kinCard.appendChild(el('div', { class: 'yr-num' }, String(kinForDate(prof.birthDate))));
+    const kb = el('div', { class: 'yr-body' });
+    kb.appendChild(el('div', { class: 'yr-label' }, 'Birth Kin, your galactic signature'));
+    kb.appendChild(el('div', { class: 'yr-kin' }, desc.full + (desc.isGAP ? ' (Galactic Activation Portal)' : '')));
+    kb.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, Dreamspell after Arguelles 1987, distinct from the living K\u2019iche\u2019 count.'));
+    cueCard(kinCard, kb, 'My Birth Kin is ' + desc.full + '. What does this galactic signature say about who I am and what I carry.', { framework: 'dreamspell', section: 'birth-kin' }, 'Open your Birth Kin');
+    attachTap(kb, { framework: 'dreamspell', section: 'birth-kin' }, 'this landed');
+    kinCard.appendChild(kb);
+    content.appendChild(kinCard);
+
+    const _by = Number(prof.birthDate.slice(0, 4));
+    const _bm = Number(prof.birthDate.slice(5, 7));
+    const _bd = Number(prof.birthDate.slice(8, 10));
+    const bc = chineseYear(_by, _bm, _bd);
+    const ccz = chineseYear(curYear);
+    const chCard = el('div', { class: 'yr-ctx' });
+    chCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Chinese zodiac'));
+    chCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'Born in the year of the ' + bc.element + ' ' + bc.animal + '. This year carries the ' + ccz.element + ' ' + ccz.animal + '.'));
+    chCard.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic, the sexagenary cycle, animal and heavenly stem element.'));
+    cueCard(chCard, chCard, 'I was born in the year of the ' + bc.element + ' ' + bc.animal + '. What does this sign say about my instincts and the rhythm of my ambition.', { framework: 'astrology', section: 'chinese' }, 'Open your sign');
+    content.appendChild(chCard);
+
+    if (o.composeAsk) {
+      const ndCard = el('div', { class: 'yr-ctx' });
+      ndCard.appendChild(el('div', { class: 'yr-ctx-h' }, 'Your natural direction'));
+      ndCard.appendChild(el('div', { class: 'yr-ctx-desc' }, 'Read across your Life Path ' + lp.value + ', your Birth Kin, and your Chinese sign, the direction your work and life lean toward. Not a prescription, a mirror. The aim is recognition, not instruction.'));
+      const ndAsk = el('button', { type: 'button', class: 'yr-ctx-ask' }, 'Read my natural direction \u2197');
+      ndAsk.addEventListener('click', (e: Event) => { e.stopPropagation(); openAsk('Drawing together my Life Path ' + lp.value + ', my Birth Kin, and my Chinese sign, what is the natural direction for my work and my life right now. Speak to what drives me, my strengths, where I thrive, the shadow to watch, and the domains that suit me.', { framework: 'convergence', section: 'natural-direction' }); });
+      ndCard.appendChild(ndAsk);
+      content.appendChild(ndCard);
     }
-    content.appendChild(refl);
+  } else {
+    content.appendChild(el('div', { class: 'yr-empty' }, 'Add your birth date in your Cosmic Profile, and your fixed signature and the year that belongs to you appear here.'));
   }
-
-  // The emergent surface, the felt made legible
-  const rhythm = intentionRhythm(intentions, signals);
-  const proven = bothTelescopesProven(signals);
-  content.appendChild(el('div', { class: 'yr-section' }, 'What you felt, named'));
-  const em = el('div', { class: 'yr-emergent' });
-  let named = false;
-  if (rhythm) {
-    named = true;
-    const cc = el('div', { class: 'yr-em-call' });
-    cc.appendChild(el('div', { class: 'yr-em-p' }, 'Your intentions move when you tend them within about ' + rhythm.days + (rhythm.days === 1 ? ' day' : ' days') + '. The ones left longer wait.'));
-    cc.appendChild(el('div', { class: 'yr-em-em' }, 'This is your rhythm, observed from your own outcomes, not a rule.'));
-    em.appendChild(cc);
-  }
-  if (proven === true) {
-    named = true;
-    const cc = el('div', { class: 'yr-em-call' });
-    cc.appendChild(el('div', { class: 'yr-em-em' }, 'The days you let both telescopes speak, your outcomes ran better. The convergence, in your own life.'));
-    em.appendChild(cc);
-  }
-  if (!named) {
-    em.appendChild(el('div', { class: 'yr-em-p' }, 'We are still listening. When a pattern in your own signal is clear enough to name, it appears here. When we look and find nothing, we will say that too.'));
-  }
-  em.appendChild(el('div', { class: 'yr-foot' }, 'Observed from your own signal. Correlation, not a forecast.'));
-  content.appendChild(em);
-
-  // What is moving, the held intentions and their outcomes
   if (o.getIntentions) {
-    content.appendChild(el('div', { class: 'yr-section' }, 'What is moving'));
+    content.appendChild(el('div', { class: 'yr-section' }, 'What you are holding now'));
     const live = intentions.filter((it) => it.status !== 'resting');
     if (!live.length) {
       content.appendChild(el('div', { class: 'yr-empty' }, 'The intentions you are holding will gather here, so you can mark, in your own time, which have moved and which are still waiting.'));
     } else {
       const verdicts: Record<string, string> = {};
-      for (const s of signals) { if (s.kind === 'outcome' && s.intentionId && s.moved) verdicts[s.intentionId] = s.moved; }
+      for (const sg of signals) { if (sg.kind === 'outcome' && sg.intentionId && sg.moved) verdicts[sg.intentionId] = sg.moved; }
       for (const it of live) {
         const row = el('div', { class: 'yr-move' });
         row.appendChild(el('div', { class: 'yr-move-t' }, it.text));
@@ -470,7 +473,83 @@ export function openYear(o: OpenYearOptions): YearHandle {
       }
     }
   }
+  {
+    content.appendChild(el('div', { class: 'yr-section' }, 'What gathered'));
+    const home = homeTelescope(signals);
+    const cross = crossTelescopeRate(signals);
+    if (!home) {
+      content.appendChild(el('div', { class: 'yr-empty' }, 'This fills from your own signal. Each time you mark that something landed, the picture of what speaks to you, and which lens reached you, builds here.'));
+    } else {
+      const refl = el('div', { class: 'yr-emergent' });
+      refl.appendChild(el('div', { class: 'yr-em-p' }, 'Across ' + home.count + ' of your taps, what lands most is ' + home.label + '.'));
+      if (cross && cross.count > 0) {
+        const cc = el('div', { class: 'yr-em-call' });
+        cc.appendChild(el('div', { class: 'yr-em-em' }, 'And ' + cross.count + ' of those were a lens that is not your home, landing on the same sky. That crossing is the bridge, and it is the thing worth returning for.'));
+        refl.appendChild(cc);
+      } else {
+        refl.appendChild(el('div', { class: 'yr-foot' }, 'When a lens that is not your home lands, it will be marked here as the bridge.'));
+      }
+      content.appendChild(refl);
+    }
+  }
 
+  /* ============ MOVEMENT FOUR: the arc =================================== */
+  movementHead('mv-arc', 'The long view', 'The arc', 'Where this year sits in the longer cycle, the texture month by month, and the patterns your own signal has named over time.');
+  if (hasBirth && prof && prof.birthDate) {
+    const py = personalNumerology(prof.birthDate, today).personalYear;
+    const pos = py.reducesTo;
+    content.appendChild(el('div', { class: 'yr-section' }, 'Where this year sits in the cycle'));
+    const strip = el('div', { class: 'yr-cycle' });
+    for (let i = 1; i <= 9; i++) strip.appendChild(el('div', { class: 'yr-cycle-cell' + (i === pos ? ' on' : '') }, String(i)));
+    content.appendChild(strip);
+    const prev = ((pos + 7) % 9) + 1;
+    const next = (pos % 9) + 1;
+    const arcLine = 'A nine year cycle. You are in year ' + pos + (py.isMaster ? ', carried this year as the master ' + py.value : '') + ', ' + (NUM_DATA[py.value] ? NUM_DATA[py.value].n : '') + '. Behind you, year ' + prev + ', ' + (NUM_DATA[prev] ? NUM_DATA[prev].n : '') + '. Ahead, year ' + next + ', ' + (NUM_DATA[next] ? NUM_DATA[next].n : '') + '.';
+    content.appendChild(el('div', { class: 'yr-arc' }, arcLine));
+    content.appendChild(el('div', { class: 'yr-symbolic' }, 'Symbolic. The arc beneath the year, where you have come from and where the cycle turns next.'));
+
+    content.appendChild(el('div', { class: 'yr-section' }, 'The year, month by month'));
+    content.appendChild(el('div', { class: 'yr-note' }, 'Your personal month for every month of the year, master months marked. Tap any month to open it.'));
+    const grid = el('div', { class: 'yr-months' });
+    for (let mi = 0; mi < 12; mi++) {
+      const mm = (mi + 1 < 10 ? '0' : '') + String(mi + 1);
+      const pmn = personalNumerology(prof.birthDate, curYear + '-' + mm + '-01').personalMonth;
+      const cell = el(o.composeAsk ? 'button' : 'div', { type: 'button', class: 'yr-month-cell' + (pmn.isMaster ? ' master' : '') });
+      cell.appendChild(el('div', { class: 'yr-month-m' }, MONTHS_S[mi]));
+      cell.appendChild(el('div', { class: 'yr-month-n' }, String(pmn.value)));
+      if (o.composeAsk) {
+        cell.addEventListener('click', () => { openAsk('In ' + MONTHS_L[mi] + ' ' + curYear + ' my personal month is ' + pmn.value + ', ' + numName(pmn.value) + '. What does this month ask of me, and how best to use it.', { framework: 'numerology', section: 'month-' + mm }); });
+      }
+      grid.appendChild(cell);
+    }
+    content.appendChild(grid);
+  }
+  {
+    const rhythm = intentionRhythm(intentions, signals);
+    const proven = bothTelescopesProven(signals);
+    content.appendChild(el('div', { class: 'yr-section' }, 'What you felt, named'));
+    const em = el('div', { class: 'yr-emergent' });
+    let named = false;
+    if (rhythm) {
+      named = true;
+      const cc = el('div', { class: 'yr-em-call' });
+      cc.appendChild(el('div', { class: 'yr-em-p' }, 'Your intentions move when you tend them within about ' + rhythm.days + (rhythm.days === 1 ? ' day' : ' days') + '. The ones left longer wait.'));
+      cc.appendChild(el('div', { class: 'yr-em-em' }, 'This is your rhythm, observed from your own outcomes, not a rule.'));
+      em.appendChild(cc);
+    }
+    if (proven === true) {
+      named = true;
+      const cc = el('div', { class: 'yr-em-call' });
+      cc.appendChild(el('div', { class: 'yr-em-em' }, 'The days you let both telescopes speak, your outcomes ran better. The convergence, in your own life.'));
+      em.appendChild(cc);
+    }
+    if (!named) {
+      em.appendChild(el('div', { class: 'yr-em-p' }, 'We are still listening. When a pattern in your own signal is clear enough to name, it appears here. When we look and find nothing, we will say that too.'));
+    }
+    em.appendChild(el('div', { class: 'yr-foot' }, 'Observed from your own signal. Correlation, not a forecast.'));
+    content.appendChild(em);
+  }
+  content.appendChild(el('div', { class: 'yr-mv-intro' }, 'This is the keel, not the captain. The frameworks lay out the weather and the constants you carry, and the choosing stays yours. When you want a hand on the tiller, the Oracle is one tap away, in whichever voice fits the moment.'));
   const sl = sourcesLine();
   if (sl) content.appendChild(el('div', { class: 'yr-sources' }, sl));
 
