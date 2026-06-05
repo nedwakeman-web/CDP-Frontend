@@ -42,6 +42,7 @@ import { openCompatibility } from './compatibility';
 import type { CompatibilityHandle } from './compatibility';
 import { openCalendar as openCalendarSurface } from './calendar';
 import { openAbout } from './about';
+import { openGuide, type GuideHandle } from './guide';
 import type { AboutHandle } from './about';
 import type { CalendarHandle } from './calendar';
 import { createAttachmentZone } from './attachments';
@@ -449,6 +450,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let compatHandle: CompatibilityHandle | null = null;
   let calendarHandle: CalendarHandle | null = null;
   let aboutHandle: AboutHandle | null = null;
+  let guideHandle: GuideHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -486,6 +488,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const aboutLink = el('button', { type: 'button', class: 'topnav-link' }, 'About');
   aboutLink.addEventListener('click', () => openAboutView());
   topnav.appendChild(aboutLink);
+  const guideLink = el('button', { type: 'button', class: 'topnav-link' }, 'Guide');
+  guideLink.addEventListener('click', () => openGuideView());
+  topnav.appendChild(guideLink);
   const signinLink = el('button', { type: 'button', class: 'topnav-link' }, 'Sign in');
   signinLink.addEventListener('click', () => signin.classList.toggle('open'));
   topnav.appendChild(signinLink);
@@ -1210,6 +1215,15 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   calNext.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } renderCalGrid(); });
   calClose.addEventListener('click', () => closeCalendar());
 
+  function openGuideView(): void {
+    closeDrawer('left');
+    closeDrawer('right');
+    if (guideHandle) guideHandle.close();
+    guideHandle = openGuide({
+      container: surface,
+      onClose: () => { guideHandle = null; },
+    });
+  }
   function openAboutView(): void {
     closeDrawer('left');
     closeDrawer('right');
