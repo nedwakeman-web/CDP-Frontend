@@ -30,7 +30,7 @@ import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, p
 import type { Coordinate } from '../coordinates-core';
 import { NUM_DATA } from '../data/numerology-content';
 import { SEAL_ARCH } from '../data/reading-content';
-import { analyseRecord } from '../data/patterns';
+import { analyseRecord, streakOf } from '../data/patterns';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
@@ -159,6 +159,9 @@ const STYLES = `
 .cdp-surface .topnav-link.active { color:var(--gold); border-bottom-color:var(--gold); }
 .cdp-surface .rdg-list { padding:2px 0; }
 .cdp-surface .rdg-recent-label { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-muted); margin:14px 0 4px; padding:0 2px; }
+.cdp-surface .rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+.cdp-surface .rdg-recent-date { color:var(--text-light); }
+.cdp-surface .rdg-recent-line { font-size:12px; color:var(--text-muted); line-height:1.35; }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -883,7 +886,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       list.appendChild(el('div', { class: 'rdg-recent-label' }, 'Recent'));
       for (const rec of recents.slice(0, 6)) {
         const label = new Date(rec.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-        const link = el('button', { type: 'button', class: 'rdg-link' }, label);
+        const link = el('button', { type: 'button', class: 'rdg-link rdg-recent' });
+        link.appendChild(el('span', { class: 'rdg-recent-date' }, label));
+        if (rec.line) link.appendChild(el('span', { class: 'rdg-recent-line' }, rec.line));
         link.addEventListener('click', () => openReadingFor(profile ?? null, 'Reading for ' + label, rec.date));
         list.appendChild(link);
       }
@@ -928,7 +933,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       composeAsk,
       recordSignal: (s) => { void repo.recordSignal(s); },
     });
-    void repo.recordReading({ at: Date.now(), date: date || dateStr, tier: 'oracle', title });
+    const recDate = date || dateStr;
+    const rPn = (prof && prof.birthDate) ? personalNumerology(prof.birthDate, recDate) : null;
+    const rN = rPn ? rPn.personalDay.value : universalDay(recDate).value;
+    const rName = (NUM_DATA[rN] && NUM_DATA[rN].n) ? NUM_DATA[rN].n : String(rN);
+    const rLine = rName + ' \u00b7 ' + kinDescriptor(recDate).full.replace(/^Kin \d+ /, '');
+    void repo.recordReading({ at: Date.now(), date: recDate, tier: 'oracle', title, line: rLine });
   }
   function openProfilesView(): void {
     closeDrawer('right');
@@ -1343,6 +1353,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
     } else if (label === 'About') {
       row.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
+    } else if (label === 'Guide') {
+      row.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
+    } else if (label === 'Streak') {
+      const sk = streakOf(repo.listReadings().map((r) => r.date));
+      if (sk.days > 0) row.appendChild(el('span', { class: 'menu-val' }, sk.days + (sk.days === 1 ? ' day' : ' days')));
+      row.addEventListener('click', () => {
+        clear(menuNote);
+        const s2 = streakOf(repo.listReadings().map((r) => r.date));
+        menuNote.textContent = s2.days === 0
+          ? 'Your days are counted here as you return, gently, never as pressure.'
+          : 'You have shown up ' + s2.days + (s2.days === 1 ? ' day' : ' days') + (s2.run > 1 ? ', ' + s2.run + ' of them in a row most recently' : '') + '. Return when it serves you.';
+      });
     } else {
       row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
     }
