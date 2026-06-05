@@ -233,6 +233,44 @@ function slug(s: string): string {
 }
 
 /** Build the share control for a target. Returns a row to drop into a surface. */
+const CHROME_IMG = ['button', '.share-bar', '[class*="cue"]', '[class*="bridge"]', '[class*="-tap"]'];
+function isChromeEl(elm: Element): boolean {
+  for (const sel of CHROME_IMG) { try { if (elm.matches(sel)) return true; } catch (_e) { /* ignore bad selector */ } }
+  return false;
+}
+function downloadBlob(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+}
+/*
+ * Save a designed image. When html2canvas is present on the page, snapshot the
+ * real styled card so the image looks like the product, skipping the chrome
+ * (buttons, cues, bridges, landed taps). When it is absent, fall back to the
+ * self-contained text card so the action always works.
+ */
+async function saveNodeImage(node: HTMLElement | null, title: string, body: string, filename: string): Promise<void> {
+  const h2c = (window as unknown as { html2canvas?: (el: HTMLElement, opts?: Record<string, unknown>) => Promise<HTMLCanvasElement> }).html2canvas;
+  if (h2c && node) {
+    try {
+      const canvas = await h2c(node, { backgroundColor: '#0D1E33', scale: 2, useCORS: true, logging: false, ignoreElements: (elm: Element) => isChromeEl(elm) });
+      const blob: Blob | null = await new Promise((resolve) => { canvas.toBlob((b) => resolve(b), 'image/png'); });
+      if (!blob) { saveAsImage(title, body, filename); return; }
+      const w = window as unknown as { ClipboardItem?: new (items: Record<string, Blob>) => unknown };
+      const nav2 = navigator as Navigator & { clipboard?: { write?: (items: unknown[]) => Promise<void> } };
+      if (w.ClipboardItem && nav2.clipboard && nav2.clipboard.write) {
+        try { await nav2.clipboard.write([new w.ClipboardItem({ 'image/png': blob })]); return; }
+        catch (_e) { downloadBlob(blob, filename + '.png'); return; }
+      }
+      downloadBlob(blob, filename + '.png');
+      return;
+    } catch (_e) { /* fall through to the text card */ }
+  }
+  saveAsImage(title, body, filename);
+}
+
 export function shareControls(t: ShareTarget): HTMLElement {
   ensureStyle();
   const bar = el('div', { class: 'share-bar' });
@@ -259,10 +297,12 @@ export function shareControls(t: ShareTarget): HTMLElement {
 
   const imgBtn = el('button', { type: 'button', class: 'share-btn' }, 'Save as image');
   imgBtn.addEventListener('click', () => {
-    const clone = cleanClone(t.node());
-    const body = clone ? domToText(clone) : '';
-    try { saveAsImage(t.title, body, slug(t.title)); flash(imgBtn, 'Saved'); }
-    catch (_e) { flash(imgBtn, 'Could not save'); }
+    const node = t.node();
+    const clone = cleanClone(node);
+    const body = clone ? domToText(clone) : t.text();
+    saveNodeImage(node, t.title, body, slug(t.title))
+      .then(() => flash(imgBtn, 'Saved'))
+      .catch(() => flash(imgBtn, 'Could not save'));
   });
   bar.appendChild(imgBtn);
 

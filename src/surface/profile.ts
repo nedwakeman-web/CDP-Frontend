@@ -23,6 +23,7 @@ import type { Lens, VesselProfile } from '../data/model';
 import { kinDescriptor, personalNumerology, reduceNumber } from '../coordinates-core';
 import { NUM_DATA, PY_ARC } from '../data/numerology-content';
 import { searchPlaces, type PlaceResult } from '../data/geocode';
+import { shareControls } from './share';
 
 export interface OpenProfileOptions {
   container: HTMLElement;
@@ -343,6 +344,10 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   /* ---- The live Cosmic Signature ---------------------------------------- */
   const sig = el('div', { class: 'pc-sig' });
   shell.appendChild(sig);
+  // share the galactic signature, shown only once it is populated
+  const sigShare = shareControls({ title: 'My Cosmic Signature', text: () => (sig.innerText || sig.textContent || 'My Cosmic Signature'), node: () => sig });
+  sigShare.style.display = 'none';
+  shell.appendChild(sigShare);
   function meaningCard(label: string, big: string, master: boolean, name: string, text: string, kinLine?: string): HTMLElement {
     const card = el('div', { class: 'pc-mcard' });
     card.appendChild(el('div', { class: 'pc-mlabel' }, label));
@@ -357,6 +362,7 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
     const bd = current.birthDate;
     if (!bd || !/^\d{4}-\d{2}-\d{2}$/.test(bd)) {
       sig.appendChild(el('div', { class: 'pc-sig-empty' }, 'Enter your date of birth to reveal your Galactic Signature, Life Path, and Personal Year.'));
+      sigShare.style.display = 'none';
       return;
     }
     const kd = kinDescriptor(bd);
@@ -392,6 +398,7 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
       'Your natal solar placement, the zodiac sign the Sun occupied on your birthday. At Mystic and Oracle tiers your full natal chart is integrated from the ephemeris (Swiss Ephemeris and Astrodienst).',
     ));
     sig.appendChild(cards);
+    sigShare.style.display = '';
   }
   renderSignature();
 

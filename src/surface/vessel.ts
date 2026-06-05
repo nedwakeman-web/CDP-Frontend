@@ -215,7 +215,7 @@ const STYLES = `
 .cdp-surface .move { background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 4px; }
 .cdp-surface .move:hover { color:var(--gold); }
 .cdp-surface .module-name { cursor:pointer; flex:1; }
-.cdp-surface .rdg-link { display:block; padding:8px 2px; color:var(--text-light); text-decoration:none; border-bottom:1px solid var(--gold-line); font-size:14px; }
+.cdp-surface .rdg-link { display:block; width:100%; text-align:left; appearance:none; -webkit-appearance:none; background:transparent; border:none; border-bottom:1px solid var(--gold-line); padding:9px 2px; color:var(--text-light); font-family:Georgia, serif; font-size:14px; letter-spacing:.3px; cursor:pointer; text-decoration:none; }
 .cdp-surface .rdg-link:hover { color:var(--gold); }
 .cdp-surface .module.collapsed .module-body { display:none; }
 .cdp-surface .module-body { padding:11px; }
