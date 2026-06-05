@@ -17,6 +17,7 @@
 import type { Lens, VesselProfile, VesselSignal } from '../data/model';
 import { shareControls } from './share';
 import { NUM_DATA } from '../data/numerology-content';
+import { SEAL_ARCH } from '../data/reading-content';
 import { kinForDate, kinDescriptor, personalNumerology, universalDay, lunarWindow, reduceNumber } from '../coordinates-core';
 
 export interface OpenCalendarOptions {
@@ -165,6 +166,9 @@ function ensureStyle(): void {
     '.cdp-surface .cal-intro{font-family:Georgia,serif;font-size:14px;line-height:1.6;color:var(--text-light,#F0E6CC);margin:0 0 12px}',
     '.cdp-surface .cal-detail{border:1px solid var(--gold-line,#3A3320);border-radius:6px;background:var(--navy,#0D1E33);padding:16px 18px;margin-top:16px}',
     '.cdp-surface .cal-det-date{font-family:\'EB Garamond\',Georgia,serif;font-size:21px;color:var(--gold-soft,#E8C878);margin-bottom:10px}',
+    '.cdp-surface .cal-det-focus{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--gold-soft,#E8C878);margin:0 0 8px}',
+    '.cdp-surface .cal-det-synth{font-family:Georgia,serif;font-size:14.5px;line-height:1.7;color:var(--text-light,#F0E6CC);margin:0 0 14px}',
+    '.cdp-surface .cal-det-prov{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:6px 0 2px}',
     '.cdp-surface .cal-det-row{display:flex;gap:12px;padding:7px 0;border-top:1px solid var(--gold-line,#3A3320)}',
     '.cdp-surface .cal-det-label{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);min-width:96px;align-self:center}',
     '.cdp-surface .cal-det-val{font-family:Georgia,serif;font-size:14px;line-height:1.6;color:var(--text-light,#F0E6CC);flex:1}',
@@ -342,12 +346,43 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
     return null;
   }
 
+  /*
+   * A plain Everyday synthesis of the day, composed deterministically from the
+   * authored content so it is always there with no wait. This is the meaning a
+   * person would actually keep or share. The coordinates below it become quiet
+   * provenance rather than the whole artefact.
+   */
+  function daySynthesis(): string {
+    const ud = universalDay(selected);
+    const pn = (hasBirth && prof && prof.birthDate) ? personalNumerology(prof.birthDate, selected) : null;
+    const n = pn ? pn.personalDay.value : ud.value;
+    const meaning = (NUM_DATA[n] && NUM_DATA[n].m) ? NUM_DATA[n].m : '';
+    const desc = kinDescriptor(selected);
+    const arch = SEAL_ARCH[desc.seal] || '';
+    const lw = lunarWindow(selected);
+    const out: string[] = [];
+    out.push((pn ? 'For you today, ' : 'Today, ') + 'the energy is ' + numName(n) + ' (' + n + ').' + (meaning ? ' ' + meaning : ''));
+    if (arch) out.push('Its Dreamspell sign is ' + desc.full.replace(/^Kin \d+ /, '') + ', ' + arch.charAt(0).toLowerCase() + arch.slice(1) + '.');
+    if (lw.black) out.push('The moon is in the Black Moon window, the two days before the new moon, a quiet and inward time to tread gently.');
+    else if (lw.shiva) out.push('The moon is in the Shiva Moon window, the two days after the new moon, a restorative time when what you begin tends to take root.');
+    else out.push('The moon is ' + lw.phase.toLowerCase() + (lw.meaning ? ', ' + lw.meaning : '') + '.');
+    return out.join(' ');
+  }
+
   function renderDetail(): void {
     clear(detail);
     const d = new Date(selected + 'T12:00:00Z');
     const weekday = WEEKDAYS_L[d.getUTCDay()];
     const dayNum = d.getUTCDate();
     detail.appendChild(el('div', { class: 'cal-det-date' }, weekday + ', ' + dayNum + ' ' + MONTHS_L[d.getUTCMonth()] + ' ' + d.getUTCFullYear()));
+
+    // what you came for, when this day came from a Best Day search
+    if (bestState.intent && bestDays.has(selected)) {
+      detail.appendChild(el('div', { class: 'cal-det-focus' }, 'You looked at this day for: ' + bestState.intent + '.'));
+    }
+    // the meaning, in plain language, leading the panel and the shared card
+    detail.appendChild(el('div', { class: 'cal-det-synth' }, daySynthesis()));
+    detail.appendChild(el('div', { class: 'cal-det-prov' }, 'The coordinates'));
 
     function detRow(label: string, value: HTMLElement | string): void {
       const r = el('div', { class: 'cal-det-row' });
