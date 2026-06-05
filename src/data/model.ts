@@ -166,6 +166,19 @@ export interface VesselSignal {
   moved?: 'well' | 'waiting' | 'mixed';
 }
 
+/**
+ * A recorded reading: the spine of reading history. One entry per day the
+ * person opened a reading, so the record reads as the days they showed up, and
+ * any day can be reopened exactly, for that date. Read as the person's own
+ * history, never as a forecast.
+ */
+export interface ReadingRecord {
+  at: number;
+  date: string;
+  tier?: string;
+  title: string;
+}
+
 /** The whole of what the vessel holds for one person. The unit of persistence. */
 export interface VesselState {
   rooms: Room[];
@@ -179,6 +192,8 @@ export interface VesselState {
   savedProfiles?: StoredProfile[];
   /** The located outcome signals, the spine of the measurable impact model. */
   signals?: VesselSignal[];
+  /** The recorded readings, the days the person opened a reading. */
+  readings?: ReadingRecord[];
   /** Schema version, so migrations are explicit and safe. */
   version: number;
 }

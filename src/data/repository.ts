@@ -17,7 +17,7 @@
  * marks, in code and in comments alike.
  */
 
-import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens, VesselSignal } from '../data/model';
+import type { VesselState, Room, Theme, HeldIntention, Touch, Anchor, ThreadKind, ThreadStatus, Lens, VesselSignal, ReadingRecord } from '../data/model';
 import { emptyState, LIMITS, SCHEMA_VERSION } from '../data/model';
 import type { Store } from '../data/store';
 import type { VesselProfile, StoredProfile } from '../data/model';
@@ -72,6 +72,15 @@ export class VesselRepository {
     if (!this.state.signals) this.state.signals = [];
     const now = new Date();
     this.state.signals.push({ at: now.getTime(), date: now.toISOString().slice(0, 10), kind: 'outcome', intentionId, moved });
+    await this.commit();
+  }
+
+  // ---- reading history (the days the person showed up) ----------------------
+  listReadings(): ReadingRecord[] { return (this.state.readings || []).map((x) => ({ ...x })); }
+  async recordReading(r: ReadingRecord): Promise<void> {
+    const list = (this.state.readings || []).filter((x) => x.date !== r.date);
+    list.unshift({ ...r });
+    this.state.readings = list.slice(0, 60);
     await this.commit();
   }
 
