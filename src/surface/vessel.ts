@@ -319,8 +319,8 @@ const STYLES = `
 .cdp-surface .menu.open { transform:none; }
 .cdp-surface .menu-row { display:flex; width:100%; justify-content:space-between; align-items:center; gap:10px; text-align:left; background:transparent; border:none; border-bottom:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; padding:11px 2px; cursor:pointer; }
 .cdp-surface .menu-row:hover { color:var(--gold); }
-.cdp-surface .menu-val { font-size:11px; color:var(--text-dim); font-style:italic; }
-.cdp-surface .menu-note { font-size:12px; color:var(--text-dim); font-style:italic; margin-top:8px; }
+.cdp-surface .menu-val { font-size:12.5px; color:var(--text-muted); }
+.cdp-surface .menu-note { font-size:13px; color:var(--text-light); margin-top:8px; }
 
 @media (max-width:820px) {
   .cdp-surface .drawer { width:90vw; } .cdp-surface .handle { min-height:auto; padding:16px 3px; } .cdp-surface .cols { grid-template-columns:1fr; }
