@@ -158,6 +158,7 @@ const STYLES = `
 .cdp-surface .topnav-link:hover { color:var(--gold); }
 .cdp-surface .topnav-link.active { color:var(--gold); border-bottom-color:var(--gold); }
 .cdp-surface .rdg-list { padding:2px 0; }
+.cdp-surface .rdg-recent-label { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-muted); margin:14px 0 4px; padding:0 2px; }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -877,6 +878,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
       }
     }
+    const recents = repo.listReadings();
+    if (recents.length > 0) {
+      list.appendChild(el('div', { class: 'rdg-recent-label' }, 'Recent'));
+      for (const rec of recents.slice(0, 6)) {
+        const label = new Date(rec.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        const link = el('button', { type: 'button', class: 'rdg-link' }, label);
+        link.addEventListener('click', () => openReadingFor(profile ?? null, 'Reading for ' + label, rec.date));
+        list.appendChild(link);
+      }
+    }
     drawer.appendChild(list);
     pin.addEventListener('click', () => {
       pinned.right = !pinned.right;
@@ -902,7 +913,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       return '';
     }
   }
-  function openReadingFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null, title: string): void {
+  function openReadingFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null, title: string, date?: string): void {
     closeDrawer('right');
     if (readingHandle) readingHandle.close();
     readingHandle = openReading({
@@ -911,11 +922,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
       tier: 'oracle',
       userId: null,
+      date,
       reflect: (n) => reflect(n),
       title,
       composeAsk,
       recordSignal: (s) => { void repo.recordSignal(s); },
     });
+    void repo.recordReading({ at: Date.now(), date: date || dateStr, tier: 'oracle', title });
   }
   function openProfilesView(): void {
     closeDrawer('right');
