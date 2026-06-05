@@ -138,6 +138,47 @@ const STYLES = `
 .cdp-surface .cpill-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-dim); }
 .cdp-surface .cpill-v { font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.4; color:var(--text-light); }
 
+.cdp-surface .glance-overlay { position:fixed; inset:0; z-index:120; display:none; align-items:flex-start; justify-content:center; padding:64px 18px 24px; background:rgba(3,12,24,0.74); backdrop-filter:blur(3px); overflow-y:auto; }
+.cdp-surface .glance-overlay.open { display:flex; }
+.cdp-surface .glance-panel { position:relative; width:min(880px, 96vw); background:var(--navy); border:1px solid var(--gold-line); border-radius:8px; box-shadow:0 24px 70px rgba(0,0,0,0.6); padding:20px 24px 22px; }
+.cdp-surface .glance-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--gold-line); }
+.cdp-surface .glance-eyebrow { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold); }
+.cdp-surface .glance-close { background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:1px; padding:4px 11px; border-radius:3px; cursor:pointer; }
+.cdp-surface .glance-close:hover { color:var(--text-light); border-color:var(--gold); }
+.cdp-surface .glance-voice { display:flex; gap:8px; justify-content:center; padding:14px 0 2px; }
+.cdp-surface .gv-btn { background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; padding:6px 13px; border-radius:3px; cursor:pointer; }
+.cdp-surface .gv-btn.on[data-voice="tradition"] { background:var(--gold); border-color:var(--gold); color:var(--navy); }
+.cdp-surface .gv-btn.on[data-voice="science"] { background:var(--teal); border-color:var(--teal); color:var(--navy); }
+.cdp-surface .gv-btn.on[data-voice="everyday"] { background:var(--text-muted); border-color:var(--text-muted); color:var(--navy); }
+.cdp-surface .glance-body { display:flex; align-items:center; gap:22px; padding:16px 0 6px; }
+.cdp-surface .glance-compass { flex:1 1 auto; min-width:0; }
+.cdp-surface .glance-compass img, .cdp-surface .glance-compass svg { width:100%; height:auto; max-height:46vh; display:block; border-radius:3px; }
+.cdp-surface .glance-cards { flex:0 0 222px; display:flex; flex-direction:column; gap:10px; }
+.cdp-surface .gcard { display:flex; align-items:flex-start; gap:11px; width:100%; text-align:left; background:var(--raised); border:1px solid var(--gold-line); border-radius:5px; padding:11px 13px; cursor:pointer; transition:border-color .2s, background .2s; }
+.cdp-surface .gcard:hover { border-color:var(--gold); background:var(--raised2); }
+.cdp-surface .gcard-ic { font-size:17px; line-height:1.1; color:var(--gold); flex-shrink:0; }
+.cdp-surface .glance-panel[data-voice="science"] .gcard-ic { color:var(--teal); }
+.cdp-surface .gcard-txt { display:flex; flex-direction:column; gap:3px; }
+.cdp-surface .gcard-eyebrow { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
+.cdp-surface .glance-panel[data-voice="science"] .gcard-eyebrow { color:var(--teal); }
+.cdp-surface .gcard-label { font-family:'Cormorant Garamond','EB Garamond',Georgia,serif; font-size:14px; line-height:1.35; color:var(--text-light); }
+.cdp-surface .glance-foot { padding-top:14px; margin-top:6px; border-top:1px solid var(--gold-line); text-align:center; }
+.cdp-surface .glance-deeplink { background:transparent; border:none; color:var(--gold-soft); font-family:'EB Garamond',Georgia,serif; font-size:15px; cursor:pointer; }
+.cdp-surface .glance-deeplink:hover { color:var(--gold); }
+.cdp-surface .glance-drawer { position:absolute; inset:0; z-index:5; display:none; flex-direction:column; background:var(--navy); border-radius:8px; padding:20px 24px 22px; }
+.cdp-surface .glance-drawer.open { display:flex; }
+.cdp-surface .glance-drawer-head { display:flex; align-items:center; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid var(--gold-line); }
+.cdp-surface .glance-drawer-eyebrow { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); }
+.cdp-surface .glance-panel[data-voice="science"] .glance-drawer-eyebrow { color:var(--teal); }
+.cdp-surface .glance-drawer-title { font-family:'EB Garamond',Georgia,serif; font-size:21px; color:var(--text-light); margin:14px 0 8px; }
+.cdp-surface .glance-drawer-body { font-family:'EB Garamond',Georgia,serif; font-size:15px; line-height:1.62; color:var(--text-muted); overflow-y:auto; }
+.cdp-surface .glance-drawer-actions { display:flex; flex-wrap:wrap; gap:10px; padding-top:16px; margin-top:auto; border-top:1px solid var(--gold-line); }
+.cdp-surface .gda-btn { background:transparent; border:1px solid var(--gold-line); color:var(--text-light); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:8px 15px; border-radius:3px; cursor:pointer; }
+.cdp-surface .gda-btn:hover { border-color:var(--gold); }
+.cdp-surface .gda-btn.primary { background:var(--gold); border-color:var(--gold); color:var(--navy); }
+.cdp-surface .cite { color:var(--gold-soft); border-bottom:1px dotted var(--gold-line); cursor:help; }
+.cdp-surface .glance-panel[data-voice="science"] .cite { color:var(--teal); }
+
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; text-decoration:none; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
@@ -169,7 +210,7 @@ const STYLES = `
 .cdp-surface .reflect { font-size:13px; font-style:italic; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
 .cdp-surface .reflect.show { opacity:1; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:auto; max-width:clamp(280px, 60vw, 660px); max-height:52vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
+.cdp-surface .compass-svg { width:auto; max-width:clamp(400px, 74vw, 880px); max-height:64vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
 .cdp-surface .ask { width:min(90vw, 520px); margin-top:10px; }
 .cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
@@ -346,12 +387,17 @@ const STYLES = `
 }
 @media (max-width:560px) {
   .cdp-surface .home { padding:22px 14px 48px; }
-  .cdp-surface .compass-svg { max-width:92vw; max-height:40vh; margin:10px auto 6px; }
+  .cdp-surface .compass-svg { max-width:96vw; max-height:46vh; margin:10px auto 6px; }
   .cdp-surface .meet-line { font-size:13px; max-width:90vw; }
   .cdp-surface .voice-toggle { max-width:92vw; }
   .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
   .cdp-surface .handle span:not(.chev) { display:none; }
   .cdp-surface .coords { width:86vw; }
+  .cdp-surface .glance-overlay { padding:48px 12px 18px; }
+  .cdp-surface .glance-panel { padding:16px 14px 18px; }
+  .cdp-surface .glance-body { flex-direction:column; gap:16px; }
+  .cdp-surface .glance-cards { flex:0 0 auto; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cdp-surface .glance-drawer { padding:16px 14px 18px; }
   .cdp-surface .topnav { display:none; }
 }
 `;
@@ -437,6 +483,91 @@ const CYCLING_PHRASES: Record<Lens, string[]> = {
   science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
   everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits', 'Whichever helps you most'],
 };
+
+/* ---- the glance pop-out: a small compass surface ---------------------------
+ * The half-moon by the date opens this. It is not a list box; it is the
+ * compass with four coordinate cards beside it (Time, Lunar, Symbol, Body),
+ * each tappable to go deeper in place. The four cards read in the chosen
+ * voice; tapping one opens a drawer with the cited material, a way to ask
+ * the Oracle about it without leaving, and a door into the full reading.
+ * The labels and the drawer copy are ported from the production compass
+ * surface and kept here as the floor; the coordinates are computed from the
+ * same primitives the reading uses, so the two surfaces never disagree.
+ */
+type ChipKey = 'time' | 'lunar' | 'symbol' | 'body';
+interface ChipCoords {
+  pd: number; pdMaster: boolean; ud: number;
+  moonPhase: string; moonMeaning: string; moonLabel: string;
+  kinSeal: string; kinTone: string;
+}
+const CHIP_META: Record<ChipKey, { glyph: string; eyebrow: string }> = {
+  time: { glyph: '\u25D0', eyebrow: 'Time' },
+  lunar: { glyph: '\u263E', eyebrow: 'Lunar' },
+  symbol: { glyph: '\u25C8', eyebrow: 'Symbol' },
+  body: { glyph: '\u2726', eyebrow: 'Body' },
+};
+function chipLabelsFor(lens: Lens, c: ChipCoords): Record<ChipKey, string> {
+  const pdTxt = 'PD ' + c.pd;
+  if (lens === 'science') {
+    return {
+      time: pdTxt + ' \u00b7 reflective day',
+      lunar: c.moonLabel + ' \u00b7 melatonin and sleep shifting',
+      symbol: 'Symbolic anchor \u00b7 see Tradition',
+      body: 'Interoception \u00b7 check in',
+    };
+  }
+  if (lens === 'tradition') {
+    return {
+      time: pdTxt + ' \u00b7 ' + numName(c.pd),
+      lunar: c.moonLabel,
+      symbol: c.kinTone + ' ' + c.kinSeal,
+      body: 'Body wisdom',
+    };
+  }
+  return {
+    time: pdTxt + ' \u00b7 a quiet day for thinking',
+    lunar: c.moonLabel + (c.moonMeaning ? ' \u00b7 ' + c.moonMeaning : ''),
+    symbol: c.kinTone + ' day \u00b7 ' + c.kinSeal,
+    body: 'Energy check-in',
+  };
+}
+function cite(ref: string, text: string): string {
+  return '<span class="cite" data-ref="' + ref + '" title="' + text + '">' + text + '</span>';
+}
+interface ChipDrawer { eyebrow: string; title: string; bodyHtml: string }
+function chipDrawerContentFor(chip: ChipKey, lens: Lens, c: ChipCoords): ChipDrawer {
+  const eyebrow = CHIP_META[chip].eyebrow + ' \u00b7 ' + lensLabel(lens).toUpperCase();
+  if (chip === 'time') {
+    if (lens === 'tradition') return { eyebrow, title: 'Personal Day ' + c.pd + ' in the Pythagorean count',
+      bodyHtml: `In Pythagorean numerology today reduces to ${c.pd}. Each number carries a specific quality of attention, and today asks for a particular kind of engagement. Read it as a quality, not a script. ${cite('drayer-2002', 'Drayer 2002')} gives the practitioner depth on the Pythagorean tradition, and ${cite('goodwin-1994', 'Goodwin 1994')} the fuller numerology guide. The lineage itself traces to the school at Croton in the sixth century BCE: ${cite('kahn-2001', 'Kahn 2001')} and ${cite('riedweg-2005', 'Riedweg 2005')}.` };
+    if (lens === 'science') return { eyebrow, title: 'Cognitive rhythm signature today',
+      bodyHtml: `Personal-day signatures correlate loosely with shifts between default-mode activity and salience-network engagement ${cite('bremer-2022', 'Bremer 2022')}. Today\u2019s signature aligns with a reflective rather than executive bias, and hippocampal consolidation favours reflective windows ${cite('walker-2017', 'Walker 2017')}. This is one input among many, not a mechanism. Treat the numerology here as a contemplative anchor that may prime attention, not as a cause.` };
+    return { eyebrow, title: 'Today\u2019s quality',
+      bodyHtml: `Today has a specific feel. Some things will run with the grain, others against it. Notice which is which, and work with the day rather than around it. This card gives the quick read; the full reading goes deeper into how today is shaped across moon, body, and pattern.` };
+  }
+  if (chip === 'lunar') {
+    if (lens === 'tradition') return { eyebrow, title: c.moonPhase + ' in the lunar count',
+      bodyHtml: `The moon is in ${c.moonPhase}. Across traditions this phase reads as a turning point in the cycle of release, growth, culmination, or fresh intention. Honour the cycle rather than overriding it. CDP takes phase timing from ${cite('usno', 'USNO')}, with the reading rooted in working with the cycle rather than predicting from it.` };
+    if (lens === 'science') return { eyebrow, title: 'Lunar position and sleep architecture',
+      bodyHtml: `Lunar phase has documented effects on melatonin secretion and sleep architecture ${cite('cajochen-2013', 'Cajochen et al 2013')}. The effects are subtle but measurable in lab conditions, with full-moon nights showing reduced melatonin and lighter sleep. Use lunar timing as one input alongside your circadian timing and your own sleep history. The consolidation literature ${cite('walker-2017', 'Walker 2017')} supports the broader point that sleep quality shapes next-day cognition.` };
+    return { eyebrow, title: c.moonPhase + ' tonight',
+      bodyHtml: `The moon is in ${c.moonPhase}. Energy patterns shift across the lunar cycle even when you are not tracking it. Notice your sleep, your patience, your appetite this week; the moon does move them, subtly, and noticing the pattern is half the use.` };
+  }
+  if (chip === 'symbol') {
+    if (lens === 'tradition') return { eyebrow, title: c.kinTone + ' ' + c.kinSeal + ' in the Dreamspell count',
+      bodyHtml: `Today\u2019s Kin in the Dreamspell count is ${c.kinTone} ${c.kinSeal}. The tone names a developmental position in a thirteen-day wavespell; the seal carries an archetypal quality. This is symbolic, not predictive. The Dreamspell synthesis is ${cite('arguelles-1987', 'Arguelles 1987')}, distinct from the living K\u2019iche\u2019 tzolk\u2019in count documented by ${cite('tedlock-1992', 'Tedlock 1992')}. The archaeoastronomical work on the Maya calendar is anchored in ${cite('sprajc-2023', 'Sprajc et al 2023, Science Advances')} and ${cite('aldana-2022', 'Aldana 2022')}.` };
+    if (lens === 'science') return { eyebrow, title: 'Symbolic anchor for today',
+      bodyHtml: `The Dreamspell Kin is a 260-day symbolic count used here as a contemplative anchor, not an empirical claim. The mechanism, if any, is meaning-priming: a daily symbolic frame can shift attention and reduce decision fatigue. For the measurable layers of today, see the Time and Lunar cards. CDP labels Dreamspell as ${cite('arguelles-1987', 'Arguelles 1987')} to keep it distinct from ancient Maya doctrine ${cite('aveni-2001', 'Aveni 2001')}.` };
+    return { eyebrow, title: c.kinTone + ' ' + c.kinSeal,
+      bodyHtml: `CDP uses a thirteen-day symbolic count to name each day\u2019s flavour. Today is ${c.kinTone} ${c.kinSeal}. Take it as a lens, not a forecast. Some people find it useful for focus, others set it aside. Switch to Tradition for the full symbolic depth, or Science for what the measurable layers can and cannot tell you.` };
+  }
+  if (lens === 'tradition') return { eyebrow, title: 'Body as compass',
+    bodyHtml: `The body is the first signal. Today the rhythm of energy, breath, and posture is the first reading; listen there before consulting the calendar. ${cite('porges-2011', 'Porges 2011')} on neuroception offers the contemplative bridge.` };
+  if (lens === 'science') return { eyebrow, title: 'Interoception today',
+    bodyHtml: `Biorhythms in their classical form are pseudoscientific. The genuine signal is interoception ${cite('craig-2002', 'Craig 2002')}: reading internal body state directly. What is your body telling you now about energy, hunger, tension, breath? That answer is more reliable than any calendar.` };
+  return { eyebrow, title: 'How is your body today?',
+    bodyHtml: `Take thirty seconds. Where in your body is the energy? Where is the tension? What does your body want from you today? The answer matters more than any calendar.` };
+}
 
 /* ---- mount ---------------------------------------------------------------- */
 
@@ -572,21 +703,71 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // a quiet date with the day in a glance, a readable pill set opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
-  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today, in a glance', 'aria-expanded': 'false' });
+  // the half-moon glyph is the doorway: a tap opens the compass surface in place,
+  // larger, with four coordinate cards that each go deeper without leaving home
+  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' });
   pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
-  const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today, in a glance' });
-  let coordsOpen = false;
-  let coordsPinned = false;
-  function openCoords(): void { coordsOpen = true; pill.classList.add('open'); coords.classList.add('open'); pill.setAttribute('aria-expanded', 'true'); }
-  function closeCoords(): void { coordsOpen = false; pill.classList.remove('open'); coords.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
-  function openReadingNow(): void { closeCoords(); openReadingFor(profile ?? null, 'Today\u2019s reading'); }
-  paintCoords();
-  pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (coordsOpen) closeCoords(); else openCoords(); });
-  coords.addEventListener('click', (e: Event) => { e.stopPropagation(); });
-  document.addEventListener('click', () => { if (coordsOpen && !coordsPinned) closeCoords(); });
   daystrip.appendChild(pill);
-  daystrip.appendChild(coords);
   home.appendChild(daystrip);
+
+  // the pop-out compass surface (a modal over home, never a navigation away)
+  const glanceOverlay = el('div', { class: 'glance-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The compass: today in four coordinates' });
+  const glancePanel = el('div', { class: 'glance-panel', 'data-voice': lens });
+  let glanceOpen = false;
+  let currentChip: ChipKey | null = null;
+
+  const glanceHead = el('div', { class: 'glance-head' });
+  glanceHead.appendChild(el('div', { class: 'glance-eyebrow' }, 'The compass \u00b7 today'));
+  const glanceCloseBtn = el('button', { type: 'button', class: 'glance-close', 'aria-label': 'Close the compass' }, 'Close');
+  glanceHead.appendChild(glanceCloseBtn);
+  glancePanel.appendChild(glanceHead);
+
+  const glanceVoiceRow = el('div', { class: 'glance-voice', role: 'group', 'aria-label': 'Choose a voice' });
+  glancePanel.appendChild(glanceVoiceRow);
+
+  const glanceBody = el('div', { class: 'glance-body' });
+  const glanceCompass = el('div', { class: 'glance-compass' });
+  glanceCompass.appendChild(el('img', { src: COMPASS_IMAGE, alt: 'The compass', loading: 'lazy' }));
+  glanceBody.appendChild(glanceCompass);
+  const glanceCards = el('div', { class: 'glance-cards' });
+  glanceBody.appendChild(glanceCards);
+  glancePanel.appendChild(glanceBody);
+
+  const glanceFoot = el('div', { class: 'glance-foot' });
+  const glanceDeeplink = el('button', { type: 'button', class: 'glance-deeplink' }, 'Open the full reading \u2192');
+  glanceDeeplink.addEventListener('click', () => { closeGlance(); openReadingFor(profile ?? null, 'Today\u2019s reading'); });
+  glanceFoot.appendChild(glanceDeeplink);
+  glancePanel.appendChild(glanceFoot);
+
+  // the drawer sits over the panel: each card opens here, in place
+  const glanceDrawer = el('div', { class: 'glance-drawer', role: 'region', 'aria-label': 'Coordinate, in depth' });
+  const glanceDrawerHead = el('div', { class: 'glance-drawer-head' });
+  const glanceDrawerEyebrow = el('div', { class: 'glance-drawer-eyebrow' });
+  const glanceDrawerBack = el('button', { type: 'button', class: 'glance-close', 'aria-label': 'Back to the compass' }, 'Back');
+  glanceDrawerHead.appendChild(glanceDrawerEyebrow);
+  glanceDrawerHead.appendChild(glanceDrawerBack);
+  glanceDrawer.appendChild(glanceDrawerHead);
+  const glanceDrawerTitle = el('div', { class: 'glance-drawer-title' });
+  glanceDrawer.appendChild(glanceDrawerTitle);
+  const glanceDrawerBody = el('div', { class: 'glance-drawer-body' });
+  glanceDrawer.appendChild(glanceDrawerBody);
+  const glanceDrawerActions = el('div', { class: 'glance-drawer-actions' });
+  glanceDrawer.appendChild(glanceDrawerActions);
+  glancePanel.appendChild(glanceDrawer);
+
+  glanceOverlay.appendChild(glancePanel);
+  surface.appendChild(glanceOverlay);
+
+  function closeChipDrawer(): void { currentChip = null; glanceDrawer.classList.remove('open'); }
+  function openGlance(): void { glanceOpen = true; paintGlance(); glanceOverlay.classList.add('open'); pill.classList.add('open'); pill.setAttribute('aria-expanded', 'true'); }
+  function closeGlance(): void { glanceOpen = false; closeChipDrawer(); glanceOverlay.classList.remove('open'); pill.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
+
+  pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (glanceOpen) closeGlance(); else openGlance(); });
+  glanceCloseBtn.addEventListener('click', () => closeGlance());
+  glanceDrawerBack.addEventListener('click', () => closeChipDrawer());
+  glancePanel.addEventListener('click', (e: Event) => { e.stopPropagation(); });
+  glanceOverlay.addEventListener('click', () => closeGlance());
+  document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && glanceOpen) { if (currentChip) closeChipDrawer(); else closeGlance(); } });
 
   // the voice repertoire sits under the date, as on the compass surface:
   // emblem, date, the cycling line, then the toggle
@@ -928,6 +1109,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       tier: 'oracle',
       userId: null,
       date,
+      ask: (prompt: string) => { void compose(prompt); },
       reflect: (n) => reflect(n),
       title,
       composeAsk,
@@ -1421,57 +1603,77 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
   function paintMeetLine(): void { meetLine.textContent = composeMeetLine(); }
 
-  function paintCoords(): void {
-    clear(coords);
-    const top = el('div', { class: 'coords-top' });
-    top.appendChild(el('div', { class: 'coords-title' }, 'Today, in a glance'));
-    const pinBtn = el('button', { type: 'button', class: coordsPinned ? 'coords-pin on' : 'coords-pin', 'aria-pressed': coordsPinned ? 'true' : 'false' }, coordsPinned ? 'PINNED' : 'PIN');
-    pinBtn.addEventListener('click', (e: Event) => {
-      e.stopPropagation();
-      coordsPinned = !coordsPinned;
-      pinBtn.classList.toggle('on', coordsPinned);
-      pinBtn.textContent = coordsPinned ? 'PINNED' : 'PIN';
-      pinBtn.setAttribute('aria-pressed', coordsPinned ? 'true' : 'false');
-      if (coordsPinned) openCoords();
-    });
-    top.appendChild(pinBtn);
-    coords.appendChild(top);
-
+  // the four coordinates of today, drawn from the same engine the reading uses
+  function glanceCoords(): ChipCoords {
     const pn = (profile && profile.birthDate) ? personalNumerology(profile.birthDate, dateStr) : null;
     const ud = universalDay(dateStr);
     const desc = kinDescriptor(dateStr);
     const lw = lunarWindow(dateStr);
+    const moonLabel = lw.black ? 'Black Moon' : (lw.shiva ? 'Shiva Moon' : lw.phase);
+    return {
+      pd: pn ? pn.personalDay.value : ud.value,
+      pdMaster: pn ? pn.personalDay.isMaster : ud.isMaster,
+      ud: ud.value,
+      moonPhase: lw.phase,
+      moonMeaning: lw.meaning,
+      moonLabel: moonLabel,
+      kinSeal: desc.seal,
+      kinTone: desc.toneName,
+    };
+  }
 
-    function cpill(label: string, lead: string, onOpen: () => void): void {
-      const p = el('button', { type: 'button', class: 'cpill' });
-      p.appendChild(el('span', { class: 'cpill-l' }, label));
-      p.appendChild(el('span', { class: 'cpill-v' }, lead));
-      p.addEventListener('click', (e: Event) => { e.stopPropagation(); onOpen(); });
-      coords.appendChild(p);
-    }
+  const CHIP_ORDER: ChipKey[] = ['time', 'lunar', 'symbol', 'body'];
+  const CHIP_ASK: Record<ChipKey, string> = {
+    time: 'the numerology of today and how best to meet it',
+    lunar: 'the moon today and what it asks of me',
+    symbol: 'today\u2019s Dreamspell sign and its meaning for me',
+    body: 'how to read my body today',
+  };
 
-    const dn = pn ? pn.personalDay.value : ud.value;
-    const dMaster = pn ? pn.personalDay.isMaster : ud.isMaster;
-    cpill(pn ? 'Your day' : 'Today', dn + (dMaster ? ', a master number, ' : ', ') + numName(dn), openReadingNow);
+  // paint the compass surface: voice row, then the four coordinate cards
+  function paintGlance(): void {
+    glancePanel.setAttribute('data-voice', lens);
+    clear(glanceVoiceRow);
+    (['tradition', 'science', 'everyday'] as Lens[]).forEach((l) => {
+      const b = el('button', { type: 'button', class: l === lens ? 'gv-btn on' : 'gv-btn', 'data-voice': l, 'aria-pressed': l === lens ? 'true' : 'false' }, lensLabel(l));
+      b.addEventListener('click', (e: Event) => { e.stopPropagation(); setVoice(l); });
+      glanceVoiceRow.appendChild(b);
+    });
+    const c = glanceCoords();
+    const labels = chipLabelsFor(lens, c);
+    clear(glanceCards);
+    CHIP_ORDER.forEach((chip) => {
+      const card = el('button', { type: 'button', class: 'gcard', 'aria-label': CHIP_META[chip].eyebrow + ': ' + labels[chip] });
+      card.appendChild(el('span', { class: 'gcard-ic', 'aria-hidden': 'true' }, CHIP_META[chip].glyph));
+      const txt = el('div', { class: 'gcard-txt' });
+      txt.appendChild(el('span', { class: 'gcard-eyebrow' }, CHIP_META[chip].eyebrow));
+      txt.appendChild(el('span', { class: 'gcard-label' }, labels[chip]));
+      card.appendChild(txt);
+      card.addEventListener('click', (e: Event) => { e.stopPropagation(); openChipDrawer(chip); });
+      glanceCards.appendChild(card);
+    });
+  }
 
-    const arch = SEAL_ARCH[desc.seal] || '';
-    const archShort = arch ? arch.split(',')[0] : '';
-    cpill('Sign', desc.full.replace(/^Kin \d+ /, '') + (archShort ? ', ' + archShort.charAt(0).toLowerCase() + archShort.slice(1) : ''), openReadingNow);
-
-    let moonLead: string;
-    if (lw.black) moonLead = 'Black Moon, a quiet, inward window';
-    else if (lw.shiva) moonLead = 'Shiva Moon, a restorative window';
-    else moonLead = lw.phase + (lw.meaning ? ', ' + lw.meaning : '');
-    cpill('Moon', moonLead, openReadingNow);
-
-    if (pn) {
-      cpill('Year', pn.personalYear.value + (pn.personalYear.isMaster ? ', a master number' : '') + ', the arc beneath the day', () => { closeCoords(); openYearView(); });
-    }
+  // open a coordinate in place: cited depth, a deep-dive into the reading, and the Oracle in the moment
+  function openChipDrawer(chip: ChipKey): void {
+    currentChip = chip;
+    const d = chipDrawerContentFor(chip, lens, glanceCoords());
+    glanceDrawerEyebrow.textContent = d.eyebrow;
+    glanceDrawerTitle.textContent = d.title;
+    glanceDrawerBody.innerHTML = d.bodyHtml;
+    clear(glanceDrawerActions);
+    const ask = el('button', { type: 'button', class: 'gda-btn primary' }, 'Ask the Oracle about this');
+    ask.addEventListener('click', (e: Event) => { e.stopPropagation(); closeGlance(); void compose('Tell me more about ' + CHIP_ASK[chip] + '.'); });
+    glanceDrawerActions.appendChild(ask);
+    const deep = el('button', { type: 'button', class: 'gda-btn' }, 'Full depth in your reading \u2192');
+    deep.addEventListener('click', (e: Event) => { e.stopPropagation(); closeGlance(); openReadingFor(profile ?? null, 'Today\u2019s reading'); });
+    glanceDrawerActions.appendChild(deep);
+    glanceDrawer.classList.add('open');
   }
   function applyProfile(birthDate: string): void {
     profile = { birthDate: birthDate, name: profile ? profile.name : undefined };
     day = dayCoordinates(dateStr, { birthDate: birthDate });
-    paintCoords();
+    if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
     void repo.setProfile({ birthDate: birthDate });
   }
@@ -1486,6 +1688,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     trackEvent('voice_changed', { lens: next });
     if (activeReplyId) void revoice(activeReplyId);
     if (readingHandle) readingHandle.repaintVoice(next);
+    if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
   }
   reflectVoice();
 
