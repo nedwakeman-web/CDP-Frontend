@@ -27,6 +27,9 @@ export interface OpenCalendarOptions {
   composeAsk?: (prompt: string) => Promise<string>;
   recordSignal?: (s: VesselSignal) => void;
   getSignals?: () => VesselSignal[];
+  /** Opens the full reading for a date. Optional; when absent, Open this day
+   *  selects the day and scrolls its detail into view. Null safe drop in. */
+  onOpenReading?: (dateIso: string) => void;
 }
 export interface CalendarHandle { close(): void; }
 
@@ -63,7 +66,16 @@ function lifePathOf(birthDate: string): number {
   return reduceNumber(sum).value;
 }
 
-interface BdDay { dateIso: string; score?: number }
+interface BdDay {
+  dateIso: string;
+  score?: number;
+  totalScore?: number;
+  convergence?: number;
+  reasons?: string[];
+  cautions?: string[];
+  personalContext?: Record<string, unknown>;
+}
+interface BestState { intent: string; ranked: BdDay[]; }
 
 const STYLE_ID = 'cdp-calendar-style';
 function ensureStyle(): void {
@@ -98,7 +110,27 @@ function ensureStyle(): void {
     '.cdp-surface .cal-cell.blank{border:none;background:none;cursor:default}',
     '.cdp-surface .cal-cell.today{border-color:var(--gold,#C9A050)}',
     '.cdp-surface .cal-cell.sel{background:var(--raised,#13284A);border-color:var(--gold-soft,#E8C878)}',
-    '.cdp-surface .cal-cell.best{box-shadow:0 0 0 2px var(--teal,#81CDB6) inset}',
+    '.cdp-surface .cal-cell.best{box-shadow:0 0 0 2px var(--gold,#C9A050) inset}',
+    '.cdp-surface .cal-cell.avoid::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:#D98C8C;opacity:.8}',
+    '.cdp-surface .cal-bdr{margin-top:14px}',
+    '.cdp-surface .cal-bdr-head{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:4px}',
+    '.cdp-surface .cal-bdr-note{font-family:Georgia,serif;font-size:12.5px;line-height:1.6;color:var(--text-dim,#D4C8AE);margin-bottom:12px}',
+    '.cdp-surface .cal-bdr-card{border:1px solid var(--gold-line,#3A3320);border-left:3px solid var(--gold,#C9A050);border-radius:4px;background:var(--raised,#13284A);padding:12px 15px;margin-bottom:10px}',
+    '.cdp-surface .cal-bdr-rank{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-soft,#E8C878);margin-bottom:3px}',
+    '.cdp-surface .cal-bdr-date{font-family:\'EB Garamond\',Georgia,serif;font-size:18px;color:var(--text-light,#F0E6CC);margin-bottom:2px}',
+    '.cdp-surface .cal-bdr-score{font-family:Georgia,serif;font-size:12.5px;color:var(--gold-soft,#E8C878);margin-bottom:7px}',
+    '.cdp-surface .cal-bdr-reason{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-light,#F0E6CC);margin:0 0 3px;padding-left:16px;text-indent:-16px}',
+    '.cdp-surface .cal-bdr-caution{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--gold-soft,#E8C878);margin:5px 0 0;padding-left:16px;text-indent:-16px}',
+    '.cdp-surface .cal-bdr-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}',
+    '.cdp-surface .cal-bdr-act{background:none;border:1px solid rgba(201,160,80,.45);color:var(--gold,#C9A050);font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border-radius:2px;cursor:pointer}',
+    '.cdp-surface .cal-bdr-act.sci{border-color:rgba(129,205,182,.5);color:var(--teal,#81CDB6)}',
+    '.cdp-surface .cal-bdr-act:hover{border-color:currentColor}',
+    '.cdp-surface .cal-bdr-more{background:none;border:1px dashed var(--gold,#C9A050);color:var(--gold,#C9A050);font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:8px 16px;border-radius:2px;cursor:pointer;display:block;margin:4px auto 14px}',
+    '.cdp-surface .cal-bdr-sub{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:14px 0 8px}',
+    '.cdp-surface .cal-bdr-gentle{border:1px solid var(--gold-line,#3A3320);border-left:3px solid #D98C8C;border-radius:4px;background:var(--navy,#0D1E33);padding:10px 15px;margin-bottom:8px}',
+    '.cdp-surface .cal-bdr-gentle .cal-bdr-date{font-size:16px;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .cal-bdr-gentle-r{font-family:Georgia,serif;font-size:12.5px;line-height:1.6;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .cal-bdr-clear{background:none;border:none;color:var(--text-dim,#D4C8AE);font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:block;margin:6px auto 0;padding:6px 12px}',
     '.cdp-surface .cal-top{display:flex;align-items:flex-start;justify-content:space-between}',
     '.cdp-surface .cal-d{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--text-light,#F0E6CC);line-height:1.1}',
     '.cdp-surface .cal-moon{font-size:12px;line-height:1}',
@@ -177,6 +209,9 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
   let viewMonth = todayD.getUTCMonth();
   let selected = todayStr;
   const bestDays = new Set<string>();
+  const avoidDays = new Set<string>();
+  let bestState: BestState = { intent: '', ranked: [] };
+  let bestExpanded = false;
 
   /* ---- the in place Compass drawer ---------------------------------------- */
   let ddOpen = false;
@@ -225,10 +260,10 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
 
   /* ---- view tabs ---------------------------------------------------------- */
   const tabs = el('div', { class: 'cal-tabs' });
-  const tabMonth = el('button', { type: 'button', class: 'cal-tab on' }, 'Month view');
-  const tabBest = el('button', { type: 'button', class: 'cal-tab' }, 'Best day for');
-  tabs.appendChild(tabMonth);
+  const tabBest = el('button', { type: 'button', class: 'cal-tab on' }, 'Best day for');
+  const tabMonth = el('button', { type: 'button', class: 'cal-tab' }, 'Month view');
   tabs.appendChild(tabBest);
+  tabs.appendChild(tabMonth);
   shell.appendChild(tabs);
 
   shell.appendChild(el('div', { class: 'cal-intro' }, 'The month at a glance, each day carrying its energy number, its portals, its colour and its moon. Tap any day to open it in full, or name a period and an intention to find the best days for it.'));
@@ -257,6 +292,8 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
   bd.appendChild(chips);
   const bdStatus = el('div', { class: 'cal-bd-status' });
   bd.appendChild(bdStatus);
+  const bdResult = el('div', { class: 'cal-bdr' });
+  bd.appendChild(bdResult);
 
   /* ---- navigation, legend, grid, detail ----------------------------------- */
   const nav = el('div', { class: 'cal-nav' });
@@ -373,7 +410,7 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
       const kd = kinDescriptor(ds);
       const lw = lunarWindow(ds);
       const energy = hasBirth && prof && prof.birthDate ? personalNumerology(prof.birthDate, ds).personalDay : universalDay(ds);
-      const cls = 'cal-cell' + (ds === todayStr ? ' today' : '') + (ds === selected ? ' sel' : '') + (bestDays.has(ds) ? ' best' : '');
+      const cls = 'cal-cell' + (ds === todayStr ? ' today' : '') + (ds === selected ? ' sel' : '') + (bestDays.has(ds) ? ' best' : '') + (avoidDays.has(ds) ? ' avoid' : '');
       const cell = el('button', { type: 'button', class: cls });
 
       const top = el('div', { class: 'cal-top' });
@@ -405,6 +442,92 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
     bdTo.value = cellDate(viewYear, viewMonth, lastDay);
   }
 
+  function scoreOf(d: BdDay): number { return Number(d.totalScore != null ? d.totalScore : d.convergence != null ? d.convergence : d.score != null ? d.score : 0); }
+
+  function paintBestHalos(): void {
+    bestDays.clear(); avoidDays.clear();
+    const r = bestState.ranked;
+    r.slice(0, 3).forEach((d) => bestDays.add(d.dateIso));
+    r.slice().reverse().slice(0, 3).forEach((d) => { if (!bestDays.has(d.dateIso)) avoidDays.add(d.dateIso); });
+  }
+
+  function bdDayLabel(iso: string): string {
+    const dt = new Date(iso + 'T12:00:00Z');
+    return dt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  function scoreBand(s: number): string { return s >= 70 ? 'Strong' : s >= 55 ? 'Good' : 'Moderate'; }
+
+  function bestCard(d: BdDay, rank: number): HTMLElement {
+    const card = el('div', { class: 'cal-bdr-card' });
+    card.appendChild(el('div', { class: 'cal-bdr-rank' }, rank === 1 ? 'Best match' : 'Pick ' + rank));
+    card.appendChild(el('div', { class: 'cal-bdr-date' }, bdDayLabel(d.dateIso)));
+    const s = Math.round(scoreOf(d));
+    card.appendChild(el('div', { class: 'cal-bdr-score' }, scoreBand(s) + ', score ' + s + ' out of 100'));
+    (d.reasons || []).slice(0, 3).forEach((r) => card.appendChild(el('div', { class: 'cal-bdr-reason' }, '\u2713 ' + r)));
+    const caution = (d.cautions || [])[0];
+    if (caution) card.appendChild(el('div', { class: 'cal-bdr-caution' }, '\u26a0 ' + caution));
+    const acts = el('div', { class: 'cal-bdr-acts' });
+    if (o.composeAsk) {
+      const reasons = (d.reasons || []).join('; ');
+      const why = el('button', { type: 'button', class: 'cal-bdr-act' }, 'Why this day for me');
+      why.addEventListener('click', () => openAsk('My intention is ' + bestState.intent + '. ' + bdDayLabel(d.dateIso) + ' scored ' + s + ' out of 100' + (reasons ? ', with ' + reasons : '') + '. Why is this a strong day for me, read in depth.', { framework: 'convergence', section: 'best day' }));
+      acts.appendChild(why);
+      const what = el('button', { type: 'button', class: 'cal-bdr-act sci' }, 'What should I actually do');
+      what.addEventListener('click', () => openAsk('My intention is ' + bestState.intent + '. On ' + bdDayLabel(d.dateIso) + ', what should I actually do to make the most of this day, concretely and practically.', { framework: 'convergence', section: 'best day' }));
+      acts.appendChild(what);
+    }
+    const open = el('button', { type: 'button', class: 'cal-bdr-act' }, 'Open this day');
+    open.addEventListener('click', () => {
+      if (o.onOpenReading) { o.onOpenReading(d.dateIso); return; }
+      const fd = new Date(d.dateIso + 'T12:00:00Z'); viewYear = fd.getUTCFullYear(); viewMonth = fd.getUTCMonth(); selected = d.dateIso;
+      renderGrid(); renderDetail();
+      try { detail.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) { /* no layout in headless */ }
+    });
+    acts.appendChild(open);
+    card.appendChild(acts);
+    return card;
+  }
+
+  function gentleCard(d: BdDay): HTMLElement {
+    const card = el('div', { class: 'cal-bdr-gentle' });
+    card.appendChild(el('div', { class: 'cal-bdr-date' }, bdDayLabel(d.dateIso)));
+    const s = Math.round(scoreOf(d));
+    const reason = (d.cautions || []).slice(0, 2).join('. ') || 'Lower convergence across the frameworks for this intention.';
+    card.appendChild(el('div', { class: 'cal-bdr-gentle-r' }, 'Score ' + s + ' out of 100. ' + reason));
+    return card;
+  }
+
+  function renderBestDayResults(): void {
+    clear(bdResult);
+    const ranked = bestState.ranked;
+    if (!ranked.length) return;
+    const intentDisplay = bestState.intent.charAt(0).toUpperCase() + bestState.intent.slice(1);
+    bdResult.appendChild(el('div', { class: 'cal-bdr-head' }, 'Best days for ' + intentDisplay));
+    bdResult.appendChild(el('div', { class: 'cal-bdr-note' }, 'The strongest days carry a gold outline on the grid above, the gentler days a soft dot. Open any day for the reasons in full, or ask the Oracle what to do with it.'));
+    const top = ranked.slice(0, 3);
+    for (let i = 0; i < top.length; i++) bdResult.appendChild(bestCard(top[i], i + 1));
+    const more = ranked.slice(3, 8);
+    if (more.length && !bestExpanded) {
+      const moreBtn = el('button', { type: 'button', class: 'cal-bdr-more' }, 'Show me five more');
+      moreBtn.addEventListener('click', () => { bestExpanded = true; renderBestDayResults(); });
+      bdResult.appendChild(moreBtn);
+    } else if (more.length && bestExpanded) {
+      bdResult.appendChild(el('div', { class: 'cal-bdr-sub' }, 'Also strong'));
+      for (let i = 0; i < more.length; i++) bdResult.appendChild(bestCard(more[i], i + 4));
+    }
+    const gentle = ranked.slice().reverse().slice(0, 3).filter((d) => !bestDays.has(d.dateIso));
+    if (gentle.length) {
+      bdResult.appendChild(el('div', { class: 'cal-bdr-sub' }, 'Days that ask more of you'));
+      for (const d of gentle) bdResult.appendChild(gentleCard(d));
+    }
+    const clearBtn = el('button', { type: 'button', class: 'cal-bdr-clear' }, 'Clear these results');
+    clearBtn.addEventListener('click', () => {
+      bestState = { intent: '', ranked: [] }; bestExpanded = false; bestDays.clear(); avoidDays.clear();
+      clear(bdResult); bdStatus.textContent = ''; renderGrid();
+    });
+    bdResult.appendChild(clearBtn);
+  }
+
   async function findBestDays(): Promise<void> {
     const intent = bdInput.value.trim();
     if (!intent) { bdStatus.textContent = 'Name what the days are for, and the period is scanned for you.'; return; }
@@ -419,21 +542,24 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
     };
     if (prof.name) up.name = prof.name;
     bdStatus.textContent = 'Scanning for the best days for ' + intent + '.';
+    clear(bdResult);
     try {
       const res = await fetch('/api/best-day', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userProfile: up, intent, monthStart, monthEnd, topN: 62 }) });
       const data = await res.json() as { ranked?: BdDay[]; fullScan?: BdDay[]; error?: string };
       if (data.error) throw new Error(data.error);
-      const ranked = (data.ranked || data.fullScan || []);
-      bestDays.clear();
-      ranked.slice(0, 3).forEach((dd) => { if (dd && dd.dateIso) bestDays.add(dd.dateIso); });
+      const ranked = (data.ranked || data.fullScan || []).filter((d) => d && d.dateIso).slice().sort((a, b) => scoreOf(b) - scoreOf(a));
+      bestState = { intent, ranked };
+      bestExpanded = false;
+      paintBestHalos();
       const first = ranked.length ? ranked[0].dateIso : '';
       if (first) { const fd = new Date(first + 'T12:00:00Z'); viewYear = fd.getUTCFullYear(); viewMonth = fd.getUTCMonth(); selected = first; }
-      setMode('month');
+      setMode('best');
       renderGrid();
       renderDetail();
-      if (bestDays.size) {
-        bdStatus.textContent = 'The strongest days for ' + intent + ' are outlined on the grid, with the best opened below.';
-        if (o.reflect) o.reflect('Best days for ' + intent + ' are marked.');
+      renderBestDayResults();
+      if (ranked.length) {
+        bdStatus.textContent = '';
+        if (o.reflect) o.reflect('Best days for ' + intent + ' are marked, with the reasons below.');
       } else {
         bdStatus.textContent = 'No standout days in that window. A broader period or intention may surface more.';
       }
@@ -442,8 +568,8 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
     }
   }
 
-  prev.addEventListener('click', () => { viewMonth -= 1; if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; } bestDays.clear(); defaultRange(); renderGrid(); });
-  next.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } bestDays.clear(); defaultRange(); renderGrid(); });
+  prev.addEventListener('click', () => { viewMonth -= 1; if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; } defaultRange(); renderGrid(); });
+  next.addEventListener('click', () => { viewMonth += 1; if (viewMonth > 11) { viewMonth = 0; viewYear += 1; } defaultRange(); renderGrid(); });
   bdBtn.addEventListener('click', () => { void findBestDays(); });
   bdInput.addEventListener('keydown', (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') { void findBestDays(); } });
 
@@ -462,7 +588,7 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
   }));
 
   defaultRange();
-  setMode('month');
+  setMode('best');
   renderGrid();
   renderDetail();
 

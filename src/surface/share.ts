@@ -43,9 +43,60 @@ function cleanClone(node: HTMLElement | null): HTMLElement | null {
   return clone;
 }
 
+/*
+ * Structural text extraction. innerText needs layout, so on a detached clone it
+ * returns empty and the old path fell back to textContent, which concatenated
+ * every field with no separator (the "Day energy7 ... Yellow SunYour day1" jam).
+ * This walks the tree instead: block elements break onto their own line, and a
+ * label element is joined to the value beside it as "Label: value", so a shared
+ * or saved artefact reads as clean prose without depending on layout.
+ */
+const BLOCK_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DETAILS', 'DIV', 'DL', 'DT', 'DD',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'HEADER', 'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'TABLE', 'TR', 'UL',
+]);
+function isLabelEl(elx: Element): boolean {
+  const c = (elx.getAttribute('class') || '').toLowerCase();
+  if (!c) return false;
+  if (c.indexOf('label') >= 0) return true;
+  return /(^|\s)([a-z0-9-]*-l)(\s|$)/.test(c)
+    || /(win-tag|coord-l|energy-layer|seclabel|emergent-l|signal-l|bio-l|cite-tag|bdr-rank)/.test(c);
+}
+function domToText(node: HTMLElement | null): string {
+  if (!node) return '';
+  const parts: string[] = [];
+  function walk(n: Node): void {
+    if (n.nodeType === 3) {
+      const t = (n.nodeValue || '').replace(/\s+/g, ' ');
+      if (t.trim()) parts.push(t);
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    const elx = n as Element;
+    const tag = elx.tagName;
+    if (tag === 'BR') { parts.push('\n'); return; }
+    const block = BLOCK_TAGS.has(tag);
+    if (block) parts.push('\n');
+    if (isLabelEl(elx)) {
+      const lab = (elx.textContent || '').replace(/\s+/g, ' ').trim();
+      if (lab) { parts.push(lab + ': '); return; }
+    }
+    for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]);
+    if (block) parts.push('\n');
+  }
+  walk(node);
+  return parts.join('')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/:\s*\n/g, ': ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function cleanText(t: ShareTarget): string {
   const clone = cleanClone(t.node());
-  const body = clone ? (clone.innerText || clone.textContent || '').replace(/\n{3,}/g, '\n\n').trim() : t.text();
+  const body = clone ? domToText(clone) : t.text();
   return t.title + '\n\n' + body;
 }
 
@@ -209,7 +260,7 @@ export function shareControls(t: ShareTarget): HTMLElement {
   const imgBtn = el('button', { type: 'button', class: 'share-btn' }, 'Save as image');
   imgBtn.addEventListener('click', () => {
     const clone = cleanClone(t.node());
-    const body = clone ? (clone.innerText || clone.textContent || '').replace(/\n{3,}/g, '\n\n').trim() : '';
+    const body = clone ? domToText(clone) : '';
     try { saveAsImage(t.title, body, slug(t.title)); flash(imgBtn, 'Saved'); }
     catch (_e) { flash(imgBtn, 'Could not save'); }
   });
