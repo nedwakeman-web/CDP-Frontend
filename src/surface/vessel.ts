@@ -28,6 +28,8 @@ import { VesselRepository } from '../data/repository';
 import { trackEvent } from '../data/analytics';
 import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, personalNumerology, reduceNumber } from '../coordinates-core';
 import type { Coordinate } from '../coordinates-core';
+import { NUM_DATA } from '../data/numerology-content';
+import { SEAL_ARCH } from '../data/reading-content';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
@@ -88,6 +90,8 @@ function latestVesselTouch(it: HeldIntention): Touch | null {
 
 /* ---- styles, ported from the FiveYear file, scoped under .cdp-surface ------ */
 
+function numName(n: number): string { const d = NUM_DATA[n]; return d ? d.n : String(n); }
+
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
 .cdp-surface {
@@ -108,7 +112,7 @@ const STYLES = `
 }
 
 .cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; cursor:pointer; }
-.cdp-surface .daystrip { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
+.cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
 .cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
 .cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
@@ -122,6 +126,15 @@ const STYLES = `
 .cdp-surface .coords .cl { flex-shrink:0; font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); }
 .cdp-surface .coords .cv { font-family:'EB Garamond', Georgia, serif; font-size:14px; color:var(--text-light); text-align:right; line-height:1.35; }
 .cdp-surface .coords .cv.pending { font-family:Georgia, serif; font-style:italic; color:var(--text-dim); }
+.cdp-surface .coords-top { display:flex; align-items:center; justify-content:space-between; padding:10px 0 8px; border-bottom:1px solid var(--gold-line); margin-bottom:2px; }
+.cdp-surface .coords-title { font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
+.cdp-surface .coords-pin { background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
+.cdp-surface .coords-pin.on { color:var(--navy); background:var(--gold); border-color:var(--gold); }
+.cdp-surface .cpill { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%; text-align:left; background:transparent; border:none; border-bottom:1px solid var(--gold-line); padding:11px 2px; cursor:pointer; }
+.cdp-surface .cpill:last-child { border-bottom:none; }
+.cdp-surface .cpill:hover { background:rgba(201,160,80,0.06); }
+.cdp-surface .cpill-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .cpill-v { font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.4; color:var(--text-light); }
 
 .cdp-surface .header { position:fixed; top:0; left:0; right:0; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:60; background:var(--navy); border-bottom:1px solid var(--gold-line); }
 .cdp-surface .brand { font-family:Cinzel, Georgia, serif; font-size:16px; font-weight:bold; color:var(--gold); letter-spacing:2px; text-decoration:none; }
@@ -547,24 +560,23 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   emblem.addEventListener('click', () => voiceNote.classList.toggle('show'));
   home.appendChild(emblem);
 
-  // a quiet date with a silent coordinate pill, opening on a tap
+  // a quiet date with the day in a glance, a readable pill set opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
-  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today\u2019s coordinates', 'aria-expanded': 'false' });
+  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Today, in a glance', 'aria-expanded': 'false' });
   pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
-  const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today\u2019s coordinates' });
-  paintCoords();
-  pill.appendChild(coords);
+  const coords = el('div', { class: 'coords', role: 'region', 'aria-label': 'Today, in a glance' });
   let coordsOpen = false;
-  pill.addEventListener('click', (e: Event) => {
-    e.stopPropagation();
-    coordsOpen = !coordsOpen;
-    pill.classList.toggle('open', coordsOpen);
-    coords.classList.toggle('open', coordsOpen);
-    pill.setAttribute('aria-expanded', coordsOpen ? 'true' : 'false');
-  });
-  document.addEventListener('click', () => { if (coordsOpen) { coordsOpen = false; pill.classList.remove('open'); coords.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); } });
+  let coordsPinned = false;
+  function openCoords(): void { coordsOpen = true; pill.classList.add('open'); coords.classList.add('open'); pill.setAttribute('aria-expanded', 'true'); }
+  function closeCoords(): void { coordsOpen = false; pill.classList.remove('open'); coords.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
+  function openReadingNow(): void { closeCoords(); openReadingFor(profile ?? null, 'Today\u2019s reading'); }
+  paintCoords();
+  pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (coordsOpen) closeCoords(); else openCoords(); });
+  coords.addEventListener('click', (e: Event) => { e.stopPropagation(); });
+  document.addEventListener('click', () => { if (coordsOpen && !coordsPinned) closeCoords(); });
   daystrip.appendChild(pill);
+  daystrip.appendChild(coords);
   home.appendChild(daystrip);
 
   // the voice repertoire sits under the date, as on the compass surface:
@@ -1363,11 +1375,49 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   function paintCoords(): void {
     clear(coords);
-    for (const c of day.coordinates) {
-      const crow = el('div', { class: 'crow' });
-      crow.appendChild(el('span', { class: 'cl' }, c.label));
-      crow.appendChild(el('span', { class: c.unknown ? 'cv pending' : 'cv' }, c.display));
-      coords.appendChild(crow);
+    const top = el('div', { class: 'coords-top' });
+    top.appendChild(el('div', { class: 'coords-title' }, 'Today, in a glance'));
+    const pinBtn = el('button', { type: 'button', class: coordsPinned ? 'coords-pin on' : 'coords-pin', 'aria-pressed': coordsPinned ? 'true' : 'false' }, coordsPinned ? 'PINNED' : 'PIN');
+    pinBtn.addEventListener('click', (e: Event) => {
+      e.stopPropagation();
+      coordsPinned = !coordsPinned;
+      pinBtn.classList.toggle('on', coordsPinned);
+      pinBtn.textContent = coordsPinned ? 'PINNED' : 'PIN';
+      pinBtn.setAttribute('aria-pressed', coordsPinned ? 'true' : 'false');
+      if (coordsPinned) openCoords();
+    });
+    top.appendChild(pinBtn);
+    coords.appendChild(top);
+
+    const pn = (profile && profile.birthDate) ? personalNumerology(profile.birthDate, dateStr) : null;
+    const ud = universalDay(dateStr);
+    const desc = kinDescriptor(dateStr);
+    const lw = lunarWindow(dateStr);
+
+    function cpill(label: string, lead: string, onOpen: () => void): void {
+      const p = el('button', { type: 'button', class: 'cpill' });
+      p.appendChild(el('span', { class: 'cpill-l' }, label));
+      p.appendChild(el('span', { class: 'cpill-v' }, lead));
+      p.addEventListener('click', (e: Event) => { e.stopPropagation(); onOpen(); });
+      coords.appendChild(p);
+    }
+
+    const dn = pn ? pn.personalDay.value : ud.value;
+    const dMaster = pn ? pn.personalDay.isMaster : ud.isMaster;
+    cpill(pn ? 'Your day' : 'Today', dn + (dMaster ? ', a master number, ' : ', ') + numName(dn), openReadingNow);
+
+    const arch = SEAL_ARCH[desc.seal] || '';
+    const archShort = arch ? arch.split(',')[0] : '';
+    cpill('Sign', desc.full.replace(/^Kin \d+ /, '') + (archShort ? ', ' + archShort.charAt(0).toLowerCase() + archShort.slice(1) : ''), openReadingNow);
+
+    let moonLead: string;
+    if (lw.black) moonLead = 'Black Moon, a quiet, inward window';
+    else if (lw.shiva) moonLead = 'Shiva Moon, a restorative window';
+    else moonLead = lw.phase + (lw.meaning ? ', ' + lw.meaning : '');
+    cpill('Moon', moonLead, openReadingNow);
+
+    if (pn) {
+      cpill('Year', pn.personalYear.value + (pn.personalYear.isMaster ? ', a master number' : '') + ', the arc beneath the day', () => { closeCoords(); openYearView(); });
     }
   }
   function applyProfile(birthDate: string): void {
