@@ -30,6 +30,7 @@ import { dayCoordinates, kinDescriptor, universalDay, lunarWindow, kinForDate, p
 import type { Coordinate } from '../coordinates-core';
 import { NUM_DATA } from '../data/numerology-content';
 import { SEAL_ARCH } from '../data/reading-content';
+import { analyseRecord } from '../data/patterns';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
@@ -228,7 +229,7 @@ const STYLES = `
 .cdp-surface .line:last-child { margin-bottom:0; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
 .cdp-surface .line .meta { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; }
-.cdp-surface .soft { font-size:11px; color:var(--text-dim); font-style:italic; margin-top:8px; }
+.cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
 .cdp-surface .opp { font-size:12px; color:var(--text-muted); padding:8px 10px; background:rgba(29,158,117,0.08); border-left:2px solid var(--teal); border-radius:2px; margin-top:8px; }
 
 .cdp-surface .season { display:grid; grid-template-columns:repeat(12,1fr); gap:2px; margin:6px 0 4px; }
@@ -420,7 +421,6 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 /* ---- constants ------------------------------------------------------------ */
 
 const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
-const SEASON_PATTERN = ['n', 'n', 'c', 'g', 'g', 'g', 'g', 'g', 'c', 'c', 'n', 'n'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
@@ -671,12 +671,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     section.appendChild(bodyWrap);
     return section;
   }
-  function body(...children: HTMLElement[]): HTMLElement {
-    const wrap = el('div');
-    children.forEach((c) => wrap.appendChild(c));
-    return wrap;
-  }
-
   // Left rail, What is live now, wired to the repository.
   const liveBody = el('div');
   function renderLive(): void {
@@ -694,10 +688,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   renderLive();
 
   function patternsBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'Patterns surface here as you hold more, drawn from your own readings and outcomes, never a forecast.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
+    const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
+    const b = el('div');
+    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); return b; }
+    for (const ln of a.lines) b.appendChild(el('div', { class: 'line' }, ln));
+    return b;
   }
   function yearBody(): HTMLElement {
     const b = el('div');
@@ -713,23 +708,27 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     return b;
   }
   function seasonBody(): HTMLElement {
+    const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).seasons;
     const b = el('div');
     const grid = el('div', { class: 'season' });
-    SEASON_PATTERN.forEach((cls) => grid.appendChild(el('span', { class: cls })));
+    a.cells.forEach((cls) => grid.appendChild(el('span', { class: cls })));
     b.appendChild(grid);
     const key = el('div', { class: 'season-key' });
     const g = el('span', {}); g.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(29,158,117,0.55)' })); g.appendChild(document.createTextNode('Growth'));
     const c = el('span', {}); c.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(201,160,80,0.40)' })); c.appendChild(document.createTextNode('Consolidation'));
     key.appendChild(g); key.appendChild(c);
     b.appendChild(key);
-    b.appendChild(el('div', { class: 'soft' }, 'Summers run as growth, winters as consolidation, drawn from your record. Arrives as its stage lands.'));
+    b.appendChild(el('div', { class: 'line' }, a.hasData ? a.note : 'Your seasons, growth and consolidation, surface here from your recorded outcomes across the months. Drawn from your record, never a forecast.'));
     return b;
   }
   function workingBody(): HTMLElement {
-    return body(
-      el('div', { class: 'line' }, 'What you have resolved, and what is sitting untouched, surface here as your record builds.'),
-      el('div', { class: 'soft' }, 'Arrives as its stage lands.')
-    );
+    const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).working;
+    const b = el('div');
+    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, 'What you set down, and what is still sitting, surface here as you hold and tend intentions. Drawn from your record, never a forecast.')); return b; }
+    b.appendChild(el('div', { class: 'line' }, a.note));
+    a.resolved.forEach((t) => b.appendChild(el('div', { class: 'line teal' }, t)));
+    a.sitting.forEach((t) => b.appendChild(el('div', { class: 'line' }, t)));
+    return b;
   }
   function calBody(): HTMLElement {
     const b = el('div');
