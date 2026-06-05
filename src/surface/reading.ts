@@ -31,6 +31,7 @@
 import type { Lens, VesselSignal } from '../data/model';
 import { shareControls } from './share';
 import { NUM_DATA } from '../data/numerology-content';
+import { NUM_TIME, NUM_NEURO, SEAL_ARCH } from '../data/reading-content';
 import {
   kinDescriptor, universalDay, personalNumerology, reduceNumber, lunarWindow,
 } from '../coordinates-core';
@@ -500,6 +501,10 @@ function ensureStyle(): void {
 .cdp-surface .rdg-emergent-p { font-family:Georgia, serif; font-size:13.5px; line-height:1.7; color:var(--text-light, #F0E6CC); margin:0 0 8px; }
 .cdp-surface .rdg-emergent-p:last-child { margin-bottom:0; }
 .cdp-surface .rdg-emergent-p.null { color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-win-line { font-family:Georgia, serif; font-size:12.5px; line-height:1.6; margin:8px 0 0; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-win-tag { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:2px; display:block; }
+.cdp-surface .rdg-win-tag.tradition { color:var(--gold, #C9A050); }
+.cdp-surface .rdg-win-tag.science { color:var(--teal, #81CDB6); }
 `;
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -944,9 +949,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       // three windows of the day, from the personal layers
       computed.appendChild(el('div', { class: 'rdg-seclabel' }, 'The day in three windows'));
       const win = el('div', { class: 'rdg-energies' });
-      win.appendChild(windowCard('Morning', 'Personal Day', pn.personalDay.value));
-      win.appendChild(windowCard('Afternoon', 'Personal Month', pn.personalMonth.value));
-      win.appendChild(windowCard('Evening', 'Personal Year', pn.personalYear.value));
+      win.appendChild(windowCard('Morning', 'Personal Day', pn.personalDay.value, 'morning'));
+      win.appendChild(windowCard('Afternoon', 'Personal Month', pn.personalMonth.value, 'afternoon'));
+      win.appendChild(windowCard('Evening', 'Personal Year', pn.personalYear.value, 'evening'));
       computed.appendChild(win);
     }
 
@@ -1013,7 +1018,8 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     return card;
   }
 
-  function windowCard(part: string, layer: string, n: number): HTMLElement {
+  type Slot = 'morning' | 'afternoon' | 'evening';
+  function windowCard(part: string, layer: string, n: number, slot: Slot): HTMLElement {
     const master = isMasterNum(n);
     const card = el('div', { class: 'rdg-energy' });
     card.appendChild(el('div', { class: 'rdg-energy-layer' }, part));
@@ -1021,8 +1027,21 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     card.appendChild(el('div', { class: 'rdg-energy-num' + (master ? ' master' : '') }, String(n) + (master ? ' \u2605' : '')));
     const name = numName(n);
     if (name) card.appendChild(el('div', { class: 'rdg-energy-name' }, name));
-    const key = numKey(n);
-    if (key) card.appendChild(el('div', { class: 'rdg-energy-key' }, key));
+    // the two telescopes for this window, authored content from the monolith
+    const trad = NUM_TIME[n] ? NUM_TIME[n][slot] : '';
+    if (trad) {
+      const t = el('div', { class: 'rdg-win-line' });
+      t.appendChild(el('span', { class: 'rdg-win-tag tradition' }, 'Tradition'));
+      t.appendChild(document.createTextNode(trad));
+      card.appendChild(t);
+    }
+    const sci = NUM_NEURO[n] ? NUM_NEURO[n][slot] : '';
+    if (sci) {
+      const s = el('div', { class: 'rdg-win-line' });
+      s.appendChild(el('span', { class: 'rdg-win-tag science' }, 'Science'));
+      s.appendChild(document.createTextNode(sci));
+      card.appendChild(s);
+    }
     return card;
   }
 
@@ -1456,6 +1475,10 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     if (dsObj || normaliseVoice(r.dreamspell as SectionValue)) {
       const hook = dreamspellHook(dateStr);
       const pre: HTMLElement[] = [];
+      let kseal = '';
+      try { kseal = kinDescriptor(dateStr).seal; } catch (_e) { kseal = ''; }
+      const arch = kseal && SEAL_ARCH[kseal] ? SEAL_ARCH[kseal] : '';
+      if (arch) pre.push(el('div', { class: 'rdg-dshook' }, 'Your seal archetype is ' + arch + '.'));
       if (hook.text) pre.push(el('div', { class: 'rdg-dshook' }, hook.text));
       const post: HTMLElement[] = [];
       const disclaimer = (dsObj && asString(dsObj.disclaimer)) || DREAMSPELL_DISCLAIMER;
