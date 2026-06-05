@@ -118,6 +118,32 @@ function analyseWorking(live: HeldIntention[], resting: HeldIntention[], now: nu
   return { hasData, resolved: resolved.slice(0, 3), sitting: sitting.slice(0, 3), resolvedCount: resting.length, sittingCount: sittingThreads.length, note };
 }
 
+function isoMinus(date: string, n: number): string {
+  const d = new Date(date + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+/*
+ * The gentle streak: the days the person has shown up, and the most recent run
+ * of consecutive days. Counted from the reading record, surfaced as quiet
+ * acknowledgement, never as pressure.
+ */
+export function streakOf(dates: string[]): { days: number; run: number } {
+  const set: Record<string, true> = {};
+  for (const d of dates) { if (d) set[d] = true; }
+  const uniq = Object.keys(set).sort();
+  const days = uniq.length;
+  if (days === 0) return { days: 0, run: 0 };
+  const desc = uniq.slice().reverse();
+  let run = 1;
+  let cur = desc[0];
+  for (let i = 1; i < desc.length; i += 1) {
+    if (desc[i] === isoMinus(cur, 1)) { run += 1; cur = desc[i]; } else break;
+  }
+  return { days, run };
+}
+
 export function analyseRecord(signals: VesselSignal[], live: HeldIntention[], resting: HeldIntention[], now: number): RecordAnalysis {
   return {
     patterns: analysePatterns(signals || []),

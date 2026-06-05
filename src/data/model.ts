@@ -177,6 +177,8 @@ export interface ReadingRecord {
   date: string;
   tier?: string;
   title: string;
+  /** A short plain line for what the day held, so history reads as meaning, not dates. */
+  line?: string;
 }
 
 /** The whole of what the vessel holds for one person. The unit of persistence. */
