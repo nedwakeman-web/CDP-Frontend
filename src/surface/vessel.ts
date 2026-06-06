@@ -1529,6 +1529,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   signinActs.appendChild(notNowBtn);
   signin.appendChild(signinActs);
   signin.appendChild(el('div', { class: 'note' }, 'Your birth time and place, for the full natal chart, arrive with the transits.'));
+  const fullProfileLink = el('button', { type: 'button', class: 'btn ghost' }, 'Open your full profile and people');
+  fullProfileLink.addEventListener('click', () => { signin.classList.remove('open'); openProfilesView(); });
+  signin.appendChild(fullProfileLink);
   const authBox = el('div', { class: 'authbox' });
   if (!isSupabaseConfigured()) {
     authBox.appendChild(el('div', { class: 'note' }, 'Continue without signing in, or sign in to keep what you hold across your devices. Sign in switches on once the backend is connected.'));
@@ -1566,6 +1569,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   const menu = el('div', { class: 'menu', role: 'dialog', 'aria-label': 'Menu' });
   const menuNote = el('div', { class: 'menu-note' });
+  // The first door in the Account menu: the full profile and the people you keep,
+  // the rich surface (signature, what your numbers mean, life context, the cycle,
+  // and the saved-people library), distinct from the quick capture panel below.
+  const menuProfileRow = el('button', { type: 'button', class: 'menu-row' });
+  menuProfileRow.appendChild(el('span', {}, 'Profile and people'));
+  menuProfileRow.addEventListener('click', () => { menu.classList.remove('open'); openProfilesView(); });
+  menu.appendChild(menuProfileRow);
   for (const label of MENU_ITEMS) {
     const row = el('button', { type: 'button', class: 'menu-row' });
     row.appendChild(el('span', {}, label));
