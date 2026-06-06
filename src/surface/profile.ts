@@ -394,11 +394,13 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
     }
     const kd = kinDescriptor(bd);
     const lp = lifePath(bd);
-    const py = personalNumerology(bd, '2026-06-03').personalYear;
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const nowYear = new Date().getUTCFullYear();
+    const py = personalNumerology(bd, todayIso).personalYear;
     const pyMaster = isMaster(py.value);
     const sun = sunSign(bd);
     sig.appendChild(el('div', { class: 'pc-sig-head' }, kd.full));
-    sig.appendChild(el('div', { class: 'pc-sig-sub' }, 'Life Path ' + lp.value + '  \u00b7  Personal Year 2026: ' + py.value + '  \u00b7  Sun: ' + sun));
+    sig.appendChild(el('div', { class: 'pc-sig-sub' }, 'Life Path ' + lp.value + '  \u00b7  Personal Year ' + nowYear + ': ' + py.value + '  \u00b7  Sun: ' + sun));
     sig.appendChild(el('div', { class: 'pc-meanlabel' }, 'What your numbers mean'));
 
     const cards = el('div', { class: 'pc-cards' });
@@ -411,13 +413,13 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
       ? (NUM_DATA[py.value] ? NUM_DATA[py.value].m : '')
       : (PY_ARC[py.value] || (NUM_DATA[py.value] ? NUM_DATA[py.value].m : ''));
     cards.appendChild(meaningCard(
-      'Personal Year 2026' + (pyMaster ? '  \u00b7  Master Number' : ''),
+      'Personal Year ' + nowYear + (pyMaster ? '  \u00b7  Master Number' : ''),
       String(py.value), pyMaster, numName(py.value),
       pyText + ' Symbolic, Pythagorean.',
     ));
     cards.appendChild(meaningCard(
       'Birth Kin  \u00b7  Galactic Signature', '', false, '',
-      'Your Dreamspell birth signature, Argueelles 1987, a modern system held distinct from the living K\u2019iche\u2019 count. The ' + kd.seal + ' carries the energy of ' + kd.seal.toLowerCase() + ' as your foundational gift. Tone ' + kd.tone + ', ' + kd.toneName + ', is your power frequency.',
+      'Your Dreamspell birth signature, Arguelles 1987, a modern system held distinct from the living K\u2019iche\u2019 count. The ' + kd.seal + ' carries the energy of ' + kd.seal.toLowerCase() + ' as your foundational gift. Tone ' + kd.tone + ', ' + kd.toneName + ', is your power frequency.',
       kd.full,
     ));
     cards.appendChild(meaningCard(
