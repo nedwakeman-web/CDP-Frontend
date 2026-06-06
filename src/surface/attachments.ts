@@ -60,6 +60,10 @@ export interface AttachmentZoneOptions {
   input: HTMLTextAreaElement | HTMLInputElement;
   /** Where the control row and the chips strip are mounted. */
   mount: HTMLElement;
+  /** Optional separate mount for the chips strip, so the paperclip can sit
+   *  inline in a control bar while brought-in files appear below it. Defaults
+   *  to mount when not given. */
+  stripMount?: HTMLElement;
   /** A gentle status line, shared with the rest of the home surface. */
   reflect?: (note: string) => void;
   /** Maximum number of attachments held at once. Defaults to four. */
@@ -110,11 +114,12 @@ function ensureStyle(): void {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = [
-    '.cdp-surface .attach-row { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:8px; flex-wrap:wrap; }',
-    '.cdp-surface .attach-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; border-radius:2px; cursor:pointer; opacity:0.85; transition:border-color .2s, color .2s, opacity .2s; }',
-    '.cdp-surface .attach-btn:hover { border-color:var(--gold); color:var(--gold); opacity:1; }',
-    '.cdp-surface .attach-btn svg { width:13px; height:13px; display:block; }',
-    '.cdp-surface .attach-strip { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin-top:12px; }',
+    '.cdp-surface .attach-row { display:inline-flex; align-items:center; margin:0; }',
+    '.cdp-surface .attach-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; background:transparent; border:none; border-radius:8px; color:var(--text-muted); cursor:pointer; opacity:0.9; transition:color .2s, background .2s, opacity .2s; }',
+    '.cdp-surface .attach-btn:hover { color:var(--gold); background:rgba(201,160,80,0.10); opacity:1; }',
+    '.cdp-surface .attach-btn svg { width:18px; height:18px; display:block; }',
+    '.cdp-surface .attach-strip { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }',
+    '.cdp-surface .attach-strip:not(:empty) { margin-top:10px; }',
     '.cdp-surface .attach-chip { position:relative; display:flex; align-items:center; gap:9px; max-width:230px; padding:7px 10px 7px 8px; background:var(--raised); border:1px solid var(--gold-line); border-radius:3px; }',
     '.cdp-surface .attach-chip .thumb { width:38px; height:38px; flex-shrink:0; border-radius:2px; object-fit:cover; border:1px solid var(--gold-line); background:var(--navy); }',
     '.cdp-surface .attach-chip .glyph { width:34px; height:38px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--gold); }',
@@ -229,7 +234,7 @@ export function createAttachmentZone(opts: AttachmentZoneOptions): AttachmentZon
   button.className = 'attach-btn';
   button.setAttribute('aria-label', 'Attach an image, PDF, or text file');
   button.title = 'Attach an image, PDF, or text file';
-  button.innerHTML = PAPERCLIP + '<span>Attach</span>';
+  button.innerHTML = PAPERCLIP;
 
   row.appendChild(button);
   row.appendChild(fileInput);
@@ -238,7 +243,7 @@ export function createAttachmentZone(opts: AttachmentZoneOptions): AttachmentZon
   strip.className = 'attach-strip';
 
   opts.mount.appendChild(row);
-  opts.mount.appendChild(strip);
+  (opts.stripMount || opts.mount).appendChild(strip);
 
   function notify(note: string): void {
     if (opts.reflect) opts.reflect(note);

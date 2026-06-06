@@ -212,11 +212,21 @@ const STYLES = `
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .cdp-surface .compass-svg { width:auto; max-width:clamp(400px, 74vw, 880px); max-height:64vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(90vw, 520px); margin-top:10px; }
-.cdp-surface .ask-input { width:100%; padding:14px 16px; min-height:48px; resize:vertical; background:var(--raised); border:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; border-radius:2px; outline:none; }
-.cdp-surface .ask-input:focus { border-color:var(--gold); }
+.cdp-surface .ask { width:min(92vw, 560px); margin:14px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:14px; padding:6px 8px 6px 14px; transition:border-color .2s; }
+.cdp-surface .ask:focus-within { border-color:var(--gold); }
+.cdp-surface .ask-input { width:100%; box-sizing:border-box; padding:10px 4px 4px; min-height:28px; max-height:200px; overflow-y:auto; resize:none; background:transparent; border:none; color:var(--text-light); font-family:Georgia, serif; font-size:15px; line-height:1.5; outline:none; display:block; }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
-.cdp-surface .ask-row { display:flex; gap:12px; justify-content:center; margin-top:14px; }
+.cdp-surface .ask-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 0 2px; }
+.cdp-surface .ask-tools { display:flex; align-items:center; gap:2px; }
+.cdp-surface .attach-host { display:inline-flex; align-items:center; }
+.cdp-surface .ask-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; background:transparent; border:none; border-radius:8px; color:var(--text-muted); cursor:pointer; opacity:0.9; transition:color .2s, background .2s, opacity .2s; }
+.cdp-surface .ask-icon:hover { color:var(--gold); background:rgba(201,160,80,0.10); opacity:1; }
+.cdp-surface .ask-icon svg { width:18px; height:18px; display:block; }
+.cdp-surface .ask-icon.on { color:var(--gold); background:rgba(201,160,80,0.16); }
+.cdp-surface .ask-send { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; background:var(--gold); color:var(--navy); border:none; border-radius:50%; cursor:pointer; flex:none; transition:background .2s, opacity .2s; }
+.cdp-surface .ask-send:hover { background:var(--gold-soft); }
+.cdp-surface .ask-send:disabled { opacity:0.45; cursor:default; }
+.cdp-surface .ask-send svg { width:17px; height:17px; display:block; }
 .cdp-surface .btn { padding:10px 26px; background:var(--gold); color:var(--navy); border:none; font-family:Cinzel, Georgia, serif; font-size:11px; font-weight:600; letter-spacing:1px; cursor:pointer; border-radius:2px; transition:background .2s; }
 .cdp-surface .btn:hover { background:var(--gold-soft); }
 .cdp-surface .btn:disabled { opacity:.5; cursor:default; }
@@ -389,6 +399,8 @@ const STYLES = `
   .cdp-surface .home { padding:22px 14px 48px; }
   .cdp-surface .compass-svg { max-width:96vw; max-height:46vh; margin:10px auto 6px; }
   .cdp-surface .meet-line { font-size:14px; max-width:90vw; }
+  .cdp-surface .ask { width:min(94vw, 560px); }
+  .cdp-surface .ask-input { font-size:16px; }
   .cdp-surface .voice-toggle { max-width:92vw; }
   .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
   .cdp-surface .handle span:not(.chev) { display:none; }
@@ -478,6 +490,9 @@ const ICON_SHARE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" 
 const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
 const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
 const ICON_TELESCOPES = '<svg width="48" height="27" viewBox="0 0 48 27" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="19" cy="13.5" r="10.5"></circle><circle cx="29" cy="13.5" r="10.5"></circle></svg>';
+const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
+const SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
+
 const CYCLING_PHRASES: Record<Lens, string[]> = {
   tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
   science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
@@ -788,13 +803,24 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const ask = el('div', { class: 'ask' });
   const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
   ask.appendChild(input);
-  // where the attach control and any brought-in files live, under the field
-  const attachMount = el('div');
-  ask.appendChild(attachMount);
-  const askRow = el('div', { class: 'ask-row' });
-  const continueBtn = el('button', { type: 'button', class: 'btn' }, 'CONTINUE') as HTMLButtonElement;
-  askRow.appendChild(continueBtn);
-  ask.appendChild(askRow);
+
+  // a slim control bar inside the composer: attach and voice on the left, send on the right
+  const askBar = el('div', { class: 'ask-bar' });
+  const askTools = el('div', { class: 'ask-tools' });
+  const attachMount = el('div', { class: 'attach-host' });
+  askTools.appendChild(attachMount);
+  const micBtn = el('button', { type: 'button', class: 'ask-icon mic-btn', title: 'Speak your line', 'aria-label': 'Speak your line' }) as HTMLButtonElement;
+  micBtn.innerHTML = MIC_SVG;
+  askTools.appendChild(micBtn);
+  askBar.appendChild(askTools);
+  const continueBtn = el('button', { type: 'button', class: 'ask-send', title: 'Continue', 'aria-label': 'Continue' }) as HTMLButtonElement;
+  continueBtn.innerHTML = SEND_SVG;
+  askBar.appendChild(continueBtn);
+  ask.appendChild(askBar);
+
+  // brought-in files appear below the composer, not inside the control bar
+  const attachStrip = el('div', { class: 'attach-host-strip' });
+  ask.appendChild(attachStrip);
   home.appendChild(ask);
 
   // recognition, not echo: a line composed from what is held, today's coordinates,
@@ -815,6 +841,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const attachZone: AttachmentZone = createAttachmentZone({
     input,
     mount: attachMount,
+    stripMount: attachStrip,
     reflect: (n) => reflect(n),
     maxFiles: 4,
   });
@@ -1787,6 +1814,49 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   input.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAsk(); }
   });
+
+  // the field grows with what is typed or spoken, up to the capped height
+  function autoGrow(): void {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+  }
+  input.addEventListener('input', autoGrow);
+  autoGrow();
+
+  // voice capture: speak your line and it lands in the field. Uses the browser
+  // speech recognition where present; the mic stays hidden when it is not. This
+  // captures spoken input. Reading the reply back aloud is the next step.
+  const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SR) {
+    micBtn.style.display = 'none';
+  } else {
+    let listening = false;
+    let recog: any = null;
+    micBtn.addEventListener('click', () => {
+      if (listening && recog) { try { recog.stop(); } catch (_e) { /* idle */ } return; }
+      recog = new SR();
+      recog.lang = navigator.language || 'en-GB';
+      recog.interimResults = true;
+      recog.continuous = false;
+      const baseText = input.value.trim();
+      recog.onstart = () => { listening = true; micBtn.classList.add('on'); reflect('Listening. Speak your line.'); };
+      recog.onresult = (e: any) => {
+        let interim = '';
+        let finalText = '';
+        for (let i = e.resultIndex; i < e.results.length; i += 1) {
+          const r = e.results[i];
+          if (r.isFinal) finalText += r[0].transcript;
+          else interim += r[0].transcript;
+        }
+        const spoken = (finalText || interim).trim();
+        input.value = (baseText.length > 0 ? baseText + ' ' : '') + spoken;
+        autoGrow();
+      };
+      recog.onerror = () => { reflect('The microphone could not be reached.'); };
+      recog.onend = () => { listening = false; micBtn.classList.remove('on'); };
+      try { recog.start(); } catch (_e) { /* a start while already starting is harmless */ }
+    });
+  }
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') { menu.classList.remove('open'); }
