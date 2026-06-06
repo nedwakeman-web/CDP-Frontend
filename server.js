@@ -793,9 +793,10 @@ const TONES=['Magnetic','Lunar','Electric','Self-Existing','Overtone','Rhythmic'
   'Resonant','Galactic','Solar','Planetary','Spectral','Crystal','Cosmic'];
 const KIN_COLORS=['Red','White','Blue','Yellow','Red','White','Blue','Yellow','Red','White',
   'Blue','Yellow','Red','White','Blue','Yellow','Red','White','Blue','Yellow'];
-const GAP=new Set([1,2,3,4,5,8,9,10,11,12,19,20,21,22,23,26,27,28,29,30,
-  53,54,55,56,57,60,61,62,63,64,71,72,73,74,75,78,79,80,81,82,
-  105,106,107,108,109,112,113,114,115,116,133,134]);
+const GAP=new Set([1,20,22,39,43,50,51,58,64,69,72,77,85,88,93,96,
+  106,107,108,109,110,111,112,113,114,115,
+  146,147,148,149,150,151,152,153,154,155,
+  165,168,173,176,184,189,192,197,203,210,211,218,222,239,241,260]);
 
 function getKin(dateStr){
   const d=new Date(dateStr+'T12:00:00Z');
@@ -979,6 +980,68 @@ function getAspects(planets){
     }
   }
   return out.sort((a,b)=>b.str-a.str).slice(0,8);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ATTACHMENT BLOCKS: turn brought-in files into model content blocks
+// ══════════════════════════════════════════════════════════════════
+// The Compass and the Oracle ask let a person bring in an image, a PDF,
+// or a text file so the reply can consider it. The client sends a small
+// wire shape; this builder validates it server-side (the client cannot be
+// trusted) and returns Anthropic content blocks. Count, size, and media
+// type are all bounded here. Anything unknown or oversized is skipped.
+const ATT_MAX_FILES = 4;
+const ATT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const ATT_B64_MAX = 6_800_000;   // base64 chars, about 5MB of binary
+const ATT_TEXT_MAX = 20000;      // characters of a brought-in text file
+
+function buildAttachmentBlocks(attachments) {
+  const blocks = [];
+  if (!Array.isArray(attachments)) return blocks;
+  let count = 0;
+  for (const a of attachments) {
+    if (count >= ATT_MAX_FILES) break;
+    if (!a || typeof a !== 'object') continue;
+    const name = (typeof a.name === 'string' ? a.name : 'attachment').slice(0, 200);
+    if (a.kind === 'image') {
+      if (typeof a.data !== 'string' || a.data.length === 0 || a.data.length > ATT_B64_MAX) continue;
+      const mt = ATT_IMAGE_TYPES.includes(a.mediaType) ? a.mediaType : 'image/png';
+      blocks.push({ type: 'image', source: { type: 'base64', media_type: mt, data: a.data } });
+      count += 1;
+    } else if (a.kind === 'document') {
+      if (typeof a.data !== 'string' || a.data.length === 0 || a.data.length > ATT_B64_MAX) continue;
+      blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: a.data } });
+      count += 1;
+    } else if (a.kind === 'text') {
+      if (typeof a.textContent !== 'string' || a.textContent.length === 0) continue;
+      const text = a.textContent.slice(0, ATT_TEXT_MAX);
+      blocks.push({ type: 'text', text: 'Attached file "' + name + '":\n\n' + text });
+      count += 1;
+    }
+  }
+  return blocks;
+}
+
+// Compose a user message that may carry attachments. When there are none, the
+// plain string is returned, preserving the existing behaviour exactly.
+function userContentWith(text, attachments) {
+  const blocks = buildAttachmentBlocks(attachments);
+  if (blocks.length === 0) return text;
+  return [{ type: 'text', text }].concat(blocks);
+}
+
+// A register-aware reflection instruction, used wherever a reply may carry
+// brought-in files. The person handed the Oracle something they are carrying;
+// the Oracle meets it, it does not summarise or process a file. It reads what
+// was brought through the lens of the day, the coordinates, and what the person
+// is holding, and it answers in the active voice. The register of the file sets
+// the register of the reflection.
+function attachmentReflectionNote(count) {
+  const noun = count === 1 ? 'a file' : count + ' files';
+  return '\n\nThe person has handed you ' + noun + ' (an image, a document, or text), not for you to summarise but to meet. ' +
+    'Look at what it actually contains and let your reply speak to it concretely, read through the lens of the day, the coordinates, and what the person is holding. ' +
+    'Match the register of what was brought in: a deck or document invites clear, strategic reflection with only a light touch of the day energy; an image invites what it shows and what it carries; a worried or personal note invites holding before anything else. ' +
+    'Speak in the active voice. Do not describe the file mechanically, and do not let it expand the length your voice already requires.';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2374,8 +2437,13 @@ RULES:
       p.birthDay ? `Born: ${p.birthDay}/${p.birthMonth}/${p.birthYear}${p.birthTime ? ' at ' + p.birthTime : ''}${p.birthLocation ? ' in ' + p.birthLocation : ''}` : '',
     ].filter(Boolean).join('\n');
 
-    const ans = await callAPI('claude-sonnet-4-6', 2500, sys,
-      `${fullContext}\n\nQuestion from ${firstName}: ${question}`);
+    const askAttBlocks = buildAttachmentBlocks(req.body.attachments);
+    const sysWithAtt = askAttBlocks.length
+      ? sys + attachmentReflectionNote(askAttBlocks.length)
+      : sys;
+    const askText = `${fullContext}\n\nQuestion from ${firstName}: ${question}`;
+    const askContent = userContentWith(askText, req.body.attachments);
+    const ans = await callAPI('claude-sonnet-4-6', 2500, sysWithAtt, askContent);
     res.json({answer: ans});
   } catch(e) {
     console.error('Ask error:', e.message);
@@ -2647,8 +2715,8 @@ function getDreamspellSynastry(kinA, kinB) {
 
   const chromaticDesc = {
     'same-tribe': colorA + ' tribe, you share the same chromatic family. Natural resonance in how you process and express energy. You understand each other\'s fundamental mode without explanation.',
-    'chromatic-partner': colorA + ' and ' + colorB + ' - complementary partner colours. This is one of the most harmonious pairings in Dreamspell. Your energies naturally complete each other.',
-    'cross-family': colorA + ' and ' + colorB + ' - different colour families. Your modes of engaging with reality are genuinely different, which creates richness and the need for translation.',
+    'chromatic-partner': colorA + ' and ' + colorB + ' are complementary partner colours. This is one of the most harmonious pairings in Dreamspell. Your energies naturally complete each other.',
+    'cross-family': colorA + ' and ' + colorB + ' belong to different colour families. Your modes of engaging with reality are genuinely different, which creates richness and the need for translation.',
   }[chromatic];
 
   // Tonal relationship
@@ -3973,18 +4041,28 @@ Plain language, real wisdom, no decoration.`;
 
     const systemPrompt = baseSystem + voiceRules;
 
+    // If the person brought files in, tell the voice to look at them and refer
+    // to what they actually show, still within the breath-length reply.
+    const attBlocks = buildAttachmentBlocks(req.body && req.body.attachments);
+    const attachClause = attBlocks.length
+      ? attachmentReflectionNote(attBlocks.length)
+      : '';
+    const fullSystem = systemPrompt + attachClause;
+
     const userMessage = safeName
       ? `${safeName} wrote: "${cleanIntention}"`
       : `The user wrote: "${cleanIntention}"`;
+    const userContent = userContentWith(userMessage, req.body && req.body.attachments);
+    const replyMaxTok = attBlocks.length ? 360 : 220;
 
     // ─── ANTHROPIC CALL ──────────────────────────────────────────
     let replyText = '';
     try {
       replyText = await callAPI(
         'claude-sonnet-4-6',
-        220,
-        systemPrompt,
-        userMessage
+        replyMaxTok,
+        fullSystem,
+        userContent
       );
     } catch (apiErr) {
       console.error('[POST /api/compass/reply anthropic error]', apiErr.message);
