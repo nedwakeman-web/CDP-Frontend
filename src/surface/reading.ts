@@ -1563,19 +1563,37 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     while (live && Date.now() - t0 < deadline) {
       await sleep(2200);
       if (!live) return;
-      let st: { status: string; result?: unknown; phase1?: unknown; elapsed?: number };
+      let st: { status: string; result?: unknown; phase1?: unknown; elapsed?: number; sectionsReady?: number };
       try { st = await (await fetch(base + '/api/reading/status/' + jobId)).json(); }
       catch (_e) { continue; }
-      if (st.status === 'complete') { renderAI(st.result); ensureShareBar(); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
-      if (st.status === 'error') { setStatus('The reading hit a snag on the server. The day above is yours in full; please try the depth again shortly.'); return; }
-      if (st.status === 'phase1_complete' && st.phase1 && !shownPhase1) {
-        shownPhase1 = true;
-        renderAI(st.phase1);
-        const composing = el('div', { class: 'rdg-note' }, 'The core is here. The fuller sections are still composing.');
-        aiZone.insertBefore(composing, aiZone.firstChild);
-      } else if (st.status === 'pending') {
-        const secs = Math.round((Date.now() - t0) / 1000);
-        setStatus('The Oracle is composing the full depth of your reading. ' + secs + ' seconds in.');
+      // A render or handling fault must never freeze the loop. Wrap the body so
+      // a single bad payload is logged precisely and polling continues, giving
+      // completion every chance to land.
+      try {
+        if (st.status === 'complete') { renderAI(st.result); ensureShareBar(); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
+        if (st.status === 'error') { setStatus('The reading hit a snag on the server. The day above is yours in full; please try the depth again shortly.'); return; }
+        if (st.status === 'phase1_complete' && st.phase1 && !shownPhase1) {
+          shownPhase1 = true;
+          renderAI(st.phase1);
+        }
+        // The progress line updates on every poll, so it never freezes. When the
+        // server reports sections ready, it reads as genuine progress, the
+        // tracker, rather than a clock against nothing.
+        if (st.status === 'pending' || st.status === 'phase1_complete') {
+          const secs = Math.round((Date.now() - t0) / 1000);
+          const ready = typeof st.sectionsReady === 'number' ? st.sectionsReady : 0;
+          if (shownPhase1) {
+            setStatus(ready > 0
+              ? 'The core is here. The fuller sections are composing, ' + ready + ' ready, ' + secs + ' seconds in.'
+              : 'The core is here. The fuller sections are composing, ' + secs + ' seconds in.');
+          } else {
+            setStatus(ready > 0
+              ? 'The Oracle is composing your reading, ' + ready + ' sections ready, ' + secs + ' seconds in.'
+              : 'The Oracle is composing the full depth of your reading, ' + secs + ' seconds in.');
+          }
+        }
+      } catch (e) {
+        try { console.error('[reading] render or status handling failed:', e && (e as Error).message ? (e as Error).message : e); } catch (_e2) { /* ignore */ }
       }
     }
     if (live) setStatus('The depth is taking longer than usual on the server. The day above is complete; please try the depth again shortly.');
