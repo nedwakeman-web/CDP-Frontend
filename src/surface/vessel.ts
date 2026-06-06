@@ -113,8 +113,8 @@ const STYLES = `
   --seal-red:#B0432F; --seal-white:#9A8C66; --seal-blue:#3E6B8A; --seal-yellow:#9A7B22;
 }
 
-.cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:10px; cursor:pointer; }
-.cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px; }
+.cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:6px; cursor:pointer; }
+.cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
 .cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
 .cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
@@ -184,7 +184,7 @@ const STYLES = `
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; }
 .cdp-surface .voice-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
 .cdp-surface .voice-cycle { font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.32em; text-transform:uppercase; color:rgba(201,160,80,0.85); margin:0 0 4px; min-height:14px; white-space:nowrap; text-align:center; transition:opacity .45s ease; }
-.cdp-surface .voice-toggle { display:flex; gap:0; margin:12px auto 18px; max-width:340px; background:rgba(8,26,45,0.6); border:1px solid rgba(165,132,89,0.30); border-radius:4px; padding:3px; }
+.cdp-surface .voice-toggle { display:flex; gap:0; margin:8px auto 12px; max-width:340px; background:rgba(8,26,45,0.6); border:1px solid rgba(165,132,89,0.30); border-radius:4px; padding:3px; }
 .cdp-surface .voice-btn { flex:1; padding:7px 12px; background:transparent; border:none; border-radius:3px; color:rgba(245,228,196,0.65); font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; transition:background .2s ease, color .2s ease; }
 .cdp-surface .voice-btn.active { background:rgba(201,160,80,0.18); color:var(--gold); }
 .cdp-surface .voice-btn[data-voice="science"].active { background:rgba(129,205,198,0.16); color:var(--teal); }
@@ -204,15 +204,15 @@ const STYLES = `
 .cdp-surface .rdg-recent-date { color:var(--text-light); }
 .cdp-surface .rdg-recent-line { font-size:12px; color:var(--text-muted); line-height:1.35; }
 
-.cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
+.cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
 .cdp-surface .meet-line { font-size:15px; color:var(--text-light); max-width:560px; margin:22px auto 0; line-height:1.55; }
 .cdp-surface .reflect { font-size:13px; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
 .cdp-surface .reflect.show { opacity:1; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:auto; max-width:clamp(400px, 74vw, 880px); max-height:64vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
+.cdp-surface .compass-svg { width:auto; max-width:clamp(440px, 82vw, 1000px); max-height:70vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:8px auto 6px; border-radius:2px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(92vw, 560px); margin:14px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:14px; padding:6px 8px 6px 14px; transition:border-color .2s; }
+.cdp-surface .ask { width:min(86vw, 500px); margin:12px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:14px; padding:6px 8px 6px 14px; transition:border-color .2s; }
 .cdp-surface .ask:focus-within { border-color:var(--gold); }
 .cdp-surface .ask-input { width:100%; box-sizing:border-box; padding:10px 4px 4px; min-height:28px; max-height:200px; overflow-y:auto; resize:none; background:transparent; border:none; color:var(--text-light); font-family:Georgia, serif; font-size:15px; line-height:1.5; outline:none; display:block; }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
@@ -482,7 +482,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Your profile', 'Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
@@ -1156,7 +1156,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getLens: () => lens,
       reflect: (n) => reflect(n),
       onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
-      onChanged: () => refreshProfileFromRepo(),
     });
   }
   function openYearView(): void {
@@ -1554,9 +1553,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   for (const label of MENU_ITEMS) {
     const row = el('button', { type: 'button', class: 'menu-row' });
     row.appendChild(el('span', {}, label));
-    if (label === 'Your profile') {
-      row.addEventListener('click', () => { menu.classList.remove('open'); openProfilesView(); });
-    } else if (label === 'Toggle theme') {
+    if (label === 'Toggle theme') {
       const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
       row.appendChild(val);
       row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
@@ -1703,18 +1700,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
     void repo.setProfile({ birthDate: birthDate });
-  }
-
-  // After the full profile editor saves, the editor has already persisted the
-  // whole object through the repository. The host re-reads that complete profile
-  // and repaints through the same path applyProfile uses, so the home meet-line,
-  // the compass scaffold, and every surface that reads the captured profile see
-  // the new values at once, with no clobbering and no reload.
-  function refreshProfileFromRepo(): void {
-    profile = repo.getProfile() || profile;
-    day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
-    if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
-    paintMeetLine();
   }
 
   function setVoice(next: Lens): void {
