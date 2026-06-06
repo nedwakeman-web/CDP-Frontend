@@ -34,6 +34,10 @@ export interface OpenProfilesOptions {
   reflect?: (note: string) => void;
   /** Open a reading for one person. The label is the person's name. */
   onRead: (profile: VesselProfile, label: string) => void;
+  /** Fired whenever a profile in the library is saved, added, or removed, so a
+   *  host surface can refresh anything that reads from the profile (the home
+   *  signature, the compass scaffold, the active reading). */
+  onChanged?: () => void;
 }
 export interface ProfilesHandle { close(): void; }
 
@@ -145,7 +149,7 @@ export function openProfiles(o: OpenProfilesOptions): ProfilesHandle {
       reflect: o.reflect,
       subject,
       // Every autosave refreshes the library beneath, so cards stay current.
-      onSaved: () => { renderAll(); },
+      onSaved: () => { renderAll(); if (o.onChanged) o.onChanged(); },
     });
   }
 
@@ -201,7 +205,7 @@ export function openProfiles(o: OpenProfilesOptions): ProfilesHandle {
       del.addEventListener('click', () => {
         const who = safeStr(p.name).trim() || 'this person';
         if (!window.confirm('Remove ' + who + ' from your saved people. This does not affect their own data, only your library.')) return;
-        void o.repo.removeSavedProfile(p.id).then(() => { if (o.reflect) o.reflect(who + ' was removed from your people.'); renderAll(); });
+        void o.repo.removeSavedProfile(p.id).then(() => { if (o.reflect) o.reflect(who + ' was removed from your people.'); renderAll(); if (o.onChanged) o.onChanged(); });
       });
       actions.appendChild(del);
     }
@@ -257,6 +261,7 @@ export function openProfiles(o: OpenProfilesOptions): ProfilesHandle {
         if (o.reflect) o.reflect(name + ' is saved to your people.');
         onClose();
         renderAll();
+        if (o.onChanged) o.onChanged();
       });
     });
     form.appendChild(save);

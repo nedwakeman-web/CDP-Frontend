@@ -482,7 +482,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
+const MENU_ITEMS = ['Your profile', 'Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
@@ -1156,6 +1156,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getLens: () => lens,
       reflect: (n) => reflect(n),
       onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
+      onChanged: () => refreshProfileFromRepo(),
     });
   }
   function openYearView(): void {
@@ -1553,7 +1554,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   for (const label of MENU_ITEMS) {
     const row = el('button', { type: 'button', class: 'menu-row' });
     row.appendChild(el('span', {}, label));
-    if (label === 'Toggle theme') {
+    if (label === 'Your profile') {
+      row.addEventListener('click', () => { menu.classList.remove('open'); openProfilesView(); });
+    } else if (label === 'Toggle theme') {
       const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
       row.appendChild(val);
       row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
@@ -1700,6 +1703,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
     void repo.setProfile({ birthDate: birthDate });
+  }
+
+  // After the full profile editor saves, the editor has already persisted the
+  // whole object through the repository. The host re-reads that complete profile
+  // and repaints through the same path applyProfile uses, so the home meet-line,
+  // the compass scaffold, and every surface that reads the captured profile see
+  // the new values at once, with no clobbering and no reload.
+  function refreshProfileFromRepo(): void {
+    profile = repo.getProfile() || profile;
+    day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
+    if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
+    paintMeetLine();
   }
 
   function setVoice(next: Lens): void {
