@@ -133,8 +133,8 @@ function biorhythmsToday(birthDate: string): Array<{ label: string; pct: number 
 
 /* ---- the engine payload ---------------------------------------------------- */
 
-interface PickPerson { id: string; name: string; birthDate?: string; }
-interface PersonPayload { name: string; birthYear?: number; birthMonth?: number; birthDay?: number; }
+interface PickPerson { id: string; name: string; birthDate?: string; relationship?: string; context?: string; roles?: string; projects?: string; currentIntentions?: string; keyPeople?: string; }
+interface PersonPayload { name: string; birthYear?: number; birthMonth?: number; birthDay?: number; relationship?: string; context?: string; roles?: string; projects?: string; currentIntentions?: string; keyPeople?: string; }
 function toPayload(p: PickPerson): PersonPayload {
   const out: PersonPayload = { name: p.name };
   if (p.birthDate && /^\d{4}-\d{2}-\d{2}$/.test(p.birthDate)) {
@@ -142,6 +142,14 @@ function toPayload(p: PickPerson): PersonPayload {
     out.birthMonth = Number(p.birthDate.slice(5, 7));
     out.birthDay = Number(p.birthDate.slice(8, 10));
   }
+  // Deep fields, sent so the synthesis can speak to who each person actually is,
+  // not only their coordinates. The server prompt weaves these into the prose.
+  if (p.relationship) out.relationship = p.relationship;
+  if (p.context) out.context = p.context;
+  if (p.roles) out.roles = p.roles;
+  if (p.projects) out.projects = p.projects;
+  if (p.currentIntentions) out.currentIntentions = p.currentIntentions;
+  if (p.keyPeople) out.keyPeople = p.keyPeople;
   return out;
 }
 
@@ -180,7 +188,7 @@ function ensureStyle(): void {
     '.cdp-surface .cm-pick label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:4px}',
     '.cdp-surface .cm-select{width:100%;box-sizing:border-box;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:15px;padding:9px 11px}',
     '.cdp-surface .cm-go{background:var(--gold,#C9A050);color:#1A1208;border:none;border-radius:3px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;cursor:pointer;margin-top:4px}',
-    '.cdp-surface .cm-status{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--text-dim,#D4C8AE);padding:18px 4px;text-align:center;line-height:1.6}',
+    '.cdp-surface .cm-status{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--text-dim,#D4C8AE);padding:18px 4px;text-align:center;line-height:1.6}',
     '.cdp-surface .cm-headline{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;line-height:1.45;color:var(--text-light,#F0E6CC);margin:18px 0}',
     '.cdp-surface .cm-seclabel{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:22px 0 10px;text-align:center}',
     '.cdp-surface .cm-cols{display:flex;gap:12px;flex-wrap:wrap}',
@@ -194,7 +202,7 @@ function ensureStyle(): void {
     '.cdp-surface .cm-card{border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:var(--navy,#0D1E33);padding:13px 15px;margin-bottom:11px}',
     '.cdp-surface .cm-tap{cursor:pointer}',
     '.cdp-surface .cm-title{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}',
-    '.cdp-surface .cm-ask{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--teal,#81CDB6)}',
+    '.cdp-surface .cm-ask{font-family:\'EB Garamond\',Georgia,serif;font-size:12px;color:var(--teal,#81CDB6)}',
     '.cdp-surface .cm-sub{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--gold-soft,#E8C878);margin-bottom:6px}',
     '.cdp-surface .cm-p{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC);margin:0 0 10px}',
     '.cdp-surface .cm-p:last-child{margin-bottom:0}',
@@ -204,7 +212,7 @@ function ensureStyle(): void {
     '.cdp-surface .cm-question{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--gold-soft,#E8C878);border-left:2px solid var(--gold-line,#3A3320);padding-left:14px;margin:16px 0}',
     '.cdp-surface .cm-closing{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--text-light,#F0E6CC);text-align:center;margin:18px 2px}',
     '.cdp-surface .cm-sources{font-family:Georgia,serif;font-size:11px;line-height:1.6;color:var(--text-dim,#D4C8AE);margin-top:18px;text-align:center}',
-    '.cdp-surface .cm-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
+    '.cdp-surface .cm-note{font-family:\'EB Garamond\',Georgia,serif;font-size:12px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
     '.cdp-surface .cm-dd-scrim{position:fixed;inset:0;z-index:80;background:rgba(4,12,24,.62);display:flex;align-items:flex-end;justify-content:center}',
     '.cdp-surface .cm-dd{width:100%;max-width:44rem;max-height:80vh;overflow-y:auto;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:12px 12px 0 0;padding:18px 18px 28px}',
     '.cdp-surface .cm-dd-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}',
@@ -215,9 +223,11 @@ function ensureStyle(): void {
     '.cdp-surface .cm-tapmark{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px}',
     '.cdp-surface .cm-tapdot{width:12px;height:12px;border-radius:50%;border:1.2px solid var(--text-dim,#D4C8AE);display:inline-block}',
     '.cdp-surface .cm-tapmark.on .cm-tapdot{background:var(--teal,#81CDB6);border-color:var(--teal,#81CDB6)}',
-    '.cdp-surface .cm-taplabel{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .cm-taplabel{font-family:\'EB Garamond\',Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE)}',
     '.cdp-surface .cm-tapmark.on .cm-taplabel{color:var(--teal,#81CDB6)}',
     '.cdp-surface .cm-bridge{display:block;background:none;border:none;text-align:left;cursor:pointer;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal,#81CDB6);padding:10px 0 4px}',
+    '.cdp-surface .cm-brl{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:8px 0 2px}',
+    '.cdp-surface .cm-brv{font-family:Georgia,serif;font-size:14px;line-height:1.6;color:var(--text-light,#F0E6CC)}',
   ].join('');
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -229,8 +239,8 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
 
   const people: PickPerson[] = [];
   const self = o.getProfile();
-  if (self && self.birthDate) people.push({ id: 'self', name: self.name || 'You', birthDate: self.birthDate });
-  for (const p of o.repo.listSavedProfiles()) people.push({ id: p.id, name: p.name || 'Unnamed', birthDate: p.birthDate });
+  if (self && self.birthDate) people.push({ id: 'self', name: self.name || 'You', birthDate: self.birthDate, context: self.context, roles: self.roles, projects: self.projects, currentIntentions: self.currentIntentions, keyPeople: self.keyPeople });
+  for (const p of o.repo.listSavedProfiles()) people.push({ id: p.id, name: p.name || 'Unnamed', birthDate: p.birthDate, relationship: p.relationship, context: p.context, roles: p.roles, projects: p.projects, currentIntentions: p.currentIntentions, keyPeople: p.keyPeople });
 
   const view = el('div', { class: 'cm-view', role: 'dialog', 'aria-label': 'Compatibility' });
   const shell = el('div', { class: 'cm-shell' });
@@ -437,6 +447,48 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     bioCard.appendChild(bcols);
     bioCard.appendChild(el('div', { class: 'cm-note' }, 'Classical three cycle theory (Teltscher, Fliess, Swoboda), shown as a symbolic rhythm.'));
     computed.appendChild(bioCard);
+
+    // What each brings: the deep, non-chart side of each person, side by side, so
+    // the comparison is of two lives and not only two charts. Renders only the
+    // fields that have content, and names the gap when a person has none yet.
+    const deepRows: Array<[string, string, string]> = [];
+    const addRow = (label: string, va?: string, vb?: string): void => {
+      const va2 = (va || '').trim();
+      const vb2 = (vb || '').trim();
+      if (va2 || vb2) deepRows.push([label, va2, vb2]);
+    };
+    addRow('Relationship', pa.relationship, pb.relationship);
+    addRow('Roles', pa.roles, pb.roles);
+    addRow('Active chapters', pa.projects, pb.projects);
+    addRow('Current intentions', pa.currentIntentions, pb.currentIntentions);
+    addRow('Key people', pa.keyPeople, pb.keyPeople);
+    addRow('Personal context', pa.context, pb.context);
+    if (deepRows.length) {
+      computed.appendChild(el('div', { class: 'cm-seclabel' }, 'What each brings'));
+      const dcols = el('div', { class: 'cm-cols' });
+      ([[pa, 0], [pb, 1]] as Array<[PickPerson, number]>).forEach((pair) => {
+        const person = pair[0];
+        const idx = pair[1];
+        const col = el('div', { class: 'cm-col' });
+        col.appendChild(el('div', { class: 'cm-name' }, person.name));
+        let any = false;
+        for (const r of deepRows) {
+          const val = idx === 0 ? r[1] : r[2];
+          if (!val) continue;
+          any = true;
+          col.appendChild(el('div', { class: 'cm-brl' }, r[0]));
+          col.appendChild(el('div', { class: 'cm-brv' }, val));
+        }
+        if (!any) col.appendChild(el('div', { class: 'cm-brv' }, 'Nothing captured for ' + person.name + ' yet. Add depth in Profiles to compare more than the chart.'));
+        dcols.appendChild(col);
+      });
+      computed.appendChild(dcols);
+      if (o.composeAsk) {
+        const askBrings = el('button', { type: 'button', class: 'cm-bridge' }, 'Read these two lives together');
+        askBrings.addEventListener('click', () => { openAsk('Compare ' + pa.name + ' and ' + pb.name + ' as two lives, not only two charts. Consider their roles, what is live for each, their current intentions, and the people around them, and say what their pairing asks of them.'); });
+        computed.appendChild(askBrings);
+      }
+    }
   }
 
   let shareInserted = false;

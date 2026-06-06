@@ -32,6 +32,25 @@ export interface OpenProfileOptions {
   /** Called after a save so the home can refresh its signature. */
   onSaved?: (p: VesselProfile) => void;
   reflect?: (note: string) => void;
+  /**
+   * When present, the form edits this subject instead of the self profile. The
+   * self path (no subject) is unchanged. Used by the Profiles library to give a
+   * saved person the same depth of capture as the user, never a thinner version.
+   */
+  subject?: ProfileSubject;
+}
+/** A binding the form reads from and writes to, so one form serves the self or any saved person. */
+export interface ProfileSubject {
+  /** Title shown at the top, for example "Connie's profile" or "Add a person". */
+  title?: string;
+  /** Label on the save button, for example "Save this person". */
+  saveLabel?: string;
+  /** The hormonal cycle is on-device and personal; show it only for the self. */
+  showCycle?: boolean;
+  /** Current values for this subject. */
+  get(): VesselProfile;
+  /** Persist the whole current object for this subject. */
+  persist(p: VesselProfile): Promise<void>;
 }
 export interface ProfileHandle { close(): void; }
 
@@ -89,15 +108,15 @@ function ensureStyle(): void {
     '.cdp-surface .pc-close:hover{color:var(--gold,#C9A050)}',
     '.cdp-surface .pc-title{font-family:\'EB Garamond\',Georgia,serif;font-size:26px;color:var(--gold,#C9A050);text-align:center;margin:8px 0 6px}',
     '.cdp-surface .pc-intro{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;line-height:1.6;margin:0 auto 6px;max-width:32rem}',
-    '.cdp-surface .pc-save-note{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;color:var(--text-dim,#D4C8AE);text-align:center;margin-bottom:18px}',
+    '.cdp-surface .pc-save-note{font-family:\'EB Garamond\',Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE);text-align:center;margin-bottom:18px}',
     '.cdp-surface .pc-saved{color:var(--teal,#81CDB6)}',
     '.cdp-surface .pc-section{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:24px 0 4px;border-top:1px solid rgba(191,163,99,.12);padding-top:18px}',
     '.cdp-surface .pc-field{margin:12px 0}',
     '.cdp-surface .pc-label{display:block;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin-bottom:5px}',
-    '.cdp-surface .pc-label .pc-hint{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;letter-spacing:0;text-transform:none;color:var(--text-dim,#D4C8AE);margin-left:8px}',
+    '.cdp-surface .pc-label .pc-hint{font-family:\'EB Garamond\',Georgia,serif;font-size:12px;letter-spacing:0;text-transform:none;color:var(--text-dim,#D4C8AE);margin-left:8px}',
     '.cdp-surface .pc-in,.cdp-surface .pc-sel,.cdp-surface .pc-ta{width:100%;box-sizing:border-box;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:16px;padding:11px 13px}',
     '.cdp-surface .pc-ta{min-height:84px;resize:vertical;line-height:1.5}',
-    '.cdp-surface .pc-hintline{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:11px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
+    '.cdp-surface .pc-hintline{font-family:\'EB Garamond\',Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
     '.cdp-surface .pc-dob{display:flex;gap:8px}',
     '.cdp-surface .pc-dob .pc-sel{flex:1}',
     '.cdp-surface .pc-ac{position:relative}',
@@ -109,19 +128,19 @@ function ensureStyle(): void {
     '.cdp-surface .pc-ac-name{font-family:\'EB Garamond\',Georgia,serif;font-size:16px;color:var(--text-light,#F0E6CC)}',
     '.cdp-surface .pc-ac-sub{font-family:Georgia,serif;font-size:12px;color:var(--text-dim,#D4C8AE)}',
     '.cdp-surface .pc-ac-tz{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-soft,#E8C878)}',
-    '.cdp-surface .pc-resolved{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:12px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin-top:6px}',
+    '.cdp-surface .pc-resolved{font-family:\'EB Garamond\',Georgia,serif;font-size:13px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin-top:6px}',
     '.cdp-surface .pc-resolved.ok{color:var(--teal,#81CDB6)}',
     '.cdp-surface .pc-sig{border:1px solid var(--gold-line,#3A3320);border-radius:5px;background:var(--navy,#0D1E33);padding:18px 18px;margin:18px 0}',
     '.cdp-surface .pc-sig-head{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;color:var(--gold,#C9A050);margin-bottom:3px}',
     '.cdp-surface .pc-sig-sub{font-family:Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE);margin-bottom:14px}',
-    '.cdp-surface .pc-sig-empty{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;padding:8px 0}',
+    '.cdp-surface .pc-sig-empty{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;padding:8px 0}',
     '.cdp-surface .pc-meanlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin:14px 0 8px}',
     '.cdp-surface .pc-cards{display:flex;gap:10px;flex-wrap:wrap}',
     '.cdp-surface .pc-mcard{flex:1;min-width:200px;border:1px solid rgba(191,163,99,.18);border-radius:4px;background:rgba(0,0,0,.12);padding:12px 13px}',
     '.cdp-surface .pc-mlabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin-bottom:5px}',
     '.cdp-surface .pc-mbig{font-family:\'EB Garamond\',Georgia,serif;font-size:26px;color:var(--gold,#C9A050);line-height:1.1}',
     '.cdp-surface .pc-mbig.master{color:var(--master,#C8A0FF)}',
-    '.cdp-surface .pc-mname{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:14px;color:var(--gold-soft,#E8C878);margin:2px 0 6px}',
+    '.cdp-surface .pc-mname{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--gold-soft,#E8C878);margin:2px 0 6px}',
     '.cdp-surface .pc-mkin{font-family:\'EB Garamond\',Georgia,serif;font-size:16px;color:var(--teal,#81CDB6);margin-bottom:6px}',
     '.cdp-surface .pc-mtext{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-dim,#D4C8AE)}',
     '.cdp-surface .pc-cycle-row{display:flex;align-items:flex-start;gap:10px;margin:8px 0}',
@@ -137,18 +156,25 @@ function ensureStyle(): void {
 
 export function openProfile(o: OpenProfileOptions): ProfileHandle {
   ensureStyle();
-  const current: VesselProfile = { ...(o.repo.getProfile() || {}) };
+  const subject = o.subject;
+  const showCycle = subject ? subject.showCycle !== false : true;
+  const titleText = (subject && subject.title) ? subject.title : 'Your Cosmic Profile';
+  const eyebrowText = subject ? 'Profile' : 'Your Cosmic Profile';
+  const saveLabelText = (subject && subject.saveLabel) ? subject.saveLabel : 'Save and calculate my Cosmic Signature';
+  const bindGet = (): VesselProfile => subject ? (subject.get() || {}) : (o.repo.getProfile() || {});
+  const bindPersist = (p: VesselProfile): Promise<void> => subject ? subject.persist(p) : o.repo.setProfile(p);
+  const current: VesselProfile = { ...bindGet() };
 
   const view = el('div', { class: 'pc-view', role: 'dialog', 'aria-label': 'Your Cosmic Profile' });
   const shell = el('div', { class: 'pc-shell' });
 
   const bar = el('div', { class: 'pc-bar' });
-  bar.appendChild(el('div', { class: 'pc-h' }, 'Your Cosmic Profile'));
+  bar.appendChild(el('div', { class: 'pc-h' }, eyebrowText));
   const closeBtn = el('button', { type: 'button', class: 'pc-close', 'aria-label': 'Close' }, '\u00d7');
   bar.appendChild(closeBtn);
   shell.appendChild(bar);
 
-  shell.appendChild(el('div', { class: 'pc-title' }, 'Your Cosmic Profile'));
+  shell.appendChild(el('div', { class: 'pc-title' }, titleText));
   shell.appendChild(el('div', { class: 'pc-intro' }, 'Your birth details unlock your Galactic Signature, Life Path, and fully personalised Oracle readings.'));
   const saveNote = el('div', { class: 'pc-save-note' }, 'Your details are saved automatically as you type and stored on this device.');
   shell.appendChild(saveNote);
@@ -162,7 +188,8 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
     wrap.appendChild(lab);
     const input = el(textarea ? 'textarea' : 'input', { class: textarea ? 'pc-ta' : 'pc-in' }) as HTMLInputElement | HTMLTextAreaElement;
     if (!textarea) (input as HTMLInputElement).type = 'text';
-    input.value = value || '';
+    const safe = (value === null || value === undefined || typeof value === 'object') ? '' : String(value);
+    input.value = safe;
     input.addEventListener('input', () => { onInput(input.value); });
     wrap.appendChild(input);
     shell.appendChild(wrap);
@@ -410,7 +437,8 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   textField('Current intentions', 'what you are building or moving toward in the next six months', current.currentIntentions || '', (v) => { current.currentIntentions = v; queueSave(); }, true);
   textField('Key people', 'the people who might naturally come up in a reading about your life', current.keyPeople || '', (v) => { current.keyPeople = v; queueSave(); }, true);
 
-  /* ---- Hormonal cycle, optional, on device only -------------------------- */
+  /* ---- Hormonal cycle, optional, on device only, self only -------------- */
+  if (showCycle) {
   sectionLabel('Hormonal cycle');
   shell.appendChild(el('div', { class: 'pc-hintline' }, 'Optional, stored on this device only. When the Oracle knows where you are in your cycle, it can speak more precisely to energy, mood, and decision making capacity.'));
   current.cycle = current.cycle || {};
@@ -424,11 +452,12 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   textField('First day of last period', 'leave blank if not applicable or preferred not to share', current.cycle.lastPeriod || '', (v) => { current.cycle = { ...current.cycle, lastPeriod: v }; queueSave(); });
   textField('Average cycle length in days', '', current.cycle.cycleLength ? String(current.cycle.cycleLength) : '', (v) => { const n = Number(v); current.cycle = { ...current.cycle, cycleLength: Number.isFinite(n) && n > 0 ? Math.round(n) : undefined }; queueSave(); });
   const clearCycle = el('button', { type: 'button', class: 'pc-cyclelink' }, 'Clear cycle data from this device');
-  clearCycle.addEventListener('click', () => { current.cycle = {}; void o.repo.setProfile({ cycle: {} }); renderSignature(); flashSaved(); });
+  clearCycle.addEventListener('click', () => { current.cycle = {}; void bindPersist({ ...current }); renderSignature(); flashSaved(); });
   shell.appendChild(clearCycle);
+  }
 
   /* ---- Save and calculate ------------------------------------------------ */
-  const go = el('button', { type: 'button', class: 'pc-go' }, 'Save and calculate my Cosmic Signature');
+  const go = el('button', { type: 'button', class: 'pc-go' }, saveLabelText);
   go.addEventListener('click', () => { void saveNow(true); renderSignature(); sig.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   shell.appendChild(go);
 
@@ -441,7 +470,7 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   async function saveNow(announce: boolean): Promise<void> {
     if (timer) { clearTimeout(timer); timer = null; }
     try {
-      await o.repo.setProfile({ ...current });
+      await bindPersist({ ...current });
       flashSaved();
       if (o.onSaved) o.onSaved({ ...current });
       if (announce && o.reflect) o.reflect('Your cosmic profile is saved.');
