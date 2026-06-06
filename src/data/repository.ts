@@ -145,14 +145,15 @@ export class VesselRepository {
 
   // ---- held intentions ------------------------------------------------------
 
-  async hold(opts: { text: string; roomId: string; kind?: ThreadKind; anchor?: Anchor | null; firstTouch?: { text: string; lens: Lens } }): Promise<HeldIntention> {
+  async hold(opts: { text: string; roomId: string; kind?: ThreadKind; anchor?: Anchor | null; firstTouch?: { text: string; lens: Lens }; broughtIn?: string[] }): Promise<HeldIntention> {
     const now = Date.now();
     const touches: Touch[] = [{ id: id('t'), role: 'person', text: opts.text, createdAt: now }];
     if (opts.firstTouch) touches.push({ id: id('t'), role: 'vessel', text: opts.firstTouch.text, lens: opts.firstTouch.lens, createdAt: now + 1 });
     const it: HeldIntention = {
       id: id('i'), text: opts.text, roomId: opts.roomId, themeId: null,
       kind: opts.kind || 'acute', status: 'live', anchor: opts.anchor || null,
-      touches, summary: opts.firstTouch ? opts.firstTouch.text : '', summaryAt: opts.firstTouch ? now : 0,
+      touches, broughtIn: opts.broughtIn && opts.broughtIn.length > 0 ? [...opts.broughtIn] : undefined,
+      summary: opts.firstTouch ? opts.firstTouch.text : '', summaryAt: opts.firstTouch ? now : 0,
       createdAt: now, lastTendedAt: now, statusChangedAt: now,
     };
     this.state.intentions.unshift(it);
@@ -253,6 +254,19 @@ export class VesselRepository {
   byId(intentionId: string): HeldIntention | null {
     const it = this.state.intentions.find(i => i.id === intentionId);
     return it ? clone(it) : null;
+  }
+
+  /**
+   * Recent threads that carried brought-in files, newest first. Names and
+   * recency only, never the file itself, so a later reflection can offer a
+   * light continuity and ask after what the person was carrying.
+   */
+  recentBroughtIn(now = Date.now(), limit = 4): Array<{ names: string[]; daysAgo: number }> {
+    return this.state.intentions
+      .filter((i) => Array.isArray(i.broughtIn) && i.broughtIn.length > 0)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+      .map((i) => ({ names: (i.broughtIn as string[]).slice(), daysAgo: Math.max(0, Math.floor((now - i.createdAt) / DAY_MS)) }));
   }
 
   // ---- themes (fractal emergence) -------------------------------------------

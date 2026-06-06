@@ -74,6 +74,9 @@ export interface HeldIntention {
   status: ThreadStatus;
   anchor: Anchor | null;
   touches: Touch[];
+  /** Light references to files the person brought into this thread, names only,
+   *  never the file itself, so the thread can be asked after on return. */
+  broughtIn?: string[];
   /** A living, composed read of where this thread stands. Refreshed as it changes. */
   summary: string;
   summaryAt: number;
