@@ -179,6 +179,9 @@ export interface DepthContext {
   recentTouches?: Array<{ role: string; text: string }>;
   /** Files the person brought into the compass for this reflection. */
   attachments?: AttachmentInput[];
+  /** Light references to files brought in on earlier threads, names and recency
+   *  only, so the reply can ask after them on return. Never the file itself. */
+  broughtInHistory?: string[];
   /** Name and the day coordinates the reply uses as scaffold. */
   name?: string;
   kin?: string;
@@ -277,6 +280,9 @@ export class ApiOrchestrator implements Orchestrator {
     };
     if (merged.attachments && merged.attachments.length > 0) {
       body.attachments = merged.attachments;
+    }
+    if (merged.broughtInHistory && merged.broughtInHistory.length > 0) {
+      body.brought_in_history = merged.broughtInHistory;
     }
 
     const controller = new AbortController();

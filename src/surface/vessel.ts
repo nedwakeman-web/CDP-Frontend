@@ -1760,29 +1760,29 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     continueBtn.disabled = true;
     trackEvent('reply_requested', { lens });
     const room = await repo.ensureRoom(ROOM_DEFAULT);
+    const broughtIn = hasFiles ? (attachments as CdpAttachmentWire[]).map((a) => a.name).filter((n) => !!n) : [];
+    // A light continuity from earlier threads that carried files, names and
+    // recency only. Built before this thread is held, so it never includes the
+    // file brought in right now, only what was carried on prior visits.
+    const broughtInHistory = repo.recentBroughtIn().map((b) => {
+      const when = b.daysAgo === 0 ? 'today' : b.daysAgo === 1 ? 'yesterday' : b.daysAgo + ' days ago';
+      return b.names.join(', ') + ' (' + when + ')';
+    });
     const heldText = reflectionFor.length > 0
       ? reflectionFor
       : (attachments && attachments.length === 1
         ? 'Something I am bringing in to look at: ' + attachments[0].name
         : 'Some things I am bringing in to look at');
-    const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute' });
+    const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute', broughtIn: broughtIn.length > 0 ? broughtIn : undefined });
     activeReplyId = held.id;
     trackEvent('intention_held', {});
-    const broughtIn = hasFiles ? (attachments as CdpAttachmentWire[]).map((a) => a.name).filter((n) => !!n) : [];
-    if (hasFiles) {
-      trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
-      // A light, durable reference to what was brought in, the names only and
-      // never the file itself, so the thread record stays honest on return.
-      if (reflectionFor.length > 0 && broughtIn.length > 0) {
-        await repo.addTouch(held.id, { role: 'person', text: 'Brought in to look at: ' + broughtIn.join(', ') });
-      }
-    }
+    if (hasFiles) trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
     meetLine.textContent = held.text;
     renderLive();
     renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.', broughtIn);
     const started = Date.now();
     try {
-      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments });
+      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments, broughtInHistory });
       await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
       if (composed.summary) await repo.setSummary(held.id, composed.summary);
       trackEvent('reply_delivered', { lens, ms: Date.now() - started });
