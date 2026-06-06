@@ -110,11 +110,10 @@ function ensureStyle(): void {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = [
-    '.cdp-surface .attach-row { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:10px; flex-wrap:wrap; }',
-    '.cdp-surface .attach-btn { display:inline-flex; align-items:center; gap:7px; padding:7px 13px; background:transparent; border:1px solid var(--gold-line); color:var(--text-light); font-family:Cinzel, Georgia, serif; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; border-radius:2px; cursor:pointer; transition:border-color .2s, color .2s; }',
-    '.cdp-surface .attach-btn:hover { border-color:var(--gold); color:var(--gold); }',
-    '.cdp-surface .attach-btn svg { width:14px; height:14px; display:block; }',
-    '.cdp-surface .attach-hint { font-family:Georgia, serif; font-size:11.5px; color:var(--text-dim); font-style:italic; }',
+    '.cdp-surface .attach-row { display:flex; align-items:center; gap:10px; justify-content:center; margin-top:8px; flex-wrap:wrap; }',
+    '.cdp-surface .attach-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; border-radius:2px; cursor:pointer; opacity:0.85; transition:border-color .2s, color .2s, opacity .2s; }',
+    '.cdp-surface .attach-btn:hover { border-color:var(--gold); color:var(--gold); opacity:1; }',
+    '.cdp-surface .attach-btn svg { width:13px; height:13px; display:block; }',
     '.cdp-surface .attach-strip { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin-top:12px; }',
     '.cdp-surface .attach-chip { position:relative; display:flex; align-items:center; gap:9px; max-width:230px; padding:7px 10px 7px 8px; background:var(--raised); border:1px solid var(--gold-line); border-radius:3px; }',
     '.cdp-surface .attach-chip .thumb { width:38px; height:38px; flex-shrink:0; border-radius:2px; object-fit:cover; border:1px solid var(--gold-line); background:var(--navy); }',
@@ -228,15 +227,11 @@ export function createAttachmentZone(opts: AttachmentZoneOptions): AttachmentZon
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'attach-btn';
-  button.setAttribute('aria-label', 'Attach an image or a document');
+  button.setAttribute('aria-label', 'Attach an image, PDF, or text file');
+  button.title = 'Attach an image, PDF, or text file';
   button.innerHTML = PAPERCLIP + '<span>Attach</span>';
 
-  const hint = document.createElement('span');
-  hint.className = 'attach-hint';
-  hint.textContent = 'image, PDF, or text';
-
   row.appendChild(button);
-  row.appendChild(hint);
   row.appendChild(fileInput);
 
   const strip = document.createElement('div');

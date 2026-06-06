@@ -206,8 +206,8 @@ const STYLES = `
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:30px 20px 56px; text-align:center; overflow-y:auto; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
-.cdp-surface .meet-line { font-size:14px; font-style:italic; color:var(--text-muted); max-width:560px; margin:16px auto 0; }
-.cdp-surface .reflect { font-size:13px; font-style:italic; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
+.cdp-surface .meet-line { font-size:15px; color:var(--text-light); max-width:560px; margin:22px auto 0; line-height:1.55; }
+.cdp-surface .reflect { font-size:13px; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
 .cdp-surface .reflect.show { opacity:1; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .cdp-surface .compass-svg { width:auto; max-width:clamp(400px, 74vw, 880px); max-height:64vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:14px auto 6px; border-radius:2px; }
@@ -232,9 +232,6 @@ const STYLES = `
 .cdp-surface .reply p.keel { color:var(--gold); }
 .cdp-surface .reply .living { font-style:italic; font-size:12px; color:var(--text-dim); margin-top:10px; }
 .cdp-surface .reply .busy { font-style:italic; color:var(--text-muted); }
-.cdp-surface .reply .att-confirm { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; margin:0 0 10px; }
-.cdp-surface .reply .att-confirm-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .reply .att-confirm-v { font-size:13px; color:var(--text-muted); }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
@@ -391,7 +388,7 @@ const STYLES = `
 @media (max-width:560px) {
   .cdp-surface .home { padding:22px 14px 48px; }
   .cdp-surface .compass-svg { max-width:96vw; max-height:46vh; margin:10px auto 6px; }
-  .cdp-surface .meet-line { font-size:13px; max-width:90vw; }
+  .cdp-surface .meet-line { font-size:14px; max-width:90vw; }
   .cdp-surface .voice-toggle { max-width:92vw; }
   .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
   .cdp-surface .handle span:not(.chev) { display:none; }
@@ -825,8 +822,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const replyArea = el('div', { 'aria-live': 'polite' });
   home.appendChild(replyArea);
 
-  const worldOpenBtn = el('button', { type: 'button', class: 'meet-context' }, 'See how this year is taking shape');
-  home.appendChild(worldOpenBtn);
   surface.appendChild(home);
 
   /* ===== edges, handles, scrims ===== */
@@ -1474,7 +1469,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   /* The full year is the single year view. It opens from the left rail, Emerging
    * patterns, and from the under-compass line, framed as themes, what is taking
    * shape, and what is held across the year. The earlier lighter peek is retired. */
-  worldOpenBtn.addEventListener('click', () => openYearView());
 
   /* ===== lean menu (behind the header menu icon) ===== */
   /* ===== sign in and make-it-mine, folded from the old landing onto one surface ===== */
@@ -1715,16 +1709,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     paras.forEach((p, i) => into.appendChild(el('p', i === paras.length - 1 ? { class: 'keel' } : {}, p)));
   }
 
-  function renderReply(it: HeldIntention, busyText?: string, broughtIn?: string[]): void {
+  function renderReply(it: HeldIntention, busyText?: string): void {
     clear(replyArea);
     const card = el('div', { class: 'reply' });
     card.appendChild(el('div', { class: 'person' }, it.text));
-    if (broughtIn && broughtIn.length > 0) {
-      const note = el('div', { class: 'att-confirm' });
-      note.appendChild(el('span', { class: 'att-confirm-l' }, 'Brought in'));
-      note.appendChild(el('span', { class: 'att-confirm-v' }, broughtIn.join(', ')));
-      card.appendChild(note);
-    }
     if (busyText) {
       card.appendChild(el('p', { class: 'busy' }, busyText));
       replyArea.appendChild(card);
@@ -1760,34 +1748,26 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     continueBtn.disabled = true;
     trackEvent('reply_requested', { lens });
     const room = await repo.ensureRoom(ROOM_DEFAULT);
-    const broughtIn = hasFiles ? (attachments as CdpAttachmentWire[]).map((a) => a.name).filter((n) => !!n) : [];
-    // A light continuity from earlier threads that carried files, names and
-    // recency only. Built before this thread is held, so it never includes the
-    // file brought in right now, only what was carried on prior visits.
-    const broughtInHistory = repo.recentBroughtIn().map((b) => {
-      const when = b.daysAgo === 0 ? 'today' : b.daysAgo === 1 ? 'yesterday' : b.daysAgo + ' days ago';
-      return b.names.join(', ') + ' (' + when + ')';
-    });
     const heldText = reflectionFor.length > 0
       ? reflectionFor
       : (attachments && attachments.length === 1
         ? 'Something I am bringing in to look at: ' + attachments[0].name
         : 'Some things I am bringing in to look at');
-    const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute', broughtIn: broughtIn.length > 0 ? broughtIn : undefined });
+    const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute' });
     activeReplyId = held.id;
     trackEvent('intention_held', {});
     if (hasFiles) trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
     meetLine.textContent = held.text;
     renderLive();
-    renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.', broughtIn);
+    renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.');
     const started = Date.now();
     try {
-      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments, broughtInHistory });
+      const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments });
       await repo.addTouch(held.id, { role: 'vessel', text: composed.text, lens });
       if (composed.summary) await repo.setSummary(held.id, composed.summary);
       trackEvent('reply_delivered', { lens, ms: Date.now() - started });
       const fresh = repo.byId(held.id);
-      if (fresh) renderReply(fresh, undefined, broughtIn);
+      if (fresh) renderReply(fresh);
     } finally {
       composing = false;
       continueBtn.disabled = false;
