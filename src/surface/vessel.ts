@@ -392,18 +392,22 @@ const STYLES = `
 .cdp-surface .menu-val { font-size:12.5px; color:var(--text-muted); }
 .cdp-surface .menu-note { font-size:13px; color:var(--text-light); margin-top:8px; }
 
+.cdp-surface .home-openers { display:none; gap:10px; justify-content:center; margin:18px auto 0; flex-wrap:wrap; }
+.cdp-surface .home-opener { background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:9px 15px; border-radius:3px; cursor:pointer; transition:color .2s, border-color .2s; }
+.cdp-surface .home-opener:hover { color:var(--gold); border-color:var(--gold); }
+
 @media (max-width:820px) {
   .cdp-surface .drawer { width:90vw; } .cdp-surface .handle { min-height:auto; padding:16px 3px; } .cdp-surface .cols { grid-template-columns:1fr; }
 }
 @media (max-width:560px) {
-  .cdp-surface .home { padding:22px 14px 48px; }
-  .cdp-surface .compass-svg { max-width:96vw; max-height:46vh; margin:10px auto 6px; }
+  .cdp-surface .home { padding:14px 14px 48px; }
+  .cdp-surface .compass-svg { max-width:96vw; max-height:58vh; margin:8px auto 6px; }
   .cdp-surface .meet-line { font-size:14px; max-width:90vw; }
-  .cdp-surface .ask { width:min(94vw, 560px); }
+  .cdp-surface .ask { width:min(94vw, 500px); }
   .cdp-surface .ask-input { font-size:16px; }
   .cdp-surface .voice-toggle { max-width:92vw; }
-  .cdp-surface .handle { width:15px; padding:22px 1px; gap:6px; }
-  .cdp-surface .handle span:not(.chev) { display:none; }
+  .cdp-surface .handle { display:none; }
+  .cdp-surface .home-openers { display:flex; }
   .cdp-surface .coords { width:86vw; }
   .cdp-surface .glance-overlay { padding:48px 12px 18px; }
   .cdp-surface .glance-panel { padding:16px 14px 18px; }
@@ -827,6 +831,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // and the chosen voice. A local first cut until the backend composes it live.
   const meetLine = el('div', { class: 'meet-line' }, composeMeetLine());
   home.appendChild(meetLine);
+
+  // mobile side openers: on a phone the two edge rails are hidden, so the same
+  // two destinations appear here as a clear, tappable, labelled pair. They reuse
+  // the desktop drawer handlers, so there is one behaviour, two ways in.
+  const openers = el('div', { class: 'home-openers' });
+  const openLeftBtn = el('button', { type: 'button', class: 'home-opener' }, 'Emerging patterns');
+  openLeftBtn.addEventListener('click', () => openDrawer('left'));
+  const openRightBtn = el('button', { type: 'button', class: 'home-opener' }, 'Readings');
+  openRightBtn.addEventListener('click', () => openDrawer('right'));
+  openers.appendChild(openLeftBtn);
+  openers.appendChild(openRightBtn);
+  home.appendChild(openers);
   const reflectLine = el('div', { class: 'reflect' });
   home.appendChild(reflectLine);
   let reflectTimer = 0;
