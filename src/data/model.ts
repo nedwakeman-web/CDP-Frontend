@@ -142,6 +142,8 @@ export interface VesselProfile {
 export interface StoredProfile extends VesselProfile {
   /** Stable id for selection, comparison, and removal. */
   id: string;
+  /** How this person relates to the user (partner, child, co-founder), read by compatibility. */
+  relationship?: string;
 }
 
 /**

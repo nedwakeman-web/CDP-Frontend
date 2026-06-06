@@ -86,7 +86,7 @@ export class VesselRepository {
 
   // ---- saved profiles (the self plus other people) --------------------------
   listSavedProfiles(): StoredProfile[] { return (this.state.savedProfiles || []).map((p) => ({ ...p })); }
-  async addSavedProfile(p: VesselProfile): Promise<StoredProfile> {
+  async addSavedProfile(p: VesselProfile & { relationship?: string }): Promise<StoredProfile> {
     const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     const entry: StoredProfile = { ...p, id };
     if (!this.state.savedProfiles) this.state.savedProfiles = [];
@@ -97,6 +97,19 @@ export class VesselRepository {
   async removeSavedProfile(id: string): Promise<void> {
     if (!this.state.savedProfiles) return;
     this.state.savedProfiles = this.state.savedProfiles.filter((p) => p.id !== id);
+    await this.commit();
+  }
+  /** Recall one saved person by id, as a copy. */
+  getSavedProfile(id: string): StoredProfile | undefined {
+    const p = (this.state.savedProfiles || []).find((x) => x.id === id);
+    return p ? { ...p } : undefined;
+  }
+  /** Deep-edit a saved person in place, merging the patch. The id is preserved. */
+  async updateSavedProfile(id: string, patch: Partial<VesselProfile> & { relationship?: string }): Promise<void> {
+    if (!this.state.savedProfiles) return;
+    const p = this.state.savedProfiles.find((x) => x.id === id);
+    if (!p) return;
+    Object.assign(p, patch, { id });
     await this.commit();
   }
 
