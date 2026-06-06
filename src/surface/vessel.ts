@@ -232,6 +232,9 @@ const STYLES = `
 .cdp-surface .reply p.keel { color:var(--gold); }
 .cdp-surface .reply .living { font-style:italic; font-size:12px; color:var(--text-dim); margin-top:10px; }
 .cdp-surface .reply .busy { font-style:italic; color:var(--text-muted); }
+.cdp-surface .reply .att-confirm { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; margin:0 0 10px; }
+.cdp-surface .reply .att-confirm-l { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); }
+.cdp-surface .reply .att-confirm-v { font-size:13px; color:var(--text-muted); }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
@@ -1712,10 +1715,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     paras.forEach((p, i) => into.appendChild(el('p', i === paras.length - 1 ? { class: 'keel' } : {}, p)));
   }
 
-  function renderReply(it: HeldIntention, busyText?: string): void {
+  function renderReply(it: HeldIntention, busyText?: string, broughtIn?: string[]): void {
     clear(replyArea);
     const card = el('div', { class: 'reply' });
     card.appendChild(el('div', { class: 'person' }, it.text));
+    if (broughtIn && broughtIn.length > 0) {
+      const note = el('div', { class: 'att-confirm' });
+      note.appendChild(el('span', { class: 'att-confirm-l' }, 'Brought in'));
+      note.appendChild(el('span', { class: 'att-confirm-v' }, broughtIn.join(', ')));
+      card.appendChild(note);
+    }
     if (busyText) {
       card.appendChild(el('p', { class: 'busy' }, busyText));
       replyArea.appendChild(card);
@@ -1759,10 +1768,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const held = await repo.hold({ text: heldText, roomId: room.id, kind: 'acute' });
     activeReplyId = held.id;
     trackEvent('intention_held', {});
-    if (hasFiles) trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
+    const broughtIn = hasFiles ? (attachments as CdpAttachmentWire[]).map((a) => a.name).filter((n) => !!n) : [];
+    if (hasFiles) {
+      trackEvent('attachments_sent', { count: attachments ? attachments.length : 0 });
+      // A light, durable reference to what was brought in, the names only and
+      // never the file itself, so the thread record stays honest on return.
+      if (reflectionFor.length > 0 && broughtIn.length > 0) {
+        await repo.addTouch(held.id, { role: 'person', text: 'Brought in to look at: ' + broughtIn.join(', ') });
+      }
+    }
     meetLine.textContent = held.text;
     renderLive();
-    renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.');
+    renderReply(held, 'Composing in the ' + lensLabel(lens) + ' voice.', broughtIn);
     const started = Date.now();
     try {
       const composed = await orchestrator.depth(held, lens, { recentTouches: recentTouches(held.id), attachments });
@@ -1770,7 +1787,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (composed.summary) await repo.setSummary(held.id, composed.summary);
       trackEvent('reply_delivered', { lens, ms: Date.now() - started });
       const fresh = repo.byId(held.id);
-      if (fresh) renderReply(fresh);
+      if (fresh) renderReply(fresh, undefined, broughtIn);
     } finally {
       composing = false;
       continueBtn.disabled = false;

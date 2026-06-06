@@ -32,7 +32,7 @@ function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
 /* Interface chrome that must never appear in a shared or saved artefact. */
 const CHROME_SELECTOR = [
   'button', 'input', 'select', 'textarea',
-  '.share-bar', '.yr-nav', '.cal-tabs', '.cal-legend', '.cal-wd', '.cal-grid', '.cal-bd', '.cal-nav',
+  '.share-bar', '.yr-nav', '.cal-tabs', '.cal-legend', '.cal-wd', '.cal-grid', '.cal-bd', '.cal-nav', '.att-confirm',
   '[class*="cue"]', '[class*="bridge"]', '[class*="-tap"]', '[class*="-ask"]', '[class*="tapdot"]', '[class*="taplabel"]',
 ].join(',');
 
