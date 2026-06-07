@@ -123,7 +123,7 @@ function ensureAboutStyle(): void {
     '.ab-bar{position:sticky;top:0;display:flex;justify-content:flex-end;padding:12px 16px;background:linear-gradient(180deg,var(--bg,#0A1828),rgba(10,24,40,0))}',
     '.ab-close{background:transparent;border:0;color:var(--text-muted,#D4C8AE);font-size:24px;line-height:1;cursor:pointer;padding:4px 8px}',
     '.ab-wrap{max-width:560px;margin:0 auto;padding:0 22px 40px}',
-    '.ab-hero{position:relative;width:100%;aspect-ratio:4/3;max-height:340px;background-size:cover;background-position:center top;border-radius:12px;overflow:hidden}',
+    '.ab-hero{position:relative;width:100%;aspect-ratio:1288/952;background-size:contain;background-repeat:no-repeat;background-position:center;border-radius:12px;overflow:hidden}',
     '.ab-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,24,40,0) 40%,rgba(10,24,40,0.82) 86%,var(--bg,#0A1828) 100%)}',
     '.ab-herotext{position:absolute;left:0;right:0;bottom:14px;text-align:center;z-index:1}',
     '.ab-title{font-family:\'Cinzel\',Georgia,serif;font-weight:500;font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft,#E8C878);margin:6px 0 0;line-height:1.2}',
