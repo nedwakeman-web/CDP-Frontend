@@ -1172,6 +1172,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       getLens: () => lens,
       reflect: (n) => reflect(n),
       onRead: (pr, label) => openReadingFor(pr, 'Reading for ' + label),
+      onChanged: () => refreshProfileFromRepo(),
     });
   }
   function openYearView(): void {
@@ -1726,6 +1727,21 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
     void repo.setProfile({ birthDate: birthDate });
+  }
+
+  // Re-read the full persisted profile after a library save and repaint the
+  // home from it. Unlike applyProfile, which deliberately reduces the host
+  // profile to a birthDate and a name for the quick make-it-yours path, this
+  // keeps the rich object the deep editor saved (location, context, roles,
+  // intentions, key people, birth coordinates), so home, the glance, and the
+  // meet line stop reading the stale profile captured once at mount. It does
+  // not persist anything, the editor already did, and it never clobbers.
+  function refreshProfileFromRepo(): void {
+    const fresh = repo.getProfile();
+    if (fresh) profile = fresh;
+    day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
+    if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
+    paintMeetLine();
   }
 
   function setVoice(next: Lens): void {
