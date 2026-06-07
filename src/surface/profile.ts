@@ -96,6 +96,113 @@ function sunSign(birthDate: string): string {
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+/* ---- name numerology, Pythagorean letter values --------------------------- */
+/*
+ * Pythagorean name numbers, computed here because no prior name-number
+ * convention existed in the Vessel or the monolith to inherit; the monolith
+ * field promised Soul Urge, Expression, and Personality numbers but never
+ * computed them. CDP therefore sets the convention explicitly, to its cited
+ * Pythagorean lineage (Drayer 2002, Goodwin 1994, Kahn 2001): each letter takes
+ * its value one through nine, the Expression number is the whole name, the Soul
+ * Urge the vowels A E I O U, the Personality the consonants, with Y read as a
+ * consonant. The total is reduced through the same core reducer every other
+ * number uses, so master numbers are preserved and the numbers never disagree
+ * across surfaces. These are symbolic, labelled symbolic wherever they show.
+ */
+const PY_LETTER: Record<string, number> = {
+  A: 1, J: 1, S: 1, B: 2, K: 2, T: 2, C: 3, L: 3, U: 3, D: 4, M: 4, V: 4,
+  E: 5, N: 5, W: 5, F: 6, O: 6, X: 6, G: 7, P: 7, Y: 7, H: 8, Q: 8, Z: 8, I: 9, R: 9,
+};
+const VOWELS = new Set(['A', 'E', 'I', 'O', 'U']);
+function lettersOnly(name: string): string { return (name || '').toUpperCase().replace(/[^A-Z]/g, ''); }
+function nameNumber(name: string, mode: 'all' | 'vowels' | 'consonants'): { value: number; master: boolean } {
+  let sum = 0;
+  for (const ch of lettersOnly(name)) {
+    const v = PY_LETTER[ch];
+    if (!v) continue;
+    const vowel = VOWELS.has(ch);
+    if (mode === 'vowels' && !vowel) continue;
+    if (mode === 'consonants' && vowel) continue;
+    sum += v;
+  }
+  if (sum === 0) return { value: 0, master: false };
+  const r = reduceNumber(sum).value;
+  return { value: r, master: isMaster(r) };
+}
+
+/* ---- name meanings, etymological, harvested verbatim from the monolith ----- */
+/*
+ * The authored name-meaning dictionary, ported from the monolith NAME_MEANINGS
+ * and getNameMeaning, first name only. Etymological tradition, kept distinct
+ * from the numerology above and never presented as a numerical claim.
+ */
+interface NameMeaning { origin: string; meaning: string; interp: string; }
+const NAME_MEANINGS: Record<string, NameMeaning> = {
+  'adam': { origin: 'Hebrew', meaning: 'Earth, man', interp: 'Grounded presence, the one who names things' },
+  'alice': { origin: 'Germanic', meaning: 'Noble, of noble kind', interp: 'Natural leadership and clarity of purpose' },
+  'amelia': { origin: 'Germanic', meaning: 'Work, industrious', interp: 'Sustained effort that transforms into something lasting' },
+  'anna': { origin: 'Hebrew', meaning: 'Grace, favour', interp: 'Effortless giving; the quality of presence that asks nothing in return' },
+  'aurora': { origin: 'Latin', meaning: 'Dawn', interp: 'The moment before full illumination; harbinger of new cycles' },
+  'ben': { origin: 'Hebrew', meaning: 'Son of the right hand', interp: 'Strength in support; the power that comes from being trusted' },
+  'benjamin': { origin: 'Hebrew', meaning: 'Son of the right hand', interp: 'Strength in support; the power that comes from being trusted' },
+  'catherine': { origin: 'Greek', meaning: 'Pure', interp: 'Clarity unclouded by accumulation; the distilled essence' },
+  'charlotte': { origin: 'French/Germanic', meaning: 'Free woman, strength', interp: 'Independence of spirit expressed through care for others' },
+  'claire': { origin: 'Latin', meaning: 'Clear, bright', interp: 'Illumination that makes things visible to others as well as oneself' },
+  'daniel': { origin: 'Hebrew', meaning: 'God is my judge', interp: 'Integrity in the absence of external validation' },
+  'david': { origin: 'Hebrew', meaning: 'Beloved', interp: 'The one who is loved; also the one who loves without calculation' },
+  'edward': { origin: 'Old English', meaning: 'Wealthy guardian', interp: 'Stewardship of what matters; protection through generosity' },
+  'eleanor': { origin: 'Old French/Greek', meaning: 'Bright, shining one', interp: 'Light that guides others without diminishing itself' },
+  'emily': { origin: 'Latin', meaning: 'Rival, eager', interp: 'Driven by inner standard rather than external comparison' },
+  'emma': { origin: 'Germanic', meaning: 'Whole, universal', interp: 'The tendency to see the complete picture; wholeness as a value' },
+  'florence': { origin: 'Latin', meaning: 'Flourishing, flowering', interp: 'Growth that is visible; vitality that cannot be contained' },
+  'george': { origin: 'Greek', meaning: 'Farmer, earthworker', interp: 'Patient cultivation; trust in process over speed' },
+  'grace': { origin: 'Latin', meaning: 'Goodness, generosity', interp: 'The quality of giving that transforms the giver as much as the recipient' },
+  'hannah': { origin: 'Hebrew', meaning: 'Favour, grace', interp: 'The kind of presence that makes others feel seen' },
+  'harry': { origin: 'Germanic', meaning: 'Army ruler, home power', interp: 'Strength that protects rather than dominates' },
+  'isabella': { origin: 'Hebrew/Italian', meaning: 'Devoted to God, pledged', interp: 'Deep commitment; the capacity for sustained devotion' },
+  'james': { origin: 'Hebrew', meaning: 'Supplanter, one who follows', interp: 'The willingness to learn by closely following what works' },
+  'jessica': { origin: 'Hebrew', meaning: 'God beholds, foresight', interp: 'Perception that goes beyond the visible' },
+  'john': { origin: 'Hebrew', meaning: 'God is gracious', interp: 'The grace that comes through rather than from the person' },
+  'julia': { origin: 'Latin', meaning: 'Youthful, downy', interp: 'Freshness that renews itself; perennial curiosity' },
+  'kate': { origin: 'Greek', meaning: 'Pure', interp: 'Simplicity that is not simplistic; essence without excess' },
+  'katherine': { origin: 'Greek', meaning: 'Pure', interp: 'Clarity unclouded by accumulation; the distilled essence' },
+  'laura': { origin: 'Latin', meaning: 'Laurel, victory', interp: 'Achievement that is recognised; mastery made visible' },
+  'lily': { origin: 'Latin/Old English', meaning: 'Lily flower, purity', interp: 'Beauty that does not compete; radiance without effort' },
+  'lucas': { origin: 'Latin/Greek', meaning: 'Light, illumination', interp: 'The one who makes things visible; clarity as a gift to others' },
+  'lucy': { origin: 'Latin', meaning: 'Light', interp: 'Illumination; the natural tendency to make things clear' },
+  'mark': { origin: 'Latin', meaning: 'Of Mars, warrior', interp: 'Decisive action; the courage to begin' },
+  'mary': { origin: 'Hebrew', meaning: 'Beloved, wished-for child', interp: 'The depth that comes from being truly wanted; love as foundation' },
+  'matthew': { origin: 'Hebrew', meaning: 'Gift of God', interp: 'The sense that one’s presence is itself a contribution' },
+  'michael': { origin: 'Hebrew', meaning: 'Who is like God?', interp: 'The question as identity; power held in humility' },
+  'natalia': { origin: 'Latin', meaning: 'Born on Christmas Day, birth', interp: 'New beginnings; the energy of arrival and fresh potential' },
+  'nicholas': { origin: 'Greek', meaning: 'Victory of the people', interp: 'Success that belongs to the collective, not the individual' },
+  'olivia': { origin: 'Latin', meaning: 'Olive tree, peace', interp: 'The capacity to sustain peace through steady presence' },
+  'paul': { origin: 'Latin', meaning: 'Small, humble', interp: 'The paradox of great influence from a simple foundation' },
+  'peter': { origin: 'Greek', meaning: 'Rock, stone', interp: 'Reliability; the quality of being constant when others shift' },
+  'philip': { origin: 'Greek', meaning: 'Lover of horses, freedom', interp: 'The love of what cannot be fully contained or controlled' },
+  'rachel': { origin: 'Hebrew', meaning: 'Ewe, lamb', interp: 'Gentleness as strength; the power of patient waiting' },
+  'richard': { origin: 'Germanic', meaning: 'Brave ruler', interp: 'Courage in leadership; authority that does not need to assert itself' },
+  'robert': { origin: 'Germanic', meaning: 'Bright fame', interp: 'Recognition that comes from genuine contribution' },
+  'rose': { origin: 'Latin', meaning: 'Rose flower', interp: 'Beauty that is also a process; the unfolding that is itself the point' },
+  'samuel': { origin: 'Hebrew', meaning: 'God has heard', interp: 'The deep sense of being received; being heard as a spiritual act' },
+  'sarah': { origin: 'Hebrew', meaning: 'Princess, noblewoman', interp: 'Dignity that comes from within; the quiet authority of one who knows their worth' },
+  'simon': { origin: 'Hebrew', meaning: 'One who hears', interp: 'The gift of true listening; understanding that precedes speaking' },
+  'sofia': { origin: 'Greek', meaning: 'Wisdom', interp: 'Clarity, insight, and inner knowing; the intelligence of the soul' },
+  'sophia': { origin: 'Greek', meaning: 'Wisdom', interp: 'Clarity, insight, and inner knowing; the intelligence of the soul' },
+  'sonia': { origin: 'Greek/Slavic', meaning: 'Wisdom', interp: 'The capacity to see through the surface to what is essential' },
+  'stephanie': { origin: 'Greek', meaning: 'Crown, wreath', interp: 'Achievement worn lightly; honour as a way of being, not a goal' },
+  'susan': { origin: 'Hebrew', meaning: 'Lily', interp: 'Purity that is not fragile; beauty that persists across conditions' },
+  'thomas': { origin: 'Aramaic', meaning: 'Twin', interp: 'The one who holds paradox; two natures in one person' },
+  'victoria': { origin: 'Latin', meaning: 'Victory', interp: 'The triumph that comes not from defeating others but from meeting one’s own standard' },
+  'william': { origin: 'Germanic', meaning: 'Resolute protector', interp: 'Strength directed entirely toward the protection of what is loved' },
+  'zoe': { origin: 'Greek', meaning: 'Life', interp: 'Vitality as an orientation; the quality of being fully alive' },
+};
+function getNameMeaning(name: string): NameMeaning | null {
+  if (!name) return null;
+  const key = name.toLowerCase().trim().split(' ')[0];
+  return NAME_MEANINGS[key] || null;
+}
+
 const STYLE_ID = 'cdp-profile-style';
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
@@ -148,6 +255,7 @@ function ensureStyle(): void {
     '.cdp-surface .pc-cyclelink{background:none;border:none;color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:13px;cursor:pointer;padding:6px 0;text-decoration:underline}',
     '.cdp-surface .pc-go{display:block;width:100%;box-sizing:border-box;background:none;border:1px solid var(--gold,#C9A050);color:var(--gold,#C9A050);font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:15px;border-radius:4px;cursor:pointer;margin-top:24px}',
     '.cdp-surface .pc-go:hover{background:rgba(201,160,80,.08)}',
+    '.cdp-surface .pc-namecite{font-family:Georgia,serif;font-size:12px;line-height:1.6;color:var(--text-dim,#D4C8AE);margin:8px 0 2px}',
   ].join('');
   const style = el('style', { id: STYLE_ID });
   style.textContent = css;
@@ -198,8 +306,8 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
 
   /* ---- Identity ---------------------------------------------------------- */
   sectionLabel('Identity');
-  textField('Preferred name or nickname', 'This is how the Oracle will address you in readings', current.name || '', (v) => { current.name = v; queueSave(); });
-  textField('Full name', '', current.fullName || '', (v) => { current.fullName = v; queueSave(); });
+  textField('Preferred name or nickname', 'This is how the Oracle will address you in readings', current.name || '', (v) => { current.name = v; queueSave(); renderSignature(); });
+  textField('Full name', '', current.fullName || '', (v) => { current.fullName = v; queueSave(); renderSignature(); });
   textField('Location', '', current.location || '', (v) => { current.location = v; queueSave(); });
   textField('Personal context', 'deepens Oracle readings', current.context || '', (v) => { current.context = v; queueSave(); }, true);
 
@@ -384,14 +492,31 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
     if (text) card.appendChild(el('div', { class: 'pc-mtext' }, text));
     return card;
   }
+  function nameForNumbers(): string { return (current.fullName || current.name || '').trim(); }
+  function renderNameNumerology(): void {
+    const nm = nameForNumbers();
+    if (!nm) return;
+    const expr = nameNumber(nm, 'all');
+    const soul = nameNumber(nm, 'vowels');
+    const pers = nameNumber(nm, 'consonants');
+    if (!expr.value && !soul.value && !pers.value) return;
+    sig.appendChild(el('div', { class: 'pc-meanlabel' }, 'What your name carries'));
+    const ncards = el('div', { class: 'pc-cards' });
+    if (expr.value) ncards.appendChild(meaningCard('Expression' + (expr.master ? '  \u00b7  Master Number' : ''), String(expr.value), expr.master, numName(expr.value), 'The whole of your name in the Pythagorean count, your outward gifts and the way you meet the world. Symbolic, Pythagorean.'));
+    if (soul.value) ncards.appendChild(meaningCard('Soul Urge' + (soul.master ? '  \u00b7  Master Number' : ''), String(soul.value), soul.master, numName(soul.value), 'The vowels of your name, what you most want at the centre, beneath the doing. Symbolic, Pythagorean.'));
+    if (pers.value) ncards.appendChild(meaningCard('Personality' + (pers.master ? '  \u00b7  Master Number' : ''), String(pers.value), pers.master, numName(pers.value), 'The consonants of your name, the first impression others read before they know you. Symbolic, Pythagorean.'));
+    sig.appendChild(ncards);
+    sig.appendChild(el('div', { class: 'pc-namecite' }, 'Name numerology after the Pythagorean lineage, Drayer 2002, Goodwin 1994, Kahn 2001. Vowels are A, E, I, O, U, and Y is read as a consonant. Symbolic, a tradition rather than an empirical claim.'));
+    const meaning = getNameMeaning(nm);
+    if (meaning) {
+      sig.appendChild(meaningCard('Name meaning', '', false, '', 'From ' + meaning.origin + ', meaning ' + meaning.meaning + '. ' + meaning.interp + '. A traditional reading of the name, etymological rather than numerological.'));
+    }
+  }
   function renderSignature(): void {
     clear(sig);
     const bd = current.birthDate;
-    if (!bd || !/^\d{4}-\d{2}-\d{2}$/.test(bd)) {
-      sig.appendChild(el('div', { class: 'pc-sig-empty' }, 'Enter your date of birth to reveal your Galactic Signature, Life Path, and Personal Year.'));
-      sigShare.style.display = 'none';
-      return;
-    }
+    const hasDob = !!bd && /^\d{4}-\d{2}-\d{2}$/.test(bd);
+    if (bd && hasDob) {
     const kd = kinDescriptor(bd);
     const lp = lifePath(bd);
     const todayIso = new Date().toISOString().slice(0, 10);
@@ -427,6 +552,13 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
       'Your natal solar placement, the zodiac sign the Sun occupied on your birthday. At Mystic and Oracle tiers your full natal chart is integrated from the ephemeris (Swiss Ephemeris and Astrodienst).',
     ));
     sig.appendChild(cards);
+    }
+    renderNameNumerology();
+    if (!hasDob && !nameForNumbers()) {
+      sig.appendChild(el('div', { class: 'pc-sig-empty' }, 'Enter your date of birth to reveal your Galactic Signature, Life Path, and Personal Year, or add your name above to see what it carries.'));
+      sigShare.style.display = 'none';
+      return;
+    }
     sigShare.style.display = '';
   }
   renderSignature();
