@@ -96,14 +96,19 @@ function numName(n: number): string { const d = NUM_DATA[n]; return d ? d.n : St
 
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+html, body { margin:0; background:#0A1828; }
 .cdp-surface {
   --bg:#0A1828; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
   --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
   --text-light:#F0E6CC; --text-muted:#D4C8AE; --text-dim:#9E9282; --teal:#81CDB6; --master:#C8A0FF;
   --seal-red:#C56A5C; --seal-white:#E6DFC8; --seal-blue:#5F9BC0; --seal-yellow:#D8B24E;
-  background:var(--bg); color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
+  background-color:var(--bg);
+  background-image:radial-gradient(1.5px 1.5px at 12% 16%, rgba(240,230,200,0.55), transparent 62%), radial-gradient(1px 1px at 27% 39%, rgba(240,230,200,0.32), transparent 62%), radial-gradient(1px 1px at 46% 11%, rgba(240,230,200,0.42), transparent 62%), radial-gradient(1.5px 1.5px at 62% 30%, rgba(240,230,200,0.5), transparent 62%), radial-gradient(1px 1px at 77% 19%, rgba(240,230,200,0.3), transparent 62%), radial-gradient(1px 1px at 89% 44%, rgba(240,230,200,0.38), transparent 62%), radial-gradient(1px 1px at 34% 64%, rgba(240,230,200,0.3), transparent 62%), radial-gradient(1.5px 1.5px at 57% 75%, rgba(240,230,200,0.4), transparent 62%), radial-gradient(1px 1px at 81% 79%, rgba(240,230,200,0.3), transparent 62%), radial-gradient(1px 1px at 17% 85%, rgba(240,230,200,0.34), transparent 62%), radial-gradient(1100px 600px at 50% -10%, rgba(201,160,80,0.07), transparent 72%);
+  background-attachment:fixed; background-repeat:no-repeat;
+  color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.6;
   min-height:100vh; overflow:hidden;
 }
+.cdp-surface[data-theme="light"] { background-image:none; }
 .cdp-surface * { margin:0; padding:0; box-sizing:border-box; }
 .cdp-surface .display { font-family:Cinzel, Georgia, serif; }
 .cdp-surface[data-theme="light"] {
@@ -210,11 +215,11 @@ const STYLES = `
 .cdp-surface .reflect { font-size:13px; color:var(--gold-soft, #E8C878); max-width:560px; margin:10px auto 0; min-height:1.2em; opacity:0; transition:opacity .5s ease; }
 .cdp-surface .reflect.show { opacity:1; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-.cdp-surface .compass-svg { width:auto; max-width:clamp(440px, 82vw, 1000px); max-height:70vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:8px auto 6px; border-radius:2px; }
+.cdp-surface .compass-svg { width:auto; max-width:clamp(560px, 90vw, 1180px); max-height:78vh; aspect-ratio:2048 / 1536; height:auto; display:block; margin:2px auto 4px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(86vw, 500px); margin:12px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:14px; padding:6px 8px 6px 14px; transition:border-color .2s; }
+.cdp-surface .ask { width:min(86vw, 500px); margin:10px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:10px; padding:4px 6px 4px 14px; transition:border-color .2s; }
 .cdp-surface .ask:focus-within { border-color:var(--gold); }
-.cdp-surface .ask-input { width:100%; box-sizing:border-box; padding:10px 4px 4px; min-height:28px; max-height:200px; overflow-y:auto; resize:none; background:transparent; border:none; color:var(--text-light); font-family:Georgia, serif; font-size:15px; line-height:1.5; outline:none; display:block; }
+.cdp-surface .ask-input { width:100%; box-sizing:border-box; padding:8px 4px 2px; min-height:24px; max-height:200px; overflow-y:auto; resize:none; background:transparent; border:none; color:var(--text-light); font-family:Georgia, serif; font-size:15px; line-height:1.5; outline:none; display:block; }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
 .cdp-surface .ask-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 0 2px; }
 .cdp-surface .ask-tools { display:flex; align-items:center; gap:2px; }
@@ -401,7 +406,8 @@ const STYLES = `
 }
 @media (max-width:560px) {
   .cdp-surface .home { padding:14px 14px 48px; }
-  .cdp-surface .compass-svg { max-width:96vw; max-height:58vh; margin:8px auto 6px; }
+  .cdp-surface .brand { font-size:12px; letter-spacing:1px; line-height:1.15; }
+  .cdp-surface .compass-svg { max-width:100%; max-height:66vh; margin:2px auto 2px; }
   .cdp-surface .meet-line { font-size:14px; max-width:90vw; }
   .cdp-surface .ask { width:min(94vw, 500px); }
   .cdp-surface .ask-input { font-size:16px; }
