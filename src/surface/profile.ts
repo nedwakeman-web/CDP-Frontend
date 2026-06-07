@@ -199,7 +199,7 @@ const NAME_MEANINGS: Record<string, NameMeaning> = {
 };
 function getNameMeaning(name: string): NameMeaning | null {
   if (!name) return null;
-  const key = name.toLowerCase().trim().split(' ')[0];
+  const key = (name.toLowerCase().trim().split(' ')[0]) || '';
   return NAME_MEANINGS[key] || null;
 }
 
