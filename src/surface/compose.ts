@@ -285,8 +285,14 @@ export class ApiOrchestrator implements Orchestrator {
       body.brought_in_history = merged.broughtInHistory;
     }
 
+    // A document takes longer to read and reflect on than a typed line, so a
+    // deck is given up to 90 seconds before the call is abandoned. Without
+    // this, a brought-in PDF aborts at the default and the honest fallback
+    // shows even when the backend is healthy.
+    const hasAttachment = !!(merged.attachments && merged.attachments.length > 0);
+    const effectiveTimeoutMs = hasAttachment ? Math.max(this.timeoutMs, 90000) : this.timeoutMs;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 
     try {
       const res = await this.fetchImpl(this.base + '/api/compass/reply', {
