@@ -66,11 +66,6 @@ function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
   return node;
 }
 function clear(node: HTMLElement): void { while (node.firstChild) node.removeChild(node.firstChild); }
-function lineEl(text: string, meta?: string, teal?: boolean): HTMLElement {
-  const d = el('div', { class: teal ? 'line teal' : 'line' }, text);
-  if (meta) d.appendChild(el('span', { class: 'meta' }, meta));
-  return d;
-}
 
 /* ---- date and labels ------------------------------------------------------ */
 
@@ -246,24 +241,32 @@ html, body { margin:0; background:#0A1828; }
 .cdp-surface .reply p:last-child { margin-bottom:0; }
 .cdp-surface .reply p.keel { color:var(--gold); }
 .cdp-surface .reply .living { font-style:italic; font-size:12px; color:var(--text-dim); margin-top:10px; }
-.cdp-surface .reply-fb { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
-.cdp-surface .fb-btn { background:transparent; border:1px solid var(--gold-line); border-radius:3px; color:var(--text-light); font-family:Georgia, serif; font-size:13px; padding:5px 12px; cursor:pointer; transition:border-color .2s, color .2s; }
-.cdp-surface .fb-btn:hover { border-color:var(--gold); color:var(--gold); }
-.cdp-surface .fb-btn.done { border-color:var(--teal); color:var(--teal); }
 .cdp-surface .reply .busy { font-style:italic; color:var(--text-muted); }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:70px; z-index:41; width:106px; height:106px; box-sizing:border-box; padding:7px; overflow:visible; cursor:pointer; color:var(--gold); background:var(--navy); border:1.5px solid var(--gold); border-radius:0; box-shadow:0 0 0 4px var(--navy), 0 0 0 5px var(--gold-line), 0 6px 22px rgba(0,0,0,0.50); opacity:0.94; transition:box-shadow .2s, opacity .2s, transform .15s; }
-.cdp-surface .handle:hover { opacity:1; transform:translateY(-1px); box-shadow:0 0 0 4px var(--navy), 0 0 0 5px var(--gold), 0 8px 26px rgba(201,160,80,0.30); }
+/* The corner emblems sit in an engraved double-rule frame (outer gold rule, a
+   navy gap, an inner gold-line rule) with four corner ticks, the same plate the
+   two-telescopes plate wears. No rounded box. */
+.cdp-surface .handle { position:fixed; top:66px; z-index:41; width:120px; height:120px; padding:10px; overflow:visible; cursor:pointer; color:var(--gold); background:var(--navy); border:1px solid var(--gold); border-radius:0; box-shadow:0 0 0 4px var(--navy), 0 0 0 5px var(--gold-line), 0 10px 30px rgba(0,0,0,0.50); opacity:0.95; transition:box-shadow .2s, opacity .2s, border-color .2s, transform .2s; }
+.cdp-surface .handle:hover, .cdp-surface .handle:focus-visible { opacity:1; transform:translateY(-1px); outline:none; box-shadow:0 0 0 4px var(--navy), 0 0 0 5px var(--gold), 0 0 22px rgba(201,160,80,0.35), 0 10px 30px rgba(0,0,0,0.50); }
+/* corner ticks: two from the plate, two from the inner art, giving all four */
 .cdp-surface .handle::before, .cdp-surface .handle::after { content:''; position:absolute; width:13px; height:13px; pointer-events:none; }
-.cdp-surface .handle::before { top:2px; left:2px; border-top:1.5px solid var(--gold-soft); border-left:1.5px solid var(--gold-soft); }
-.cdp-surface .handle::after { bottom:2px; right:2px; border-bottom:1.5px solid var(--gold-soft); border-right:1.5px solid var(--gold-soft); }
-.cdp-surface .handle .corner-art { width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.cdp-surface .handle::before { top:4px; left:4px; border-top:1px solid var(--gold); border-left:1px solid var(--gold); }
+.cdp-surface .handle::after { bottom:4px; right:4px; border-bottom:1px solid var(--gold); border-right:1px solid var(--gold); }
+.cdp-surface .handle .corner-art { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:visible; }
+.cdp-surface .handle .corner-art::before, .cdp-surface .handle .corner-art::after { content:''; position:absolute; width:13px; height:13px; pointer-events:none; }
+.cdp-surface .handle .corner-art::before { top:-6px; right:-6px; border-top:1px solid var(--gold); border-right:1px solid var(--gold); }
+.cdp-surface .handle .corner-art::after { bottom:-6px; left:-6px; border-bottom:1px solid var(--gold); border-left:1px solid var(--gold); }
 .cdp-surface .handle .corner-art svg { display:block; width:100%; height:100%; }
 .cdp-surface .handle .corner-art img { display:block; width:100%; height:100%; object-fit:contain; }
-.cdp-surface .handle-left { left:14px; }
-.cdp-surface .handle-right { right:14px; }
+/* the telescopes plate is engraved fine and dark, lift it so it reads */
+.cdp-surface .handle-right .corner-art img { filter:drop-shadow(0 0 5px rgba(201,160,80,0.22)); }
+.cdp-surface .handle-left { left:16px; }
+.cdp-surface .handle-right { right:16px; }
+/* the North star, restored above the compass */
+.cdp-surface .handle-left .northstar { position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:26px; height:26px; pointer-events:none; filter:drop-shadow(0 0 7px rgba(201,160,80,0.6)); animation:cdpBreathe 4.6s ease-in-out infinite; }
+.cdp-surface .handle-left .northstar svg { display:block; width:100%; height:100%; }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
 .cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
@@ -296,6 +299,17 @@ html, body { margin:0; background:#0A1828; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
 .cdp-surface .line .meta { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; }
 .cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
+/* a topic line you can reopen: full-width, left-aligned, clearly a control */
+.cdp-surface .line.tappable { width:100%; text-align:left; background:transparent; cursor:pointer; font-family:Georgia, serif; border-top:none; border-right:none; border-bottom:none; transition:border-left-color .2s, color .2s, background .2s; }
+.cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-left-color:var(--gold); background:rgba(201,160,80,0.06); outline:none; }
+.cdp-surface .line.tappable .meta { color:var(--text-muted); }
+/* reply actions: share to anywhere, and tell us whether it landed */
+.cdp-surface .reply-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gold-line); }
+.cdp-surface .reply-act { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; padding:6px 12px; border-radius:2px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
+.cdp-surface .reply-act:hover { color:var(--gold); border-color:var(--gold); }
+.cdp-surface .reply-act.chosen { color:var(--navy); background:var(--gold); border-color:var(--gold); }
+.cdp-surface .reply-fb-spacer { flex:1 1 auto; }
+.cdp-surface .reply-ack { font-size:13px; color:var(--text-muted); margin-top:8px; }
 .cdp-surface .opp { font-size:12px; color:var(--text-muted); padding:8px 10px; background:rgba(29,158,117,0.08); border-left:2px solid var(--teal); border-radius:2px; margin-top:8px; }
 
 .cdp-surface .season { display:grid; grid-template-columns:repeat(12,1fr); gap:2px; margin:6px 0 4px; }
@@ -408,7 +422,7 @@ html, body { margin:0; background:#0A1828; }
 .cdp-surface .home-opener:hover { color:var(--gold); }
 
 @media (max-width:820px) {
-  .cdp-surface .drawer { width:90vw; } .cdp-surface .cols { grid-template-columns:1fr; }
+  .cdp-surface .drawer { width:90vw; } .cdp-surface .handle { min-height:auto; padding:16px 3px; } .cdp-surface .cols { grid-template-columns:1fr; }
 }
 @media (max-width:560px) {
   .cdp-surface .home { padding:14px 14px 24px; }
@@ -418,10 +432,12 @@ html, body { margin:0; background:#0A1828; }
   .cdp-surface .ask { width:min(90vw, 430px); }
   .cdp-surface .ask-input { font-size:14px; }
   .cdp-surface .voice-toggle { max-width:92vw; }
-  .cdp-surface .handle { display:block; width:64px; height:64px; padding:4px; top:54px; box-shadow:0 0 0 3px var(--navy), 0 0 0 4px var(--gold-line), 0 4px 14px rgba(0,0,0,0.50); }
-  .cdp-surface .handle::before, .cdp-surface .handle::after { width:8px; height:8px; }
-  .cdp-surface .handle-left { left:8px; } .cdp-surface .handle-right { right:8px; }
-  .cdp-surface .home-openers { display:flex; }
+  /* keep the compass and telescopes present on phone, smaller and tucked under the bar */
+  .cdp-surface .handle { display:block; width:78px; height:78px; padding:7px; top:62px; box-shadow:0 0 0 3px var(--navy), 0 0 0 4px var(--gold-line), 0 6px 18px rgba(0,0,0,0.5); }
+  .cdp-surface .handle-left { left:8px; }
+  .cdp-surface .handle-right { right:8px; }
+  .cdp-surface .handle-left .northstar { top:-14px; width:18px; height:18px; }
+  .cdp-surface .home-openers { display:none; }
   .cdp-surface .coords { width:86vw; }
   .cdp-surface .glance-overlay { padding:48px 12px 18px; }
   .cdp-surface .glance-panel { padding:16px 14px 18px; }
@@ -882,7 +898,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
   surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
   const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left', role: 'button', tabindex: '0', title: 'Emerging patterns', 'aria-label': 'Open emerging patterns' });
-  handleLeft.innerHTML = '<div class="corner-art" aria-hidden="true"></div>';
+  handleLeft.innerHTML = '<span class="northstar" aria-hidden="true">'
+    + '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
+    + '<path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z" fill="var(--gold-soft, #E8C878)"/>'
+    + '<path d="M12 4 L12.7 11.3 L20 12 L12.7 12.7 L12 20 L11.3 12.7 L4 12 L11.3 11.3 Z" fill="var(--gold, #C9A050)" opacity="0.85"/>'
+    + '</svg></span>'
+    + '<div class="corner-art" aria-hidden="true"></div>';
   // the compass rides its 15s inner orbit; kept inline in the live DOM so the SMIL animation runs
   fetch('/cdp-compass-orbit.svg').then((r) => r.text()).then((svg) => {
     const art = handleLeft.querySelector('.corner-art');
@@ -920,8 +941,22 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     section.appendChild(bodyWrap);
     return section;
   }
-  // Left rail, What is live now, wired to the repository.
+  // Left rail, What is live now, wired to the repository. Each line is a topic
+  // you can reopen: tapping it binds the input to that topic and closes the
+  // drawer, so an evening pass continues the morning rather than restarting.
   const liveBody = el('div');
+  function topicLine(text: string, meta: string, teal: boolean): HTMLElement {
+    const d = el('button', { type: 'button', class: teal ? 'line teal tappable' : 'line tappable', 'aria-label': 'Reopen: ' + text }, text);
+    d.appendChild(el('span', { class: 'meta' }, meta));
+    d.addEventListener('click', () => {
+      input.value = text;
+      autoGrow();
+      closeDrawer('left');
+      input.focus();
+      reflect('Picking up where you left off. Add to it, or send to go deeper.');
+    });
+    return d;
+  }
   function renderLive(): void {
     clear(liveBody);
     const live = repo.live();
@@ -930,8 +965,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       liveBody.appendChild(el('div', { class: 'soft' }, 'Nothing is held yet. What you name in the compass is kept, and it is here when you return.'));
       return;
     }
-    live.forEach((it, i) => liveBody.appendChild(lineEl(it.text, i === 0 ? 'Now' : 'Held', i === 0)));
-    resting.slice(0, 3).forEach((it) => liveBody.appendChild(lineEl(it.text, 'Resting, recoverable')));
+    live.forEach((it, i) => liveBody.appendChild(topicLine(it.text, i === 0 ? 'Now, tap to reopen' : 'Held, tap to reopen', i === 0)));
+    resting.slice(0, 3).forEach((it) => liveBody.appendChild(topicLine(it.text, 'Resting, tap to reopen', false)));
     liveBody.appendChild(el('div', { class: 'soft' }, live.length + ' held now, ' + resting.length + ' resting'));
   }
   renderLive();
@@ -940,7 +975,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
     const b = el('div');
     if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); return b; }
-    for (const ln of a.lines) b.appendChild(el('div', { class: 'line' }, ln));
+    for (const ln of a.lines) {
+      const row = el('button', { type: 'button', class: 'line tappable', 'aria-label': 'Look closer at this pattern' }, ln);
+      row.addEventListener('click', () => { closeDrawer('left'); void compose('Earlier you noticed this pattern in me: ' + ln + '. Help me look closer at it today.'); });
+      b.appendChild(row);
+    }
     return b;
   }
   function yearBody(): HTMLElement {
@@ -1829,39 +1868,53 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     paragraphs(bodyWrap, vt ? vt.text : '');
     card.appendChild(bodyWrap);
     if (it.summary) card.appendChild(el('div', { class: 'living' }, it.summary));
-    // restored: feedback ("that landed") and share, present on every reply
-    const fb = el('div', { class: 'reply-fb' });
-    const landedBtn = el('button', { type: 'button', class: 'fb-btn' }, 'That landed');
-    const missBtn = el('button', { type: 'button', class: 'fb-btn' }, 'Not for me');
-    function fbDone(btn: HTMLElement): void {
-      btn.classList.add('done');
-      const prev = btn.textContent || '';
-      btn.textContent = 'Noted, thank you';
-      window.setTimeout(() => { btn.textContent = prev; btn.classList.remove('done'); }, 1800);
-    }
-    function postFeedback(verdict: string): void {
+
+    // actions: share to anywhere, and tell us whether it landed
+    const replyText = vt ? vt.text : '';
+    const actions = el('div', { class: 'reply-actions' });
+    const ack = el('div', { class: 'reply-ack' });
+    const shareBtnEl = el('button', { type: 'button', class: 'reply-act' }, 'Share');
+    shareBtnEl.addEventListener('click', () => {
+      const payload = { title: 'Cosmic Daily Planner', text: replyText, url: window.location.origin };
+      const nav = navigator as Navigator & { share?: (d: unknown) => Promise<void> };
+      trackEvent('reply_shared', { lens });
+      if (nav.share) {
+        nav.share(payload).catch(() => { /* the person dismissed the sheet */ });
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(replyText).then(() => { ack.textContent = 'Copied. Paste it anywhere you like.'; }).catch(() => { ack.textContent = 'Could not copy on this device.'; });
+      } else {
+        ack.textContent = 'Sharing is not available on this device.';
+      }
+    });
+    const landed = el('button', { type: 'button', class: 'reply-act' }, 'That landed');
+    const missed = el('button', { type: 'button', class: 'reply-act' }, 'Did not land');
+    function feedback(value: 'landed' | 'missed', chosen: HTMLElement, other: HTMLElement): void {
+      chosen.classList.add('chosen');
+      other.classList.remove('chosen');
+      trackEvent('reply_feedback', { lens, landed: value === 'landed' });
+      // record a "landed" signal so it feeds the pattern engine; never push a misleading positive on a miss
+      if (value === 'landed') {
+        try { void repo.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'home', voice: lens, intentionId: it.id }); } catch (_e) { /* presentation only */ }
+      }
+      // best effort report back to the backend; a missing route never blocks the UI
       try {
         void fetch('/api/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ verdict, surface: 'home', voice: lens, date: dateStr, text: it.text }),
-        }).catch(() => { /* best effort: the route may be absent, never block the UI */ });
+          body: JSON.stringify({ verdict: value, surface: 'home', voice: lens, date: dateStr, text: replyText }),
+        }).catch(() => { /* route may be absent on this deploy */ });
       } catch (_e) { /* best effort */ }
+      ack.textContent = value === 'landed' ? 'Noted, this is the kind that helps.' : 'Noted, this kind is not helping.';
     }
-    landedBtn.addEventListener('click', () => {
-      try { void repo.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'home', voice: lens, intentionId: it.id }); } catch (_e) { /* presentation only */ }
-      postFeedback('landed');
-      fbDone(landedBtn);
-    });
-    missBtn.addEventListener('click', () => { postFeedback('missed'); fbDone(missBtn); });
-    fb.appendChild(landedBtn);
-    fb.appendChild(missBtn);
-    card.appendChild(fb);
-    card.appendChild(shareControls({
-      title: 'Cosmic Daily Planner',
-      text: () => (latestVesselTouch(it) ? (latestVesselTouch(it) as Touch).text : it.text),
-      node: () => bodyWrap,
-    }));
+    landed.addEventListener('click', () => feedback('landed', landed, missed));
+    missed.addEventListener('click', () => feedback('missed', missed, landed));
+    actions.appendChild(shareBtnEl);
+    actions.appendChild(el('span', { class: 'reply-fb-spacer' }));
+    actions.appendChild(landed);
+    actions.appendChild(missed);
+    card.appendChild(actions);
+    card.appendChild(ack);
+
     replyArea.appendChild(card);
   }
 
