@@ -250,9 +250,11 @@ html, body { margin:0; background:#0A1828; }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:70px; z-index:41; width:44px; height:44px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--gold); background:linear-gradient(180deg, var(--raised2), var(--raised)); border:1px solid var(--gold-line); border-radius:9px; box-shadow:0 0 18px rgba(0,0,0,0.40); opacity:0.82; transition:background .2s, box-shadow .2s, color .2s, opacity .2s; }
-.cdp-surface .handle:hover { opacity:1; background:var(--gold); color:var(--navy); box-shadow:0 0 22px rgba(201,160,80,0.35); }
-.cdp-surface .handle svg { display:block; width:26px; height:auto; }
+.cdp-surface .handle { position:fixed; top:70px; z-index:41; width:104px; height:104px; padding:0; overflow:hidden; cursor:pointer; color:var(--gold); background:var(--navy); border:1px solid var(--gold-line); border-radius:12px; box-shadow:0 0 18px rgba(0,0,0,0.40); opacity:0.86; transition:box-shadow .2s, opacity .2s, border-color .2s; }
+.cdp-surface .handle:hover { opacity:1; border-color:var(--gold); box-shadow:0 0 24px rgba(201,160,80,0.30); }
+.cdp-surface .handle .corner-art { width:100%; height:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.cdp-surface .handle .corner-art svg { display:block; width:100%; height:100%; }
+.cdp-surface .handle .corner-art img { display:block; width:100%; height:100%; object-fit:contain; }
 .cdp-surface .handle-left { left:14px; }
 .cdp-surface .handle-right { right:14px; }
 
@@ -802,12 +804,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   // the single bright line that recognises where you are, composed from what is
   // held, today's coordinates, and the chosen voice
+  // the bespoke observation is composed here but appended below the opening line
   const meetLine = el('div', { class: 'meet-line' }, composeMeetLine());
-  home.appendChild(meetLine);
 
-  // below the line, quieter: the open ask, where you say what is on your mind
+  // the opening line: the open input, carrying attach, voice, and return
   const ask = el('div', { class: 'ask' });
-  const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What is on your mind at the moment', 'aria-label': 'What is on your mind' }) as HTMLTextAreaElement;
+  const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'Begin anywhere', 'aria-label': 'Write your line' }) as HTMLTextAreaElement;
   ask.appendChild(input);
 
   // a slim control bar inside the composer: attach and voice on the left, send on the right
@@ -828,6 +830,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const attachStrip = el('div', { class: 'attach-host-strip' });
   ask.appendChild(attachStrip);
   home.appendChild(ask);
+  // the bespoke observation sits beneath the opening line
+  home.appendChild(meetLine);
 
 
   // mobile side openers: on a phone the two edge rails are hidden, so the same
@@ -869,9 +873,14 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
   surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
   const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left', role: 'button', tabindex: '0', title: 'Emerging patterns', 'aria-label': 'Open emerging patterns' });
-  handleLeft.innerHTML = ICON_COMPASS_CORNER;
+  handleLeft.innerHTML = '<div class="corner-art" aria-hidden="true"></div>';
+  // the compass rides its 15s inner orbit; kept inline in the live DOM so the SMIL animation runs
+  fetch('/cdp-compass-orbit.svg').then((r) => r.text()).then((svg) => {
+    const art = handleLeft.querySelector('.corner-art');
+    if (art) art.innerHTML = svg;
+  }).catch(() => { /* presentation only: leave the framed doorway if the asset is unavailable */ });
   const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right', role: 'button', tabindex: '0', title: 'Readings', 'aria-label': 'Open readings' });
-  handleRight.innerHTML = ICON_TELESCOPES;
+  handleRight.innerHTML = '<div class="corner-art"><img src="/two-telescopes.png" alt="Two telescopes pointed at the same sky"></div>';
   surface.appendChild(handleLeft);
   surface.appendChild(handleRight);
   const drawerScrim = el('div', { class: 'scrim scrim-drawer' });
@@ -1621,32 +1630,35 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     for (const v of voiceDefs) voiceButtons[v].classList.toggle('active', v === lens);
   }
   function composeMeetLine(): string {
-    const held = repo.live().length > 0;
     const moon = lunarWindow(dateStr);
     const master = universalDay(dateStr).isMaster;
-    if (!held) {
-      if (lens === 'tradition') return 'Nothing is held yet. Name what is alive, and the day\u2019s pattern reads around it.';
-      if (lens === 'science') return 'Nothing is held yet. Name what is alive, and the reading orients to it.';
-      return 'Nothing is held yet. Say what matters today, and the reading builds around it.';
-    }
+    const first = (profile && profile.name) ? String(profile.name).trim().split(/\s+/)[0] : '';
+    const who = first ? first + ', ' : '';
+    const kinName = kinDescriptor(dateStr).full.replace(/^Kin \d+ /, '');
+    const py = (profile && profile.birthDate) ? personalNumerology(profile.birthDate, dateStr).personalYear.value : 0;
+    const yearPhrase = py ? ' inside your Personal Year ' + py : '';
+    // one live marker, if today carries one, in the chosen voice
+    let marker = '';
     if (moon.black) {
-      if (lens === 'tradition') return 'What you are holding meets a Black Moon window, the two days before the new moon, weighted to review rather than beginnings.';
-      if (lens === 'science') return 'What you are holding meets the dark of the cycle, a window that tends to favour consolidation over initiation.';
-      return 'What you are holding meets a tricky window, the two days before the new moon, better for review than for launching.';
+      marker = lens === 'science'
+        ? ' The cycle sits in its dark phase, a window that tends to favour consolidation over new starts.'
+        : ' A Black Moon window holds here, the two days before the new moon, weighted to review more than to beginnings.';
+    } else if (moon.shiva) {
+      marker = lens === 'science'
+        ? ' The cycle has just reset, a window many find fresh for new starts.'
+        : ' A Shiva Moon window holds here, the fertile days just after the new moon.';
+    } else if (master) {
+      marker = lens === 'science'
+        ? ' Today registers as a numerology master day, marked high in salience.'
+        : ' Today falls on a master-number day, high in signal.';
     }
-    if (moon.shiva) {
-      if (lens === 'tradition') return 'What you are holding meets a Shiva Moon window, the fertile days just after the new moon.';
-      if (lens === 'science') return 'What you are holding meets the reset just after the new moon, a window many find fresh for new starts.';
-      return 'What you are holding meets the days just after the new moon, a good window for a fresh start.';
-    }
-    if (master) {
-      if (lens === 'tradition') return 'What you are holding falls on a master-number day, high in signal and intensity.';
-      if (lens === 'science') return 'What you are holding falls on a numerology master day, which the system marks as high salience.';
-      return 'What you are holding falls on a master-number day, one that tends to run intense.';
-    }
-    if (lens === 'tradition') return 'What you are holding is still here, in the day\u2019s quieter weather.';
-    if (lens === 'science') return 'What you are holding is still here; the day carries no strong marker either way.';
-    return 'What you are holding is still here. A steady day to work with it.';
+    // the steady observation, personalised, never a question
+    const opener = lens === 'tradition'
+      ? who + 'today reads as ' + kinName + yearPhrase + '.'
+      : lens === 'science'
+        ? who + 'today maps to ' + kinName + yearPhrase + '.'
+        : who + 'today sits with ' + kinName + yearPhrase + '.';
+    return opener + marker;
   }
   function paintMeetLine(): void { meetLine.textContent = composeMeetLine(); }
 
