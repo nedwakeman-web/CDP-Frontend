@@ -46,6 +46,8 @@ export type CdpEvent =
   | 'menu_opened'
   | 'deep_reading_opened'
   | 'attachments_sent'
+  | 'reply_shared'
+  | 'reply_feedback'
   | 'best_day_searched';
 
 type Props = Record<string, string | number | boolean>;
