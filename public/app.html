@@ -7056,6 +7056,42 @@ async function loadReading(dateStr, tier) {
   }
 }
 
+// CANONICAL WARM ON LANDING (restored Jun 2026 per founder direction).
+// Fires the fast first reading (Seeker tier) the moment the app opens, so a
+// reading is ready or arriving by the time the user crosses to the Reading
+// surface. Deeper tiers (Initiate, Mystic, Oracle) never warm automatically;
+// they generate only on explicit tier selection. This restores the monolith
+// behaviour of a first reading waiting on landing while honouring regression
+// guard R-001 (no automatic Oracle on page load). The function is guarded and
+// idempotent so the boot handler and the Compass mount cannot double fire.
+function cdpWarmFirstReading() {
+  try {
+    if (window.cdpReadingWarmStarted) return;
+    if (typeof currentReading !== 'undefined' && currentReading) return;
+    if (typeof pollingTimer !== 'undefined' && pollingTimer) return;
+    // If a resumable job already exists, let the resume path own it rather
+    // than starting a fresh one.
+    try {
+      var saved = sessionStorage.getItem('cdp_active_job');
+      if (saved) {
+        var j = JSON.parse(saved);
+        if (j && j.jobId && (Date.now() - j.startedAt) < 600000) return;
+      }
+    } catch(e) {}
+    window.cdpReadingWarmStarted = true;
+    try { currentTier = 'seeker'; } catch(e) {}
+    try { selectedMode = 'quick'; } catch(e) {}
+    if (typeof loadReading === 'function' && typeof TODAY !== 'undefined') {
+      console.log('[warm] firing fast first reading (Seeker) on landing');
+      loadReading(TODAY, 'seeker');
+    }
+  } catch(err) {
+    window.cdpReadingWarmStarted = false;
+    console.warn('[warm] first reading warm failed:', err && err.message);
+  }
+}
+window.cdpWarmFirstReading = cdpWarmFirstReading;
+
 function checkResumeJob() {
   const saved = sessionStorage.getItem('cdp_active_job');
   if (!saved) return false;
@@ -14385,7 +14421,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     selectMode(_modeMap[_urlMode]);
     startWithMode(true); // skip selector, go straight to reading
   } else if (!checkResumeJob()) {
-    showModeSelector();
+    // Warm the fast first reading on landing (Seeker). Owned by the canonical
+    // warm function so this boot handler and the Compass mount cannot double
+    // fire, and so a stale saved mode can never warm the Oracle tier here.
+    if (typeof window.cdpWarmFirstReading === 'function') window.cdpWarmFirstReading();
+    else showModeSelector();
   }
 });
 
@@ -21364,16 +21404,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window.v11CrossToReading = function() {
     console.log('[iter11] crossing to Reading');
-    if (typeof window.showScreen === 'function') {
-      window.showScreen('sr', null);
-      try {
-        if (window.cdpPreloadedReading && (typeof currentReading === 'undefined' || !currentReading)) {
-          currentReading = window.cdpPreloadedReading;
-          if (typeof renderReading === 'function') renderReading();
-        } else if (typeof currentReading === 'undefined' || !currentReading) {
-          if (typeof showModeSelector === 'function') showModeSelector();
-        }
-      } catch(e) { console.warn('[iter11] cross failed', e); }
+    if (typeof window.showScreen !== 'function') return;
+    window.showScreen('sr', null);
+    try {
+      // If the reading is already complete it is rendered into the Reading
+      // surface, so there is nothing to do. If a warm or a resume is in
+      // flight, the surface is showing the skeleton and will fill via polling,
+      // so do not start a second job. Only cold start when nothing at all is
+      // happening (for example warm was skipped or never ran).
+      if (typeof currentReading !== 'undefined' && currentReading) return;
+      var inflight = (typeof pollingTimer !== 'undefined' && pollingTimer) ||
+                     window.cdpReadingWarmStarted === true;
+      if (inflight) return;
+      if (typeof window.cdpWarmFirstReading === 'function') {
+        window.cdpWarmFirstReading();
+      } else if (typeof showModeSelector === 'function') {
+        showModeSelector();
+      }
+    } catch(e) {
+      console.warn('[iter11] cross failed', e);
     }
   };
 
@@ -21459,41 +21508,22 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   window.v11PreloadReading = function() {
-    // iter13l: auto-preload disabled. The previous behaviour called
-    // loadReading(TODAY) with no tier argument on every page load, which
-    // defaulted to oracle and wasted API tokens. Readings now fire only on
-    // explicit user action (intention submit or tier click).
-    console.log('[iter13l] auto-preload disabled, awaiting user intent');
-    return;
-    /* DISABLED OLD BODY:
-    if (typeof currentReading !== 'undefined' && currentReading) {
-      console.log('[iter11] preload skipped, reading already loaded');
-      return;
-    }
-    if (window.cdpPreloadedReading || window.cdpPreloadInFlight) return;
-    window.cdpPreloadInFlight = true;
-    console.log('[iter11] background preload start');
+    // Restored Jun 2026: warm the fast first reading (Seeker) on landing.
+    // Delegates to the canonical warm function, which is guarded, idempotent,
+    // and forces the Seeker tier. It never warms Oracle, so regression guard
+    // R-001 (no automatic Oracle on page load) still holds. The earlier
+    // iter13l no-op disabled warming entirely because the legacy body called
+    // loadReading(TODAY) with no tier and defaulted to the expensive Oracle
+    // path; passing Seeker explicitly removes that cost concern.
     try {
-      if (typeof loadReading === 'function' && typeof TODAY !== 'undefined') {
-        var p = loadReading(TODAY);
-        if (p && p.then) {
-          p.then(function() {
-            window.cdpPreloadInFlight = false;
-            window.cdpPreloadedReading = (typeof currentReading !== 'undefined') ? currentReading : true;
-            console.log('[iter11] preload complete');
-          }).catch(function(e) {
-            window.cdpPreloadInFlight = false;
-            console.warn('[iter11] preload failed', e);
-          });
-        } else {
-          window.cdpPreloadInFlight = false;
-        }
+      if (typeof window.cdpWarmFirstReading === 'function') {
+        window.cdpWarmFirstReading();
+      } else {
+        console.warn('[iter11] warm function not yet defined, skipping preload');
       }
     } catch(e) {
-      window.cdpPreloadInFlight = false;
-      console.warn('[iter11] preload start failed', e);
+      console.warn('[iter11] preload delegate failed', e);
     }
-    */  // end iter13l disabled block
   };
 
   function v11InitCompass() {
