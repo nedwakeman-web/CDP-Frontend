@@ -5666,8 +5666,17 @@ function saveCompatPersonToProfiles(side) {
 }
 
 function showModeSelector() {
-  // Mode selector removed  -  tier choice is on landing page, switching via tier bar in-app
-  // Start immediately with saved mode or default (Full Reading / Seeker)
+  // Guard (Jun 2026): if a reading is already in flight (warmed on landing)
+  // or already present, do not start a second one. The Reading surface is
+  // either showing the live skeleton (progress and elapsed time) or the
+  // finished reading, so the nav path simply reveals it. Explicit tier
+  // selection goes through generateTierReading and is unaffected by this.
+  if ((typeof pollingTimer !== 'undefined' && pollingTimer) ||
+      (typeof currentReading !== 'undefined' && currentReading)) {
+    return;
+  }
+  // Mode selector removed. Tier choice is on landing page, switching via
+  // tier bar in app. Start immediately with saved mode or default (Seeker).
   const saved = localStorage.getItem('cdp_mode') || 'quick';
   selectedMode = saved;
   startWithMode(true);
