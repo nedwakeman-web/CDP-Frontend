@@ -254,7 +254,7 @@ html, body { margin:0; background:#0A1828; }
 .cdp-surface .handle .corner-art { width:100%; height:100%; display:block; overflow:hidden; background:#031731; }
 .cdp-surface .handle .corner-art svg { display:block; width:100%; height:100%; }
 .cdp-surface .handle .corner-art img { display:block; width:100%; height:100%; object-fit:contain; }
-.cdp-surface .handle-left { left:16px; }
+.cdp-surface .handle-left { left:16px; width:113px; }
 .cdp-surface .handle-right { right:16px; }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
@@ -423,7 +423,7 @@ html, body { margin:0; background:#0A1828; }
   .cdp-surface .voice-toggle { max-width:92vw; }
   /* phone: the two framed engravings sit in the top corners, landscape and small */
   .cdp-surface .handle { display:block; width:96px; height:72px; padding:0; top:58px; box-shadow:0 5px 14px rgba(0,0,0,0.50); }
-  .cdp-surface .handle-left { left:8px; }
+  .cdp-surface .handle-left { left:8px; width:72px; }
   .cdp-surface .handle-right { right:8px; }
   .cdp-surface .home-openers { display:none; }
   /* keep the cycling line clear of the corner doorways by wrapping it into the centre */
@@ -888,12 +888,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
   surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
   const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left', role: 'button', tabindex: '0', title: 'Emerging patterns', 'aria-label': 'Open emerging patterns' });
-  handleLeft.innerHTML = '<div class="corner-art" aria-hidden="true"></div>';
-  // the compass rides its 15s inner orbit; kept inline in the live DOM so the SMIL animation runs
-  fetch('/cdp-compass-orbit.svg').then((r) => r.text()).then((svg) => {
-    const art = handleLeft.querySelector('.corner-art');
-    if (art) art.innerHTML = svg;
-  }).catch(() => { /* presentation only: leave the framed doorway if the asset is unavailable */ });
+  handleLeft.innerHTML = '<div class="corner-art"><img src="/cdp-compass-tile.png" alt="Compass beneath the north star"></div>';
   const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right', role: 'button', tabindex: '0', title: 'Readings', 'aria-label': 'Open readings' });
   handleRight.innerHTML = '<div class="corner-art"><img src="/two-telescopes.png" alt="Two telescopes pointed at the same sky"></div>';
   surface.appendChild(handleLeft);
@@ -1705,11 +1700,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       if (p === 'Waxing Crescent' || p === 'First Quarter' || p === 'Waxing Gibbous') return who + 'evening light is climbing toward the full moon across these nights, so a dim, low-light hour before bed helps hold your sleep onset steady.';
       return who + 'evening light is easing back from the full moon now, and for most people sleep tends to settle a little more readily through these nights.';
     }
+    function everydayOpener(): string {
+      const p = moon.phase;
+      if (p === 'New Moon') return who + 'the moon is new today, a natural place to start something small and let it build.';
+      if (p === 'Full Moon') return who + 'the moon is full today, a good moment to take stock of what is actually working.';
+      if (p === 'Waxing Crescent' || p === 'First Quarter' || p === 'Waxing Gibbous') return who + 'the moon is building toward full, so today suits getting something moving.';
+      return who + 'the moon is easing off now, so today suits finishing and clearing more than starting.';
+    }
     const opener = lens === 'tradition'
       ? who + 'today reads as ' + kinName + yearPhrase + '.'
       : lens === 'science'
         ? scienceOpener()
-        : who + 'today sits with ' + kinName + yearPhrase + '.';
+        : everydayOpener();
     return opener + marker;
   }
   function paintMeetLine(): void { meetLine.textContent = composeMeetLine(); }
