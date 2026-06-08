@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join the Founding Cohort · Cosmic Daily Planner</title>
+<meta name="description" content="Apply for beta access to the Cosmic Daily Planner. A small founding cohort of practitioners, sceptics, founders and curious minds shaping the platform before public launch.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#10022;</text></svg>">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://cosmicdailyplanner.com/apply">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cosmicdailyplanner.com/apply">
+<meta property="og:title" content="Join the Founding Cohort · Cosmic Daily Planner">
+<meta property="og:description" content="A small group of practitioners, sceptics, founders and curious minds shaping the platform before public launch. Apply for beta access.">
+<meta property="og:image" content="https://cosmicdailyplanner.com/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+
+<!-- Supabase client (only used if you fill in CONFIG below) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Plausible analytics (matches the main site; safe to leave) -->
+<script defer data-domain="cosmicdailyplanner.com" src="https://plausible.io/js/script.js"></script>
+<script>window.plausible = window.plausible || function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
+
+<style>
+:root{
+  --bg:#031831; --bg2:#0A1828; --bg3:#122440; --bg4:#08131F;
+  --navy:#0D1E33;
+  --gold:#C9A050; --gold2:#E8C878; --gold-soft:#E8C878;
+  --gold-line:rgba(201,160,80,0.30); --gold-faint:rgba(201,160,80,0.10); --gold-fill:rgba(201,160,80,0.07);
+  --teal:#81CDB6; --teal-line:rgba(129,205,182,0.45); --teal-faint:rgba(129,205,182,0.10);
+  --text:#F0E6CC; --text2:#C8BAA0; --text3:#9E9282;
+  --div:rgba(240,230,204,0.10); --div2:rgba(240,230,204,0.06);
+  --err:#E0805A;
+  --maxw:680px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px;-webkit-text-size-adjust:none;scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(135% 95% at 50% -8%, rgba(30,54,92,0.70) 0%, rgba(18,36,64,0.30) 38%, rgba(10,24,40,0) 62%),
+    #0A1828;
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:'EB Garamond',Georgia,serif;
+  line-height:1.85;
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+#stars{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--gold-faint)}
+::selection{background:rgba(201,160,80,0.30);color:var(--text)}
+a{color:var(--gold);text-decoration:none}
+a:hover{color:var(--gold2)}
+
+/* ── TOP BRAND BAR ── */
+.topbar{
+  position:relative;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  padding:22px 22px 6px;
+}
+.brand{
+  font-family:'Cinzel',serif;font-size:13px;font-weight:500;
+  letter-spacing:.42em;text-transform:uppercase;color:var(--gold);
+  display:flex;align-items:center;gap:12px;
+}
+.brand .glyph{color:var(--gold);font-size:15px;opacity:.85;letter-spacing:0}
+
+/* ── FRAME ── */
+.wrap{position:relative;z-index:2;display:flex;justify-content:center;padding:28px 18px 0}
+.frame{
+  width:100%;max-width:var(--maxw);position:relative;
+  border:1px solid var(--gold-line);
+  background:linear-gradient(180deg, rgba(19,36,64,0.45) 0%, rgba(13,30,51,0.32) 100%);
+  padding:54px clamp(22px,6vw,58px) 48px;
+  box-shadow:0 30px 90px -45px rgba(0,0,0,0.65), inset 0 1px 0 rgba(240,230,204,0.04);
+}
+/* art-deco corner ornaments */
+.frame::before,.frame::after{content:"";position:absolute;width:26px;height:26px;pointer-events:none}
+.frame::before{top:8px;left:8px;border-top:1px solid var(--gold);border-left:1px solid var(--gold)}
+.frame::after{top:8px;right:8px;border-top:1px solid var(--gold);border-right:1px solid var(--gold)}
+.corner-bl,.corner-br{position:absolute;width:26px;height:26px;pointer-events:none}
+.corner-bl{bottom:8px;left:8px;border-bottom:1px solid var(--gold);border-left:1px solid var(--gold)}
+.corner-br{bottom:8px;right:8px;border-bottom:1px solid var(--gold);border-right:1px solid var(--gold)}
+
+/* ── HEADER ── */
+.eyebrow{
+  text-align:center;font-family:'Cinzel',serif;font-size:11px;font-weight:500;
+  letter-spacing:.40em;text-transform:uppercase;color:var(--teal);opacity:.92;
+  margin-bottom:22px;
+}
+.sample-line{
+  text-align:center;font-style:italic;font-size:1.02rem;color:var(--text2);
+  margin-bottom:6px;
+}
+.sample-line a{font-style:italic;border-bottom:1px solid var(--gold-line);padding-bottom:1px}
+h1{
+  text-align:center;font-family:'Cormorant Garamond',serif;font-weight:400;
+  font-size:clamp(2.5rem,8vw,3.4rem);line-height:1.05;color:var(--text);
+  letter-spacing:.01em;margin:6px 0 22px;
+}
+.lede{
+  text-align:center;font-style:italic;color:var(--text3);
+  font-size:1.06rem;line-height:1.7;max-width:34em;margin:0 auto 42px;
+}
+.rule{display:flex;align-items:center;justify-content:center;gap:14px;color:var(--gold);opacity:.55;margin:0 auto 40px;max-width:240px}
+.rule::before,.rule::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,var(--gold-line),transparent)}
+.rule .dia{font-size:9px;letter-spacing:.4em}
+
+/* ── FORM ── */
+.field{margin-bottom:30px}
+.label{
+  display:block;font-family:'Cinzel',serif;font-size:11px;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--text2);
+  margin-bottom:12px;
+}
+.label .hint{color:var(--text3);font-weight:400;letter-spacing:.16em;font-size:9.5px;margin-left:6px}
+.input,textarea.input{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(240,230,204,0.14);
+  border-radius:3px;color:var(--text);
+  font-family:'EB Garamond',Georgia,serif;font-size:1.05rem;
+  padding:15px 18px;line-height:1.5;transition:border-color .25s, box-shadow .25s, background .25s;
+}
+.input::placeholder,textarea.input::placeholder{color:var(--text3);font-style:italic;opacity:.9}
+.input:focus,textarea.input:focus{
+  outline:none;border-color:var(--gold-line);
+  background:rgba(255,255,255,0.06);
+  box-shadow:0 0 0 3px var(--gold-fill);
+}
+textarea.input{resize:vertical;min-height:128px}
+
+/* option grids */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{
+  appearance:none;cursor:pointer;text-align:center;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(240,230,204,0.13);border-radius:3px;
+  color:var(--text2);font-family:'Cinzel',serif;font-size:10.5px;font-weight:400;
+  letter-spacing:.13em;text-transform:uppercase;line-height:1.4;
+  padding:17px 12px;transition:all .22s ease;
+}
+.opt:hover{border-color:var(--gold-line);color:var(--gold);background:var(--gold-fill)}
+.opt:focus-visible{outline:none;box-shadow:0 0 0 3px var(--gold-fill);border-color:var(--gold-line)}
+.opt[aria-pressed="true"],.opt.on{
+  border-color:var(--gold);color:var(--gold2);
+  background:var(--gold-fill);
+  box-shadow:inset 0 0 22px rgba(201,160,80,0.10);
+}
+
+/* agreement box */
+.agreement{
+  margin:8px 0 26px;border:1px solid rgba(240,230,204,0.12);border-left:2px solid var(--teal-line);
+  background:rgba(255,255,255,0.025);border-radius:3px;padding:22px 24px;
+}
+.agreement-h{
+  font-family:'Cinzel',serif;font-size:10.5px;font-weight:500;letter-spacing:.20em;
+  text-transform:uppercase;color:var(--teal);margin-bottom:14px;
+}
+.agreement-body{font-size:.96rem;line-height:1.72;color:var(--text2)}
+.agree-row{display:flex;align-items:flex-start;gap:12px;margin-top:18px;cursor:pointer}
+.agree-row input{
+  appearance:none;flex:0 0 auto;width:18px;height:18px;margin-top:3px;
+  border:1px solid var(--gold-line);border-radius:2px;background:rgba(8,19,31,0.6);
+  cursor:pointer;transition:all .2s;position:relative;
+}
+.agree-row input:checked{background:var(--gold);border-color:var(--gold)}
+.agree-row input:checked::after{
+  content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;
+  border:solid var(--navy);border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+.agree-row input:focus-visible{outline:none;box-shadow:0 0 0 3px var(--gold-fill)}
+.agree-row span{font-size:1rem;color:var(--text);line-height:1.5}
+
+/* submit */
+.submit{
+  width:100%;cursor:pointer;border:none;border-radius:3px;
+  background:linear-gradient(180deg,var(--gold2) 0%, var(--gold) 100%);
+  color:var(--navy);font-family:'Cinzel',serif;font-size:13px;font-weight:600;
+  letter-spacing:.22em;text-transform:uppercase;padding:20px;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  transition:transform .15s ease, box-shadow .25s ease, filter .2s;
+  box-shadow:0 14px 36px -16px rgba(201,160,80,0.55);
+}
+.submit:hover{filter:brightness(1.05);box-shadow:0 18px 44px -16px rgba(201,160,80,0.7)}
+.submit:active{transform:translateY(1px)}
+.submit:disabled{opacity:.55;cursor:default;filter:none;box-shadow:none}
+
+.formMsg{text-align:center;font-style:italic;margin-top:16px;min-height:1.4em;font-size:.98rem}
+.formMsg.err{color:var(--err)}
+.formMsg.ok{color:var(--teal)}
+
+.footnote{
+  text-align:center;font-style:italic;color:var(--text3);font-size:.95rem;
+  margin-top:26px;line-height:1.6;
+}
+
+/* success state */
+.done{display:none;text-align:center;padding:30px 0 6px}
+.done.show{display:block;animation:fade .8s ease both}
+.done .mark{font-size:34px;color:var(--gold);margin-bottom:14px;letter-spacing:.2em}
+.done h2{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:2.1rem;color:var(--text);margin-bottom:14px}
+.done p{color:var(--text2);font-style:italic;max-width:30em;margin:0 auto;line-height:1.7}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* footer nav */
+.sitefoot{
+  position:relative;z-index:2;text-align:center;padding:46px 18px 54px;
+}
+.sitefoot .links{display:flex;gap:30px;justify-content:center;flex-wrap:wrap}
+.sitefoot a{
+  font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--text3);transition:color .2s;
+}
+.sitefoot a:hover{color:var(--gold)}
+
+@media (max-width:560px){
+  .frame{padding:42px 20px 38px}
+  .opts{gap:10px}
+  .opt{padding:15px 8px;font-size:9.5px}
+  h1{font-size:2.5rem}
+  .sitefoot .links{gap:20px}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<header class="topbar">
+  <a class="brand" href="/"><span class="glyph">&#9678;</span> Cosmic Daily Planner</a>
+</header>
+
+<div class="wrap">
+  <main class="frame" role="main">
+    <span class="corner-bl"></span><span class="corner-br"></span>
+
+    <div id="formView">
+      <div class="eyebrow">Beta Invitation</div>
+      <p class="sample-line">Just curious? <a href="/reading" data-track="sample">Try a sample reading first</a>, no signup required.</p>
+      <h1>Join the founding cohort.</h1>
+      <p class="lede">A small group of practitioners, sceptics, founders and curious minds who are using the platform before public launch and shaping what gets built.</p>
+      <div class="rule"><span class="dia">&#10070;</span></div>
+
+      <form id="betaForm" novalidate>
+        <div class="field">
+          <label class="label" for="f_name">Your Name</label>
+          <input class="input" id="f_name" name="name" type="text" placeholder="As you'd like to be addressed" autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label class="label" for="f_email">Email Address</label>
+          <input class="input" id="f_email" name="email" type="email" placeholder="We'll send your invite here" autocomplete="email">
+        </div>
+
+        <div class="field">
+          <span class="label">Which best describes you? <span class="hint">(choose all that apply)</span></span>
+          <div class="opts" data-group="roles" data-multi="true">
+            <button type="button" class="opt" data-val="Founder / Executive">Founder / Executive</button>
+            <button type="button" class="opt" data-val="Coach / Therapist / Guide">Coach / Therapist / Guide</button>
+            <button type="button" class="opt" data-val="Creative / Artist">Creative / Artist</button>
+            <button type="button" class="opt" data-val="Healthcare / Science">Healthcare / Science</button>
+            <button type="button" class="opt" data-val="Spiritual Practitioner">Spiritual Practitioner</button>
+            <button type="button" class="opt" data-val="Curious Individual">Curious Individual</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">Your experience with these frameworks</span>
+          <div class="opts" data-group="experience">
+            <button type="button" class="opt" data-val="New to this">New to this</button>
+            <button type="button" class="opt" data-val="Casually curious">Casually curious</button>
+            <button type="button" class="opt" data-val="Regular practice">Regular practice</button>
+            <button type="button" class="opt" data-val="Professional">Professional</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">How much does research and science inform your decisions?</span>
+          <div class="opts" data-group="science">
+            <button type="button" class="opt" data-val="Not much">Not much</button>
+            <button type="button" class="opt" data-val="Somewhat">Somewhat</button>
+            <button type="button" class="opt" data-val="Significantly">Significantly</button>
+            <button type="button" class="opt" data-val="Central">Central</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">Would you help us shape the product further?</span>
+          <div class="opts" data-group="shape">
+            <button type="button" class="opt" data-val="A survey">A survey</button>
+            <button type="button" class="opt" data-val="A short call">A short call</button>
+            <button type="button" class="opt" data-val="Both">Both</button>
+            <button type="button" class="opt" data-val="Not now">Not now</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="f_why">Why do you want access?</label>
+          <textarea class="input" id="f_why" name="motivation" placeholder="A sentence or two is fine. What draws you to this?"></textarea>
+        </div>
+
+        <div class="agreement">
+          <div class="agreement-h">Beta Participation Agreement</div>
+          <div class="agreement-body">
+            By applying you acknowledge: (1) Cosmic Daily Planner is in active development and may change without notice. (2) You agree not to publish screenshots, reviews or public commentary about the platform during the beta period without written permission. (3) Feedback you submit may be used for product development. (4) We accept no liability for decisions made on the basis of readings; CDP is a wellness and self-knowledge companion, not a medical or clinical product. (5) Your data is handled in accordance with our <a href="/privacy">Privacy Policy</a>. This is a confidential beta.
+          </div>
+          <label class="agree-row">
+            <input type="checkbox" id="f_agree">
+            <span>I have read and agree to the Beta Participation Agreement</span>
+          </label>
+        </div>
+
+        <button type="submit" class="submit" id="submitBtn"><span id="btnGlyph">&#10022;</span> <span id="btnLabel">Submit Application</span></button>
+        <div class="formMsg" id="formMsg" role="status" aria-live="polite"></div>
+        <p class="footnote">Applying brings you straight in. We read every application, we never spam, and your details stay private.</p>
+      </form>
+    </div>
+
+    <div class="done" id="doneView">
+      <div class="mark">&#10022;</div>
+      <h2>Welcome to the cohort.</h2>
+      <p>Opening your Oracle now. If it does not load in a moment, your access code is <strong style="color:var(--gold);font-style:normal">COSMIC2026</strong>.</p>
+    </div>
+  </main>
+</div>
+
+<footer class="sitefoot">
+  <div class="links">
+    <a href="/oracle">The Oracle</a>
+    <a href="/science">The Science</a>
+    <a href="/tiers">Tiers</a>
+    <a href="/privacy">Privacy</a>
+  </div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   CONFIG. Paste your Supabase project values here to go live.
+   Leave blank to run in preview mode (validates + stores locally
+   + shows the success state, so the page is fully testable now).
+   These are PUBLIC values (anon key is safe in the browser); never
+   put the service-role/secret key here.
+   ════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL: '',          // e.g. 'https://xxxxxxxx.supabase.co'
+  SUPABASE_ANON_KEY: '',     // your public anon key
+  TABLE: 'beta_applications',// run the SQL in the build notes to create this
+  // Where a successful applicant is dropped, the BETA cohort build, not production.
+  // If you host this apply page on the SAME origin as the app, the name pre-fills too.
+  APP_URL: 'https://cosmicdailyplanner-beta.netlify.app',
+  ACCESS_CODE: 'COSMIC2026'
+};
+
+/* ── starfield (subtle, matches the main site) ── */
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');let w,h,stars=[];
+  function size(){w=c.width=innerWidth;h=c.height=innerHeight;
+    const n=Math.min(150,Math.floor(w*h/12000));stars=[];
+    for(let i=0;i<n;i++)stars.push({x:Math.random()*w,y:Math.random()*h,
+      r:Math.random()*1.1+0.2,a:Math.random(),s:Math.random()*0.012+0.003});}
+  function draw(){x.clearRect(0,0,w,h);
+    for(const s of stars){s.a+=s.s;const o=0.25+Math.abs(Math.sin(s.a))*0.55;
+      x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fillStyle='rgba(201,160,80,'+o+')';x.fill();}
+    requestAnimationFrame(draw);}
+  size();draw();addEventListener('resize',size);
+})();
+
+/* ── option toggles (single + multi select) ── */
+document.querySelectorAll('.opts').forEach(group=>{
+  const multi=group.dataset.multi==='true';
+  group.querySelectorAll('.opt').forEach(btn=>{
+    btn.setAttribute('aria-pressed','false');
+    btn.addEventListener('click',()=>{
+      const on=btn.getAttribute('aria-pressed')==='true';
+      if(!multi) group.querySelectorAll('.opt').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed', on && multi ? 'false' : (multi ? String(!on) : 'true'));
+    });
+  });
+});
+function selected(groupName){
+  const g=document.querySelector('.opts[data-group="'+groupName+'"]');
+  return [...g.querySelectorAll('.opt[aria-pressed="true"]')].map(b=>b.dataset.val);
+}
+
+/* ── submit ── */
+let sb=null;
+if(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase){
+  try{ sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY); }catch(e){}
+}
+const form=document.getElementById('betaForm');
+const msg=document.getElementById('formMsg');
+const btn=document.getElementById('submitBtn');
+
+function setMsg(t,cls){msg.textContent=t;msg.className='formMsg'+(cls?' '+cls:'');}
+
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  setMsg('');
+  const name=document.getElementById('f_name').value.trim();
+  const email=document.getElementById('f_email').value.trim();
+  const why=document.getElementById('f_why').value.trim();
+  const agree=document.getElementById('f_agree').checked;
+  const roles=selected('roles');
+  const experience=selected('experience')[0]||null;
+  const science=selected('science')[0]||null;
+  const shape=selected('shape')[0]||null;
+
+  if(!name){setMsg('Please add the name you’d like to be addressed by.','err');return;}
+  if(!email||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){setMsg('Please enter a valid email address.','err');return;}
+  if(!agree){setMsg('Please confirm you agree to the Beta Participation Agreement.','err');return;}
+
+  const record={
+    name, email,
+    roles,                         // text[] / jsonb
+    experience, science_influence:science, help_shape:shape,
+    motivation:why,
+    source:'beta_invitation',
+    invite_status:'admitted',
+    invite_code:CONFIG.ACCESS_CODE,
+    created_at:new Date().toISOString()
+  };
+
+  btn.disabled=true;document.getElementById('btnGlyph').textContent='';document.getElementById('btnLabel').textContent='Opening…';
+  if(window.plausible) plausible('Beta Application');
+
+  // Admit immediately, same flow as the app gate: set the gate key + profile name,
+  // keep a local safety copy, fire the Supabase save in the background, then drop in.
+  try{
+    localStorage.setItem('cdp_gate_v2','1');
+    const p=JSON.parse(localStorage.getItem('cdp_profile')||'{}');
+    if(!p.name){p.name=name;localStorage.setItem('cdp_profile',JSON.stringify(p));}
+    localStorage.setItem('cdp_beta_application', JSON.stringify(record));
+  }catch(e){}
+
+  if(sb){
+    try{ sb.from(CONFIG.TABLE).upsert(record,{onConflict:'email'}).catch(err=>console.warn('Beta save (bg):',err.message||err)); }
+    catch(err){ console.warn('Beta save error:',err.message||err); }
+  }
+
+  showDone();
+  // ?mode= auto-admits the app cross-origin; name passed for pre-fill where the app reads it.
+  const dest=CONFIG.APP_URL
+    +'?mode=standard&code='+encodeURIComponent(CONFIG.ACCESS_CODE)
+    +'&name='+encodeURIComponent(name);
+  setTimeout(()=>{ window.location.href=dest; }, 1400);
+});
+
+function showDone(){
+  document.getElementById('formView').style.display='none';
+  const d=document.getElementById('doneView');d.classList.add('show');
+  d.scrollIntoView({behavior:'smooth',block:'center'});
+}
+</script>
+</body>
+</html>
