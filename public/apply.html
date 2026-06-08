@@ -350,9 +350,11 @@ const CONFIG = {
   SUPABASE_URL: '',          // e.g. 'https://xxxxxxxx.supabase.co'
   SUPABASE_ANON_KEY: '',     // your public anon key
   TABLE: 'beta_applications',// run the SQL in the build notes to create this
-  // Where a successful applicant is dropped, the BETA cohort build, not production.
-  // If you host this apply page on the SAME origin as the app, the name pre-fills too.
-  APP_URL: 'https://cosmicdailyplanner-beta.netlify.app',
+  // Where a successful applicant is dropped. Set to the alpha app while testing on
+  // alpha; change to the beta site (https://cosmicdailyplanner-beta.netlify.app/app)
+  // when you promote. The app.html target carries the ?mode= gate that admits them.
+  APP_URL: 'https://alpha.cosmicdailyplanner.com/app.html',
+  APP_MODE: 'quick',   // fast first reading (seeker). 'standard' maps to Oracle tier, deep but slow.
   ACCESS_CODE: 'COSMIC2026'
 };
 
@@ -444,8 +446,10 @@ form.addEventListener('submit',async e=>{
 
   showDone();
   // ?mode= auto-admits the app cross-origin; name passed for pre-fill where the app reads it.
-  const dest=CONFIG.APP_URL
-    +'?mode=standard&code='+encodeURIComponent(CONFIG.ACCESS_CODE)
+  const sep=CONFIG.APP_URL.indexOf('?')===-1 ? '?' : '&';
+  const dest=CONFIG.APP_URL+sep
+    +'mode='+encodeURIComponent(CONFIG.APP_MODE)
+    +'&code='+encodeURIComponent(CONFIG.ACCESS_CODE)
     +'&name='+encodeURIComponent(name);
   setTimeout(()=>{ window.location.href=dest; }, 1400);
 });
