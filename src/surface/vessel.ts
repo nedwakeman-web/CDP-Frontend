@@ -250,14 +250,11 @@ html, body { margin:0; background:#0A1828; }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
-.cdp-surface .handle { position:fixed; top:50%; transform:translateY(-50%); z-index:41; width:34px; min-height:auto; padding:24px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; cursor:pointer; color:var(--gold); background:linear-gradient(180deg, var(--raised2), var(--raised)); border:1px solid var(--gold); box-shadow:0 0 18px rgba(0,0,0,0.40); transition:background .2s, box-shadow .2s, color .2s; }
-.cdp-surface .handle:hover { background:var(--gold); color:var(--navy); box-shadow:0 0 22px rgba(201,160,80,0.35); }
-.cdp-surface .handle:hover span, .cdp-surface .handle:hover .chev { color:var(--navy); }
-.cdp-surface .handle-left { left:0; border-left:none; border-radius:0 6px 6px 0; }
-.cdp-surface .handle-right { right:0; border-right:none; border-radius:6px 0 0 6px; }
-.cdp-surface .handle span { writing-mode:vertical-rl; white-space:nowrap; font-family:Cinzel, Georgia, serif; font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); }
-.cdp-surface .handle-left span { transform:rotate(180deg); }
-.cdp-surface .handle .chev { font-size:13px; line-height:1; color:var(--gold); }
+.cdp-surface .handle { position:fixed; top:70px; z-index:41; width:44px; height:44px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--gold); background:linear-gradient(180deg, var(--raised2), var(--raised)); border:1px solid var(--gold-line); border-radius:9px; box-shadow:0 0 18px rgba(0,0,0,0.40); opacity:0.82; transition:background .2s, box-shadow .2s, color .2s, opacity .2s; }
+.cdp-surface .handle:hover { opacity:1; background:var(--gold); color:var(--navy); box-shadow:0 0 22px rgba(201,160,80,0.35); }
+.cdp-surface .handle svg { display:block; width:26px; height:auto; }
+.cdp-surface .handle-left { left:14px; }
+.cdp-surface .handle-right { right:14px; }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
 .cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
@@ -500,6 +497,7 @@ const ICON_SHARE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" 
 const ICON_CALENDAR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"></rect><line x1="3" y1="9.5" x2="21" y2="9.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>';
 const ICON_PROFILE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c0-4 3.6-6.2 7.5-6.2s7.5 2.2 7.5 6.2"></path></svg>';
 const ICON_TELESCOPES = '<svg width="48" height="27" viewBox="0 0 48 27" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="19" cy="13.5" r="10.5"></circle><circle cx="29" cy="13.5" r="10.5"></circle></svg>';
+const ICON_COMPASS_CORNER = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><circle cx="12" cy="12" r="9.2"></circle><polygon points="12,4.6 13.7,10.3 19.4,12 13.7,13.7 12,19.4 10.3,13.7 4.6,12 10.3,10.3" fill="currentColor" stroke="none"></polygon><circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none"></circle></svg>';
 const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
 const SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
 
@@ -798,19 +796,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // emblem, date, the cycling line, then the toggle
   home.appendChild(voiceWrap);
 
-  const compassHolder = el('div');
-  compassHolder.innerHTML = COMPASS_SVG;
-  const compass = compassHolder.firstElementChild;
-  if (compass) {
-    home.appendChild(compass);
-  } else {
-    const fb = el('div');
-    fb.innerHTML = COMPASS_FALLBACK;
-    if (fb.firstElementChild) home.appendChild(fb.firstElementChild);
-  }
+  // The compass no longer sits in the centre. The front is the greeting line
+  // and the input only, with nothing competing for the middle. The left and
+  // right openers remain at the edges.
 
-  // directly under the compass: the single bright line that recognises where you are,
-  // composed from what is held, today's coordinates, and the chosen voice
+  // the single bright line that recognises where you are, composed from what is
+  // held, today's coordinates, and the chosen voice
   const meetLine = el('div', { class: 'meet-line' }, composeMeetLine());
   home.appendChild(meetLine);
 
@@ -877,12 +868,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   /* ===== edges, handles, scrims ===== */
   surface.appendChild(el('div', { class: 'edge edge-left', 'data-side': 'left' }));
   surface.appendChild(el('div', { class: 'edge edge-right', 'data-side': 'right' }));
-  const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left' });
-  handleLeft.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u203A'));
-  handleLeft.appendChild(el('span', {}, 'Emerging patterns'));
-  const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right' });
-  handleRight.appendChild(el('span', { class: 'chev', 'aria-hidden': 'true' }, '\u2039'));
-  handleRight.appendChild(el('span', {}, 'Readings'));
+  const handleLeft = el('div', { class: 'handle handle-left', 'data-side': 'left', role: 'button', tabindex: '0', title: 'Emerging patterns', 'aria-label': 'Open emerging patterns' });
+  handleLeft.innerHTML = ICON_COMPASS_CORNER;
+  const handleRight = el('div', { class: 'handle handle-right', 'data-side': 'right', role: 'button', tabindex: '0', title: 'Readings', 'aria-label': 'Open readings' });
+  handleRight.innerHTML = ICON_TELESCOPES;
   surface.appendChild(handleLeft);
   surface.appendChild(handleRight);
   const drawerScrim = el('div', { class: 'scrim scrim-drawer' });
