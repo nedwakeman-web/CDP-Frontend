@@ -517,7 +517,7 @@ const COMPASS_FALLBACK = '<svg class="compass-fallback" viewBox="0 0 200 200" xm
 
 /* ---- constants ------------------------------------------------------------ */
 
-const MENU_ITEMS = ['Tiers', 'Guide', 'About', 'Streak', 'Feedback', 'Toggle theme'];
+const MENU_ITEMS = ['Tiers', 'Guide', 'Join the cohort', 'About', 'Streak', 'Feedback', 'Toggle theme'];
 const ROOM_DEFAULT = 'What I am carrying';
 const ORDER_KEY = 'cdp-rail-order';
 
@@ -1827,6 +1827,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
       row.appendChild(tval);
       row.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
+    } else if (label === 'Join the cohort') {
+      row.addEventListener('click', () => { window.location.href = '/apply.html'; });
     } else {
       row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
     }
