@@ -290,6 +290,10 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
 .cdp-surface .line .meta { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; }
 .cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
+.cdp-surface .synth-floor.demoted { display:none; }
+.cdp-surface .synth-floor.demoted.open { display:block; }
+.cdp-surface .synth-disclose { display:block; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-family:Georgia, serif; font-size:12px; color:var(--text-muted); padding:6px 0 4px 10px; margin-top:6px; transition:color .2s; }
+.cdp-surface .synth-disclose:hover, .cdp-surface .synth-disclose:focus-visible { color:var(--gold-soft); outline:none; }
 /* a topic line you can reopen: full-width, left-aligned, clearly a control */
 .cdp-surface .line.tappable { width:100%; text-align:left; background:transparent; cursor:pointer; font-family:Georgia, serif; border-top:none; border-right:none; border-bottom:none; transition:border-left-color .2s, color .2s, background .2s; }
 .cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-left-color:var(--gold); background:rgba(201,160,80,0.06); outline:none; }
@@ -1031,7 +1035,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     return row;
   }
 
-  async function appendSynthesis(host: HTMLElement): Promise<void> {
+  async function appendSynthesis(host: HTMLElement, floor?: HTMLElement): Promise<void> {
     const signals = repo.listSignals();
     const landed = signals.filter((s) => s.kind === 'landed');
     const items = repo.live().concat(repo.resting()).map((t) => (t.text || '').trim()).filter(Boolean);
@@ -1053,7 +1057,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
     const sig = items.length + ':' + landed.length + ':' + (items[0] ? items[0].length : 0);
     if (synthCache && synthCache.sig === sig) {
-      if (synthCache.linked) host.insertBefore(synthLine(synthCache.observation), host.firstChild);
+      if (synthCache.linked) landSynthesis(host, floor, synthCache.observation);
       return;
     }
 
@@ -1073,22 +1077,47 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       const data = (await res.json()) as { linked?: boolean; observation?: string };
       const linked = !!(data && data.linked && data.observation);
       synthCache = { sig, linked, observation: linked ? String(data.observation) : '' };
-      if (linked) host.insertBefore(synthLine(synthCache.observation), host.firstChild);
+      if (linked) landSynthesis(host, floor, synthCache.observation);
     } catch (_e) {
       /* the deterministic floor stands */
     }
+  }
+
+  // When the synthesis lands, the emerging-themes observation becomes the
+  // headline and the deterministic floor (the lens, convergence, and held-echo
+  // lines) tucks behind a quiet "How you read" disclosure, so the rail leads
+  // with what is emerging rather than with lens talk. When no synthesis lands,
+  // the floor stands as the rail content, exactly as before. Idempotent: a
+  // second call (cache hit after a fresh fetch resolved the same sig) will not
+  // double-prepend or re-demote.
+  function landSynthesis(host: HTMLElement, floor: HTMLElement | undefined, observation: string): void {
+    if (host.dataset.synthLanded !== '1') {
+      host.insertBefore(synthLine(observation), host.firstChild);
+      host.dataset.synthLanded = '1';
+    }
+    if (!floor || floor.dataset.demoted === '1') return;
+    floor.dataset.demoted = '1';
+    floor.classList.add('demoted');
+    const disclose = el('button', { type: 'button', class: 'synth-disclose', 'aria-expanded': 'false' }, 'How you read');
+    disclose.addEventListener('click', () => {
+      const open = floor.classList.toggle('open');
+      disclose.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    host.insertBefore(disclose, floor);
   }
 
   function patternsBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
     const b = el('div');
     if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); void appendSynthesis(b); return b; }
+    const floor = el('div', { class: 'synth-floor' });
     for (const ln of a.lines) {
       const row = el('button', { type: 'button', class: 'line tappable', 'aria-label': 'Look closer at this pattern' }, ln);
       row.addEventListener('click', () => { closeDrawer('left'); void compose('Earlier you noticed this pattern in me: ' + ln + '. Help me look closer at it today.'); });
-      b.appendChild(row);
+      floor.appendChild(row);
     }
-    void appendSynthesis(b);
+    b.appendChild(floor);
+    void appendSynthesis(b, floor);
     return b;
   }
   function yearBody(): HTMLElement {
@@ -1864,6 +1893,162 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     };
   }
 
+  /* ---- the composed greeting: the home meet-line wired to the server --------
+   * composeMeetLine above stays the synchronous, offline floor, painted first
+   * at build so the home never flashes empty. fillGreeting reaches POST
+   * /api/greeting, which composes a line for the person and the day: a brief,
+   * nameless nod to what last mattered when there is a record, and a plain
+   * account of what CDP is when there is not. The composed line replaces the
+   * floor when it returns; on any failure or empty response the floor stands.
+   * The home never blocks on the network, and a later fill always wins over an
+   * earlier one in flight. */
+  interface GreetingContext {
+    date_str: string; personal_day: string; personal_year: string;
+    universal_year: string; kin: string; moon: string;
+    is_gap: boolean; is_black_moon: boolean; is_shiva_moon: boolean;
+    is_master_day: boolean; deadline: string;
+  }
+  interface GreetingLast { text: string; summary: string; broughtIn: string[]; }
+
+  let greetingCache: { key: string; line: string } | null = null;
+  let greetingSynth: { observation: string } | null = null;
+  let greetingSeq = 0;
+
+  // The day context, drawn from the same engine calls the glance pill uses, so
+  // the line and the pill never disagree. Personal Year, Universal Year, the
+  // Kin descriptor, and the moon windows come from the same coordinate helpers
+  // already in scope. Light background for the composer, never recited.
+  function greetingContext(): GreetingContext {
+    const c = glanceCoords();
+    const pn = (profile && profile.birthDate) ? personalNumerology(profile.birthDate, dateStr) : null;
+    const lw = lunarWindow(dateStr);
+    const desc = kinDescriptor(dateStr);
+    const yearDigits = dateStr.slice(0, 4).split('').reduce((s, d) => s + Number(d), 0);
+    const uy = reduceNumber(yearDigits);
+    return {
+      date_str: longDate(dateStr),
+      personal_day: String(c.pd),
+      personal_year: pn ? String(pn.personalYear.value) : '',
+      universal_year: String(uy.value),
+      kin: desc.full,
+      moon: c.moonPhase,
+      is_gap: !!desc.isGAP,
+      is_black_moon: !!(lw && lw.black),
+      is_shiva_moon: !!(lw && lw.shiva),
+      is_master_day: !!c.pdMaster,
+      deadline: '',
+    };
+  }
+
+  // The most recent reading line, the steadiest single piece of the record.
+  function freshReadingLine(): string {
+    const rs = repo.listReadings().slice();
+    rs.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const top = rs.find((r) => r.line && r.line.trim());
+    return top ? String(top.line).trim() : '';
+  }
+
+  // The emerging-themes observation. Prefer the value the rail has already
+  // synthesised this session; if it has not landed yet, ask the patterns
+  // endpoint once with the same payload appendSynthesis sends and cache it at
+  // surface scope. Returns an empty string when there is no real link, which is
+  // the honest null, not a failure.
+  async function patternsObservation(): Promise<string> {
+    if (synthCache && synthCache.linked && synthCache.observation) return synthCache.observation;
+    if (greetingSynth) return greetingSynth.observation;
+    const signals = repo.listSignals();
+    const landed = signals.filter((s) => s.kind === 'landed');
+    const items = repo.live().concat(repo.resting()).map((t) => (t.text || '').trim()).filter(Boolean);
+    if (items.length < 2 && landed.length < 3) { greetingSynth = { observation: '' }; return ''; }
+    const byF: Record<string, number> = {};
+    const byV: Record<string, number> = {};
+    let bridges = 0;
+    for (const s of landed) {
+      if (s.framework) byF[s.framework] = (byF[s.framework] || 0) + 1;
+      if (s.voice) byV[s.voice] = (byV[s.voice] || 0) + 1;
+      if (s.bridge) bridges += 1;
+    }
+    const top = (o: Record<string, number>): string | null => {
+      let k = ''; let n = 0;
+      for (const x in o) { if (o[x] > n) { n = o[x]; k = x; } }
+      return n > 0 ? k : null;
+    };
+    try {
+      const res = await fetch('/api/patterns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lens,
+          facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
+          items: items.slice(0, 24),
+          readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+        }),
+      });
+      if (!res.ok) return '';
+      const data = (await res.json()) as { linked?: boolean; observation?: string };
+      const obs = (data && data.linked && data.observation) ? String(data.observation) : '';
+      greetingSynth = { observation: obs };
+      return obs;
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  // What last mattered, from the person's own record. summary prefers the
+  // emerging-themes observation, then the most recent reading line, then the
+  // freshest live thread. text is the reading line or the freshest thread as a
+  // secondary nod. broughtIn carries the live thread texts as names only, capped
+  // at three; the server nods to the names, never the contents. Returns null
+  // when the record is genuinely empty, so the server takes its cold branch.
+  async function greetingLast(): Promise<GreetingLast | null> {
+    const reading = freshReadingLine();
+    const broughtIn = repo.live().map((t) => (t.text || '').trim()).filter(Boolean).slice(0, 3);
+    const freshLiveText = broughtIn.length ? broughtIn[0] : '';
+    const observation = await patternsObservation();
+    const summary = observation || reading || freshLiveText;
+    const text = reading || freshLiveText;
+    if (!summary && !text && broughtIn.length === 0) return null;
+    return { text, summary, broughtIn };
+  }
+
+  // Paint the composed line over the instant floor. Cached per session by name,
+  // lens, and a cheap signature of the record so it does not refire on every
+  // repaint. Degrades silently: any failure leaves the floor in place.
+  async function fillGreeting(): Promise<void> {
+    const seq = (greetingSeq += 1);
+    const name = (profile && profile.name) ? String(profile.name).trim().split(/\s+/)[0] : '';
+    let last: GreetingLast | null = null;
+    try { last = await greetingLast(); } catch (_e) { last = null; }
+    if (seq !== greetingSeq) return;
+    const sig = last
+      ? 's' + last.summary.length + ':t' + last.text.length + ':b' + last.broughtIn.join('|').length
+      : 'cold';
+    const key = name + '|' + lens + '|' + sig;
+    if (greetingCache && greetingCache.key === key) { meetLine.textContent = greetingCache.line; return; }
+    const body: { name: string; voice: Lens; context: GreetingContext; last?: GreetingLast } = {
+      name,
+      voice: lens,
+      context: greetingContext(),
+    };
+    if (last) body.last = last;
+    try {
+      const res = await fetch('/api/greeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { ok?: boolean; greeting?: string };
+      if (seq !== greetingSeq) return;
+      const line = data && data.greeting ? String(data.greeting).trim() : '';
+      if (!line) return;
+      greetingCache = { key, line };
+      meetLine.textContent = line;
+    } catch (_e) {
+      /* the instant floor stands */
+    }
+  }
+
   const CHIP_ORDER: ChipKey[] = ['time', 'lunar', 'symbol', 'body'];
   const CHIP_ASK: Record<ChipKey, string> = {
     time: 'the numerology of today and how best to meet it',
@@ -1921,6 +2106,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     day = dayCoordinates(dateStr, { birthDate: birthDate });
     if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
+    void fillGreeting();
     void repo.setProfile({ birthDate: birthDate });
   }
 
@@ -1937,6 +2123,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
     if (glanceOpen) { paintGlance(); if (currentChip) openChipDrawer(currentChip); }
     paintMeetLine();
+    void fillGreeting();
   }
 
   function setVoice(next: Lens): void {
@@ -1944,6 +2131,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     lens = next;
     reflectVoice();
     paintMeetLine();
+    void fillGreeting();
     resetCycle();
     void repo.setLens(next);
     trackEvent('voice_changed', { lens: next });
@@ -2158,6 +2346,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') { menu.classList.remove('open'); }
   });
+
+  void fillGreeting();
 
   trackEvent('session_start', {});
   trackEvent('surface_view', {});
