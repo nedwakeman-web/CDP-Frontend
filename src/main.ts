@@ -34,6 +34,7 @@ import { VesselRepository } from './data/repository';
 import { storeFor } from './data/store';
 import { kinDescriptor, lunarWindow, personalNumerology, reduceNumber } from './coordinates-core';
 import type { DepthContext } from './surface/compose';
+import { getTier } from './data/tier';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || '';
 const OFFLINE = (import.meta.env.VITE_OFFLINE as string | undefined) === 'true' || API_BASE === 'local';
@@ -108,7 +109,7 @@ async function bootstrap(): Promise<void> {
       const base = API_BASE === 'local' ? '' : API_BASE;
       prewarmReading({
         base,
-        tier: 'oracle',
+        tier: getTier(),
         getProfile: () => {
           const p = repo.getProfile();
           return p ? { birthDate: p.birthDate, birthTime: p.birthTime, birthPlace: p.birthPlace, name: p.name } : null;
