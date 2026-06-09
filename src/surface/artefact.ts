@@ -377,10 +377,21 @@ export function printSvgPdf(svg: string, title: string): void {
   const doc = frame.contentWindow && frame.contentWindow.document;
   if (!doc) { document.body.removeChild(frame); return; }
   const safe = String(title || 'Cosmic Daily Planner').replace(/</g, '').replace(/>/g, '');
-  const css = '@page{margin:14mm}'
+  // Fit the artefact to a single A4 portrait page. The printable box at 14mm
+  // margins is about 182mm by 269mm; sizing the SVG width from its own viewBox
+  // aspect ratio keeps the whole reading on one page and never spills landscape.
+  const innerW = 182, innerH = 269;
+  let widthMM = innerW;
+  const vb = /viewBox\s*=\s*["']\s*([\d.\s-]+?)\s*["']/.exec(svg);
+  if (vb) {
+    const parts = vb[1].trim().split(/\s+/).map(Number);
+    const vbW = parts[2], vbH = parts[3];
+    if (vbW > 0 && vbH > 0) widthMM = Math.min(innerW, innerH * (vbW / vbH));
+  }
+  const css = '@page{size:A4 portrait;margin:14mm}'
     + 'html,body{margin:0;background:' + C.page + ';-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     + '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    + 'svg{width:100%;height:auto;display:block}';
+    + 'svg{width:' + widthMM.toFixed(1) + 'mm;height:auto;display:block;margin:0 auto}';
   doc.open();
   doc.write('<html><head><title>' + safe + '</title><meta charset="utf-8"><style>' + css + '</style></head><body>' + svg + '</body></html>');
   doc.close();

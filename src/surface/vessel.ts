@@ -154,7 +154,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .glance-body { position:relative; padding:16px 0 6px; }
 .cdp-surface .glance-compass { width:100%; }
 .cdp-surface .glance-compass img, .cdp-surface .glance-compass svg { width:100%; height:auto; display:block; border-radius:3px; }
-.cdp-surface .glance-cards { position:absolute; top:50%; right:4.5%; transform:translateY(-50%); width:43%; display:flex; flex-direction:column; gap:10px; }
+.cdp-surface .glance-cards { position:absolute; top:50%; right:9%; transform:translateY(-50%); width:35%; display:flex; flex-direction:column; gap:9px; }
 .cdp-surface .gcard { display:flex; align-items:flex-start; gap:11px; width:100%; text-align:left; background:var(--raised); border:1px solid var(--gold-line); border-radius:5px; padding:11px 13px; cursor:pointer; transition:border-color .2s, background .2s; }
 .cdp-surface .gcard:hover { border-color:var(--gold); background:var(--raised2); }
 .cdp-surface .gcard-ic { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; line-height:1; color:var(--gold); flex-shrink:0; }
@@ -790,7 +790,19 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   const glanceBody = el('div', { class: 'glance-body' });
   const glanceCompass = el('div', { class: 'glance-compass' });
-  glanceCompass.appendChild(el('img', { src: COMPASS_IMAGE, alt: 'The compass', loading: 'lazy' }));
+  // Mount the live compass: the SVG carries the orbiting body whose motion is
+  // driven by SMIL. Parsing in the SVG namespace (not via innerHTML on an HTML
+  // node) is what lets the animateMotion and its mpath reference begin.
+  let compassMounted = false;
+  try {
+    const parsed = new DOMParser().parseFromString(COMPASS_SVG, 'image/svg+xml');
+    const svgEl = parsed.documentElement;
+    if (svgEl && svgEl.nodeName.toLowerCase() === 'svg' && !parsed.querySelector('parsererror')) {
+      glanceCompass.appendChild(document.importNode(svgEl, true));
+      compassMounted = true;
+    }
+  } catch (_e) { /* fall through to the static image */ }
+  if (!compassMounted) glanceCompass.appendChild(el('img', { src: COMPASS_IMAGE, alt: 'The compass', loading: 'lazy' }));
   glanceBody.appendChild(glanceCompass);
   const glanceCards = el('div', { class: 'glance-cards' });
   glanceBody.appendChild(glanceCards);
