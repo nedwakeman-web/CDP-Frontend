@@ -17,5 +17,13 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
     "vite": "^5.0.0"
-  }
+  },
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
