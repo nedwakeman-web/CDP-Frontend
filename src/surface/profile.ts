@@ -23,7 +23,8 @@ import type { Lens, VesselProfile } from '../data/model';
 import { kinDescriptor, personalNumerology, reduceNumber } from '../coordinates-core';
 import { NUM_DATA, PY_ARC } from '../data/numerology-content';
 import { searchPlaces, type PlaceResult } from '../data/geocode';
-import { shareControls } from './share';
+import { buildSignatureSVG, artefactControls } from './artefact';
+import type { SignatureData, SigPanel } from './artefact';
 
 export interface OpenProfileOptions {
   container: HTMLElement;
@@ -479,8 +480,19 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
   /* ---- The live Cosmic Signature ---------------------------------------- */
   const sig = el('div', { class: 'pc-sig' });
   shell.appendChild(sig);
-  // share the galactic signature, shown only once it is populated
-  const sigShare = shareControls({ title: 'My Cosmic Signature', text: () => (sig.innerText || sig.textContent || 'My Cosmic Signature'), node: () => sig });
+  // share the galactic signature, shown only once it is populated. The saved and
+  // shared artefact is the styled SVG built from the same data the panel shows,
+  // not the screen text, so the dark ground, gold rule, and serif body survive
+  // the round trip into a PNG, a PDF, and the device share sheet. The on screen
+  // signature keeps its HTML; only save, PDF, and share route through the SVG.
+  let currentSigSVG = '';
+  const sigShare = artefactControls({
+    title: 'My Cosmic Signature',
+    fileBase: 'cdp-cosmic-signature',
+    svg: () => currentSigSVG,
+    text: () => (sig.innerText || sig.textContent || 'My Cosmic Signature'),
+    noun: 'Cosmic Signature',
+  });
   sigShare.style.display = 'none';
   shell.appendChild(sigShare);
   function meaningCard(label: string, big: string, master: boolean, name: string, text: string, kinLine?: string): HTMLElement {
@@ -511,6 +523,87 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
     if (meaning) {
       sig.appendChild(meaningCard('Name meaning', '', false, '', 'From ' + meaning.origin + ', meaning ' + meaning.meaning + '. ' + meaning.interp + '. A traditional reading of the name, etymological rather than numerological.'));
     }
+  }
+  /*
+   * The data behind the styled save and share artefact, gathered from the same
+   * corrected core the on screen panel uses, so the keepsake and the screen can
+   * never disagree. Mirrors renderSignature and renderNameNumerology field for
+   * field; every symbolic line is labelled symbolic, every authority named.
+   */
+  function buildSignatureData(): SignatureData {
+    const core: SigPanel[] = [];
+    const nameNumbers: SigPanel[] = [];
+    const bd = current.birthDate;
+    const hasDob = !!bd && /^\d{4}-\d{2}-\d{2}$/.test(bd);
+    let galactic = '';
+    let subline = '';
+    let birthLine = '';
+    if (bd && hasDob) {
+      const kd = kinDescriptor(bd);
+      const lp = lifePath(bd);
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const nowYear = new Date().getUTCFullYear();
+      const py = personalNumerology(bd, todayIso).personalYear;
+      const pyMaster = isMaster(py.value);
+      const sun = sunSign(bd);
+      galactic = kd.full;
+      subline = 'Life Path ' + lp.value + ', Personal Year ' + nowYear + ': ' + py.value + (sun ? ', Sun ' + sun : '');
+      const bm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(bd);
+      if (bm) {
+        const dd = Number(bm[3]);
+        const monthName = MONTHS[Number(bm[2]) - 1] || '';
+        birthLine = 'Born ' + dd + ' ' + monthName + ' ' + bm[1] + ((current.birthPlace || '').trim() ? ', ' + current.birthPlace : '');
+      }
+      core.push({
+        label: 'Life Path' + (lp.master ? ', Master Number' : ''),
+        value: String(lp.value), name: numName(lp.value),
+        meaning: (NUM_DATA[lp.value] ? NUM_DATA[lp.value].m : '') + ' Symbolic, Pythagorean.',
+        master: lp.master, glyph: 'number',
+      });
+      const pyText = pyMaster
+        ? (NUM_DATA[py.value] ? NUM_DATA[py.value].m : '')
+        : (PY_ARC[py.value] || (NUM_DATA[py.value] ? NUM_DATA[py.value].m : ''));
+      core.push({
+        label: 'Personal Year ' + nowYear + (pyMaster ? ', Master Number' : ''),
+        value: String(py.value), name: numName(py.value),
+        meaning: pyText + ' Symbolic, Pythagorean.',
+        master: pyMaster, glyph: 'number',
+      });
+      core.push({
+        label: 'Birth Kin, Galactic Signature',
+        value: '', name: kd.full,
+        meaning: 'Your Dreamspell birth signature, Arguelles 1987, a modern system held distinct from the living K\u2019iche\u2019 count. The ' + kd.seal + ' carries the energy of ' + kd.seal.toLowerCase() + ' as your foundational gift. Tone ' + kd.tone + ', ' + kd.toneName + ', is your power frequency. Symbolic.',
+        master: false, glyph: 'seal',
+      });
+      if (sun) core.push({
+        label: 'Sun Sign',
+        value: '', name: sun,
+        meaning: 'Your natal solar placement, the zodiac sign the Sun occupied on your birthday. At Mystic and Oracle tiers your full natal chart is integrated from the ephemeris, Swiss Ephemeris and Astrodienst.',
+        master: false, glyph: 'sun',
+      });
+    }
+    const nm = nameForNumbers();
+    let nameMeaning = '';
+    if (nm) {
+      const expr = nameNumber(nm, 'all');
+      const soul = nameNumber(nm, 'vowels');
+      const pers = nameNumber(nm, 'consonants');
+      if (expr.value) nameNumbers.push({ label: 'Expression' + (expr.master ? ', Master Number' : ''), value: String(expr.value), name: numName(expr.value), meaning: 'The whole of your name in the Pythagorean count, your outward gifts and the way you meet the world. Symbolic, Pythagorean.', master: expr.master, glyph: 'number' });
+      if (soul.value) nameNumbers.push({ label: 'Soul Urge' + (soul.master ? ', Master Number' : ''), value: String(soul.value), name: numName(soul.value), meaning: 'The vowels of your name, what you most want at the centre, beneath the doing. Symbolic, Pythagorean.', master: soul.master, glyph: 'number' });
+      if (pers.value) nameNumbers.push({ label: 'Personality' + (pers.master ? ', Master Number' : ''), value: String(pers.value), name: numName(pers.value), meaning: 'The consonants of your name, the first impression others read before they know you. Symbolic, Pythagorean.', master: pers.master, glyph: 'number' });
+      const meaning = getNameMeaning(nm);
+      if (meaning) nameMeaning = 'From ' + meaning.origin + ', meaning ' + meaning.meaning + '. ' + meaning.interp + '. A traditional reading of the name, etymological rather than numerological.';
+    }
+    return {
+      name: (current.name || current.fullName || '').trim(),
+      galactic,
+      subline,
+      birthLine: birthLine || undefined,
+      core,
+      nameNumbers,
+      nameMeaning: nameMeaning || undefined,
+      citation: 'Numerology after the Pythagorean lineage, Drayer 2002, Goodwin 1994, Kahn 2001. Dreamspell after Arguelles 1987, held distinct from the living K\u2019iche\u2019 count. Symbolic, a tradition rather than an empirical claim.',
+    };
   }
   function renderSignature(): void {
     clear(sig);
@@ -559,6 +652,7 @@ export function openProfile(o: OpenProfileOptions): ProfileHandle {
       sigShare.style.display = 'none';
       return;
     }
+    currentSigSVG = buildSignatureSVG(buildSignatureData());
     sigShare.style.display = '';
   }
   renderSignature();

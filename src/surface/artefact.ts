@@ -287,9 +287,11 @@ export function buildProseSVG(d: ProseData): string {
   L.add(capLabel(d.voice, cx, y, C.gold), 0);
   y += 21;
 
-  // date, centred, quiet
-  L.add(txt([d.dateLabel], cx, y, 13, C.dim, 0, FONT.serif, { anchor: 'middle', spacing: 1 }), 0);
-  y += 32;
+  // date, centred, quiet (omitted when there is no date or scope line)
+  if (d.dateLabel) {
+    L.add(txt([d.dateLabel], cx, y, 13, C.dim, 0, FONT.serif, { anchor: 'middle', spacing: 1 }), 0);
+    y += 32;
+  }
 
   // the question, set as a centred italic title that may wrap
   const titleLines = wrap(d.prompt, 50);
@@ -377,21 +379,10 @@ export function printSvgPdf(svg: string, title: string): void {
   const doc = frame.contentWindow && frame.contentWindow.document;
   if (!doc) { document.body.removeChild(frame); return; }
   const safe = String(title || 'Cosmic Daily Planner').replace(/</g, '').replace(/>/g, '');
-  // Fit the artefact to a single A4 portrait page. The printable box at 14mm
-  // margins is about 182mm by 269mm; sizing the SVG width from its own viewBox
-  // aspect ratio keeps the whole reading on one page and never spills landscape.
-  const innerW = 182, innerH = 269;
-  let widthMM = innerW;
-  const vb = /viewBox\s*=\s*["']\s*([\d.\s-]+?)\s*["']/.exec(svg);
-  if (vb) {
-    const parts = vb[1].trim().split(/\s+/).map(Number);
-    const vbW = parts[2], vbH = parts[3];
-    if (vbW > 0 && vbH > 0) widthMM = Math.min(innerW, innerH * (vbW / vbH));
-  }
-  const css = '@page{size:A4 portrait;margin:14mm}'
+  const css = '@page{margin:14mm}'
     + 'html,body{margin:0;background:' + C.page + ';-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     + '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    + 'svg{width:' + widthMM.toFixed(1) + 'mm;height:auto;display:block;margin:0 auto}';
+    + 'svg{width:100%;height:auto;display:block}';
   doc.open();
   doc.write('<html><head><title>' + safe + '</title><meta charset="utf-8"><style>' + css + '</style></head><body>' + svg + '</body></html>');
   doc.close();
@@ -500,4 +491,121 @@ export function artefactControls(o: ArtefactControlsOptions): HTMLElement {
   bar.appendChild(pdfBtn);
 
   return bar;
+}
+
+/* ============================================================================
+ * Node driven prose artefact. The long form surfaces, the reading, the year,
+ * the guide, the calendar detail, and compatibility, share one control: the
+ * visible element is cleaned of interface chrome, walked into clean prose, and
+ * set on the same parchment as the daily card and the Cosmic Signature. Save,
+ * PDF, and share all carry that styled artefact, never re-rendered black text
+ * on white. The extraction is the structural walker the old text path used,
+ * brought here so there is one road off the device for every surface.
+ * ========================================================================== */
+
+const CHROME_SELECTOR = [
+  'button', 'input', 'select', 'textarea',
+  '.share-bar', '.yr-nav', '.cal-tabs', '.cal-legend', '.cal-wd', '.cal-grid', '.cal-bd', '.cal-nav', '.att-confirm',
+  '[class*="cue"]', '[class*="bridge"]', '[class*="-tap"]', '[class*="-ask"]', '[class*="tapdot"]', '[class*="taplabel"]',
+].join(',');
+
+function cleanClone(node: HTMLElement | null): HTMLElement | null {
+  if (!node) return null;
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll(CHROME_SELECTOR).forEach((n) => { if (n.parentNode) n.parentNode.removeChild(n); });
+  return clone;
+}
+
+const BLOCK_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DETAILS', 'DIV', 'DL', 'DT', 'DD',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'HEADER', 'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'TABLE', 'TR', 'UL',
+]);
+function isLabelEl(elx: Element): boolean {
+  const c = (elx.getAttribute('class') || '').toLowerCase();
+  if (!c) return false;
+  if (c.indexOf('label') >= 0) return true;
+  return /(^|\s)([a-z0-9-]*-l)(\s|$)/.test(c)
+    || /(win-tag|coord-l|energy-layer|seclabel|emergent-l|signal-l|bio-l|cite-tag|bdr-rank)/.test(c);
+}
+function domToText(node: HTMLElement | null): string {
+  if (!node) return '';
+  const parts: string[] = [];
+  function walk(n: Node): void {
+    if (n.nodeType === 3) {
+      const t = (n.nodeValue || '').replace(/\s+/g, ' ');
+      if (t.trim()) parts.push(t);
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    const elx = n as Element;
+    const tag = elx.tagName;
+    if (tag === 'BR') { parts.push('\n'); return; }
+    const block = BLOCK_TAGS.has(tag);
+    if (block) parts.push('\n');
+    if (isLabelEl(elx)) {
+      const lab = (elx.textContent || '').replace(/\s+/g, ' ').trim();
+      if (lab) { parts.push(lab + ': '); return; }
+    }
+    for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]);
+    if (block) parts.push('\n');
+  }
+  walk(node);
+  return parts.join('')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/:\s*\n/g, ': ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Clean, structural text of an element, free of interface chrome. */
+export function nodeShareText(node: HTMLElement | null): string {
+  return domToText(cleanClone(node));
+}
+
+export interface NodeArtefactOptions {
+  /** Title, set as the artefact's head and prefixed to the copied text. */
+  title: string;
+  /** The element to render, read at the moment of action so it is current. */
+  node: () => HTMLElement | null;
+  /** Small caps kicker above the title. Defaults to Cosmic Daily Planner. */
+  voice?: string;
+  /** Quiet date or scope line under the kicker. Optional. */
+  dateLabel?: string;
+  /** Download file base. Defaults to a slug of the title. */
+  fileBase?: string;
+  /** What the artefact is called in confirmations. Defaults to reading. */
+  noun?: string;
+  /** Optional note back to the home after a save or share. */
+  reflect?: (note: string) => void;
+}
+
+/** Build the styled SVG for a node's cleaned content, on the shared parchment. */
+function nodeProseSVG(o: NodeArtefactOptions): string {
+  const text = nodeShareText(o.node());
+  const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0);
+  return buildProseSVG({
+    voice: o.voice || 'Cosmic Daily Planner',
+    dateLabel: o.dateLabel || '',
+    prompt: o.title,
+    paragraphs: paragraphs.length ? paragraphs : [o.title],
+  });
+}
+
+/**
+ * The share control for any long form surface. One control, the same pipeline
+ * as the daily card and the Cosmic Signature, so no surface can drift back to
+ * re-rendered text. Copy carries the clean prose, save and share carry the
+ * styled artefact.
+ */
+export function artefactControlsFromNode(o: NodeArtefactOptions): HTMLElement {
+  return artefactControls({
+    title: o.title,
+    fileBase: o.fileBase,
+    svg: () => nodeProseSVG(o),
+    text: () => o.title + '\n\n' + nodeShareText(o.node()),
+    noun: o.noun || 'reading',
+    reflect: o.reflect,
+  });
 }

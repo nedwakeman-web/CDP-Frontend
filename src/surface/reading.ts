@@ -29,7 +29,7 @@
  */
 
 import type { Lens, VesselSignal } from '../data/model';
-import { shareControls } from './share';
+import { artefactControlsFromNode } from './artefact';
 import { NUM_DATA } from '../data/numerology-content';
 import { NUM_TIME, NUM_NEURO, SEAL_ARCH } from '../data/reading-content';
 import {
@@ -602,10 +602,11 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   function ensureShareBar(): void {
     if (shareInserted) return;
     shareInserted = true;
-    const bar2 = shareControls({
+    const bar2 = artefactControlsFromNode({
       title: o.title || 'Today\u2019s reading',
-      text: () => (o.title || 'Today\u2019s reading') + '\n\n' + shell.innerText,
       node: () => shell,
+      voice: lensName(o.getLens()),
+      noun: 'reading',
     });
     shell.appendChild(bar2);
   }

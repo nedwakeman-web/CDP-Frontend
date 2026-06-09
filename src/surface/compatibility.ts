@@ -23,7 +23,7 @@
 
 import type { VesselRepository } from '../data/repository';
 import type { Lens, VesselProfile, VesselSignal } from '../data/model';
-import { shareControls } from './share';
+import { artefactControlsFromNode } from './artefact';
 import { NUM_DATA } from '../data/numerology-content';
 import { kinForDate, kinDescriptor, personalNumerology, reduceNumber, isoToUTC } from '../coordinates-core';
 import { citationsForClaim } from '../data/bibliography';
@@ -495,10 +495,11 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   function ensureShareBar(label: string): void {
     if (shareInserted) return;
     shareInserted = true;
-    shell.appendChild(shareControls({
+    shell.appendChild(artefactControlsFromNode({
       title: label,
-      text: () => label + '\n\n' + content.innerText,
       node: () => content,
+      voice: 'Compatibility',
+      noun: 'reading',
     }));
   }
 

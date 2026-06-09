@@ -15,7 +15,7 @@
  */
 
 import type { Lens, VesselProfile, VesselSignal } from '../data/model';
-import { shareControls } from './share';
+import { artefactControlsFromNode } from './artefact';
 import { NUM_DATA } from '../data/numerology-content';
 import { SEAL_ARCH } from '../data/reading-content';
 import { kinForDate, kinDescriptor, personalNumerology, universalDay, lunarWindow, reduceNumber } from '../coordinates-core';
@@ -616,10 +616,12 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
   shell.appendChild(detail);
   shell.appendChild(el('div', { class: 'cal-sources' }, 'Moon phases from the United States Naval Observatory 2026 table. Dreamspell after Arguelles 1987, held distinct from the living K\u2019iche\u2019 count. Numerology, Pythagorean, master numbers preserved.'));
 
-  shell.appendChild(shareControls({
+  shell.appendChild(artefactControlsFromNode({
     title: 'My calendar, ' + MONTHS_L[viewMonth] + ' ' + String(viewYear),
-    text: () => detail.innerText,
     node: () => detail,
+    voice: 'Your month',
+    dateLabel: MONTHS_L[viewMonth] + ' ' + String(viewYear),
+    noun: 'day',
   }));
 
   defaultRange();

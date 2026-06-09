@@ -33,6 +33,7 @@ import {
 } from '../coordinates-core';
 import { NUM_DATA } from '../data/numerology-content';
 import { citationsForClaim } from '../data/bibliography';
+import { svgToPngBlob, printSvgPdf, downloadBlob, shareSvg } from './artefact';
 
 /* ============================================================================
  * Options and handle
@@ -536,61 +537,12 @@ export function buildCardSVG(m: CardModel, _lens: Lens, sel: 'morning' | 'aftern
 
 /* ============================================================================
  * Save and share. The card image is the SVG above, rasterised for keeping and
- * sharing, and printed as a vector PDF. This is the headline capability.
+ * sharing, and printed as a vector PDF. This is the headline capability. The
+ * pipeline (svgToPngBlob, printSvgPdf, downloadBlob, shareSvg) is the shared
+ * one in artefact.ts, so the card, the Cosmic Signature, and the prose surfaces
+ * leave the device by one road and a fix in one place fixes all of them.
  * ========================================================================== */
 
-interface ShareNav { canShare?: (data: { files?: File[]; title?: string }) => boolean; share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>; }
-
-function svgToPngBlob(svg: string, scale: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      const w = img.naturalWidth || W;
-      const h = img.naturalHeight || W;
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(w * scale);
-      canvas.height = Math.round(h * scale);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('no_context')); return; }
-      ctx.fillStyle = C.page;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-      canvas.toBlob((b) => { if (b) resolve(b); else reject(new Error('no_blob')); }, 'image/png');
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image_failed')); };
-    img.src = url;
-  });
-}
-function downloadBlob(b: Blob, name: string): void {
-  const url = URL.createObjectURL(b);
-  const a = el('a', { href: url, download: name });
-  document.body.appendChild(a);
-  (a as HTMLAnchorElement).click();
-  window.setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 1200);
-}
-function printSvgPdf(svg: string, title: string): void {
-  const frame = document.createElement('iframe');
-  frame.setAttribute('aria-hidden', 'true');
-  frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0';
-  frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
-  document.body.appendChild(frame);
-  const doc = frame.contentWindow && frame.contentWindow.document;
-  if (!doc) { document.body.removeChild(frame); return; }
-  const safe = String(title || 'Cosmic Daily Planner').replace(/</g, '').replace(/>/g, '');
-  doc.open();
-  doc.write('<html><head><title>' + safe + '</title><meta charset="utf-8"><style>@page{margin:14mm}html,body{margin:0;background:' + C.page + '}svg{width:100%;height:auto;display:block}</style></head><body>' + svg + '</body></html>');
-  doc.close();
-  const w = frame.contentWindow;
-  if (!w) { document.body.removeChild(frame); return; }
-  window.setTimeout(() => {
-    try { w.focus(); w.print(); } catch (_e) { /* user may cancel */ }
-    window.setTimeout(() => { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 1000);
-  }, 350);
-}
 
 /* ============================================================================
  * The surface
@@ -856,15 +808,8 @@ export function openCard(o: OpenCardOptions): CardHandle {
   });
   savePdf.addEventListener('click', () => { printSvgPdf(currentSvg, 'Cosmic Daily Planner, ' + dateStr); });
   shareBtn.addEventListener('click', () => {
-    svgToPngBlob(currentSvg, 2).then((b) => {
-      const file = new File([b], fileBase + '.png', { type: 'image/png' });
-      const nav = navigator as unknown as ShareNav;
-      if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
-        nav.share({ files: [file], title: 'My Cosmic Daily Planner card' }).then(() => { if (o.reflect) o.reflect('Today\u2019s card is shared.'); }).catch(() => { /* cancelled */ });
-      } else {
-        downloadBlob(b, fileBase + '.png'); flash(shareBtn, 'Saved to share');
-      }
-    }).catch(() => flash(shareBtn, 'Try again'));
+    shareSvg(currentSvg, fileBase, 'My Cosmic Daily Planner card', () => { if (o.reflect) o.reflect('Today\u2019s card is shared.'); })
+      .catch(() => flash(shareBtn, 'Try again'));
   });
 
   paint();

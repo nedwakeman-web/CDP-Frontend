@@ -12,7 +12,7 @@
  * same share infrastructure every other surface uses, replacing the monolith's
  * standalone guide PDF builder.
  */
-import { shareControls } from './share';
+import { artefactControlsFromNode } from './artefact';
 
 export interface OpenGuideOptions {
   container: HTMLElement;
@@ -216,10 +216,11 @@ export function openGuide(o: OpenGuideOptions): GuideHandle {
   content.appendChild(closing);
 
   // share the guide through the shared infrastructure
-  const share = shareControls({
+  const share = artefactControlsFromNode({
     title: 'Cosmic Daily Planner, the complete guide',
-    text: () => (content.innerText || content.textContent || 'Cosmic Daily Planner, the complete guide'),
     node: () => content,
+    voice: 'The guide',
+    noun: 'guide',
   });
   share.classList.add('gd-share');
   shell.appendChild(share);

@@ -29,7 +29,7 @@
 import type { Lens, VesselProfile, HeldIntention, VesselSignal } from '../data/model';
 import { kinForDate, kinDescriptor, descriptorForKin, personalNumerology, reduceNumber } from '../coordinates-core';
 import { NUM_DATA, PY_ARC } from '../data/numerology-content';
-import { shareControls } from './share';
+import { artefactControlsFromNode } from './artefact';
 import { citationsForClaim } from '../data/bibliography';
 import { homeTelescope, crossTelescopeRate, intentionRhythm, bothTelescopesProven } from '../data/outcome-signal';
 
@@ -553,10 +553,12 @@ export function openYear(o: OpenYearOptions): YearHandle {
   const sl = sourcesLine();
   if (sl) content.appendChild(el('div', { class: 'yr-sources' }, sl));
 
-  shell.appendChild(shareControls({
+  shell.appendChild(artefactControlsFromNode({
     title: 'My year, ' + String(curYear),
-    text: () => 'My year, ' + String(curYear) + '\n\n' + content.innerText,
     node: () => content,
+    voice: 'Your year',
+    dateLabel: String(curYear),
+    noun: 'year',
   }));
 
   view.appendChild(shell);
