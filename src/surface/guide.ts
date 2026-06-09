@@ -41,7 +41,7 @@ function ensureStyle(): void {
   if (styled) return;
   styled = true;
   const css = [
-    '.cdp-surface .gd-view{position:fixed;inset:0;top:58px;z-index:60;background:var(--page,#0A1828);overflow-y:auto;}',
+    '.cdp-surface .gd-view{position:fixed;inset:0;top:58px;z-index:60;background:var(--page,#031831);overflow-y:auto;}',
     '.cdp-surface .gd-shell{max-width:760px;margin:0 auto;padding:26px 22px 64px;}',
     '.cdp-surface .gd-bar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:6px;}',
     '.cdp-surface .gd-title{font-family:\'Cormorant Garamond\',\'EB Garamond\',Georgia,serif;font-weight:400;font-size:30px;color:var(--gold,#C9A050);letter-spacing:.005em;}',

@@ -323,7 +323,7 @@ const FONT = { sans: 'Helvetica Neue, Helvetica, Arial, sans-serif', serif: 'EB 
 
 /* canonical palette, with a touch more contrast for the parchment body */
 const C = {
-  page: '#0A1828', panel: '#0D1E33', raised: '#13284A', raised2: '#192E4A',
+  page: '#031831', panel: '#0D1E33', raised: '#13284A', raised2: '#192E4A',
   gold: '#C9A050', goldBright: '#E8C878', rule: '#BFA363', teal: '#81CDB6',
   text: '#F2EAD3', dim: '#C9BDA1', faint: '#8C826C', master: '#C8A0FF', glow: '#1A3658',
 };
@@ -623,7 +623,7 @@ function ensureStyle(): void {
 .cdp-surface .card-dd-a { margin:0 0 18px; padding-left:12px; border-left:2px solid var(--gold-line, #BFA363); }
 .cdp-surface .card-dd-wait { color:var(--text-faint, #9E9282); font-style:italic; font-family:'EB Garamond', Georgia, serif; }
 .cdp-surface .card-dd-p { font-family:Georgia, serif; font-size:15px; line-height:1.7; color:var(--text-light, #F0E6CC); margin:0 0 11px; }
-.cdp-surface .card-dd-foot { display:flex; gap:8px; padding:12px 14px; border-top:1px solid rgba(191,163,99,.22); background:var(--panel-deep, #0A1828); }
+.cdp-surface .card-dd-foot { display:flex; gap:8px; padding:12px 14px; border-top:1px solid rgba(191,163,99,.22); background:var(--panel-deep, #031831); }
 .cdp-surface .card-dd-in { flex:1; resize:none; background:var(--card, #122440); border:1px solid rgba(191,163,99,.3); border-radius:6px; color:var(--text-light, #F0E6CC); font-family:Georgia, serif; font-size:14px; padding:9px 11px; line-height:1.5; }
 .cdp-surface .card-dd-in:focus { outline:none; border-color:var(--gold, #C9A050); }
 .cdp-surface .card-dd-ask { background:none; border:1px solid var(--gold, #C9A050); color:var(--gold, #C9A050); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding:0 16px; border-radius:6px; cursor:pointer; }

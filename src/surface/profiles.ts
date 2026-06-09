@@ -79,7 +79,7 @@ const STYLE_ID = 'cdp-profiles-style';
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const css = [
-    '.cdp-surface .pl-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#0A1828);overflow-y:auto;padding:24px 18px 72px}',
+    '.cdp-surface .pl-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#031831);overflow-y:auto;padding:24px 18px 72px}',
     '.cdp-surface .pl-shell{max-width:42rem;margin:0 auto}',
     '.cdp-surface .pl-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}',
     '.cdp-surface .pl-h{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',
@@ -108,7 +108,7 @@ function ensureStyle(): void {
     '.cdp-surface .pl-form{border:1px solid var(--gold-line,#3A3320);border-radius:5px;background:var(--navy,#0D1E33);padding:14px 15px;margin-top:8px}',
     '.cdp-surface .pl-field{margin:0 0 12px}',
     '.cdp-surface .pl-label{display:block;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);margin-bottom:5px}',
-    '.cdp-surface .pl-in,.cdp-surface .pl-sel{width:100%;box-sizing:border-box;background:var(--bg,#0A1828);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:16px;padding:10px 12px}',
+    '.cdp-surface .pl-in,.cdp-surface .pl-sel{width:100%;box-sizing:border-box;background:var(--bg,#031831);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:16px;padding:10px 12px}',
     '.cdp-surface .pl-dob{display:flex;gap:8px}',
     '.cdp-surface .pl-dob .pl-sel{flex:1}',
     '.cdp-surface .pl-save{background:var(--gold,#C9A050);color:#1A1208;border:none;border-radius:3px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:11px 18px;cursor:pointer;margin-top:2px}',

@@ -178,7 +178,7 @@ const STYLE_ID = 'cdp-compat-style';
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const css = [
-    '.cdp-surface .cm-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#0A1828);overflow-y:auto;padding:24px 18px 64px}',
+    '.cdp-surface .cm-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#031831);overflow-y:auto;padding:24px 18px 64px}',
     '.cdp-surface .cm-shell{max-width:44rem;margin:0 auto}',
     '.cdp-surface .cm-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}',
     '.cdp-surface .cm-h{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',

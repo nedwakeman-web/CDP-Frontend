@@ -207,7 +207,7 @@ const STYLE_ID = 'cdp-profile-style';
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const css = [
-    '.cdp-surface .pc-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#0A1828);overflow-y:auto;padding:24px 18px 72px}',
+    '.cdp-surface .pc-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#031831);overflow-y:auto;padding:24px 18px 72px}',
     '.cdp-surface .pc-shell{max-width:42rem;margin:0 auto}',
     '.cdp-surface .pc-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}',
     '.cdp-surface .pc-h{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',

@@ -124,7 +124,7 @@ const STYLE_ID = 'cdp-year-style';
 function ensureStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const css = [
-    '.cdp-surface .yr-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#0A1828);overflow-y:auto;padding:24px 18px 64px}',
+    '.cdp-surface .yr-view{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:60;background:var(--bg,#031831);overflow-y:auto;padding:24px 18px 64px}',
     '.cdp-surface .yr-shell{max-width:44rem;margin:0 auto}',
     '.cdp-surface .yr-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}',
     '.cdp-surface .yr-h{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',
@@ -180,7 +180,7 @@ function ensureStyle(): void {
     '.cdp-surface .yr-ctx-meta{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:4px 0 9px}',
     '.cdp-surface .yr-ctx-desc{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
     '.cdp-surface .yr-ctx-ask{display:inline-block;background:none;border:none;cursor:pointer;font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:13px;color:var(--teal,#81CDB6);padding:9px 0 0}',
-    '.cdp-surface .yr-nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 14px;background:var(--bg,#0A1828)}',
+    '.cdp-surface .yr-nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 14px;background:var(--bg,#031831)}',
     '.cdp-surface .yr-nav-chip{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);border:1px solid var(--gold-line,#3A3320);border-radius:999px;background:var(--navy,#0D1E33);padding:6px 13px;cursor:pointer}',
     '.cdp-surface .yr-nav-chip:hover{color:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
     '.cdp-surface .yr-mv-title{font-family:\'EB Garamond\',Georgia,serif;font-size:25px;color:var(--gold-soft,#E8C878);margin:16px 0 4px}',

@@ -192,7 +192,7 @@ function saveAsImage(title: string, body: string, filename: string): void {
   }
   const H = y + 56;
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
-    + '<rect width="' + W + '" height="' + H + '" fill="#0A1828"/>'
+    + '<rect width="' + W + '" height="' + H + '" fill="#031831"/>'
     + '<rect width="' + W + '" height="4" fill="#C9A050"/>'
     + rows.join('')
     + '<text x="' + padX + '" y="' + (H-26) + '" font-family="Georgia, serif" font-size="12" letter-spacing="2" fill="#9E8A55">COSMIC DAILY PLANNER</text>'

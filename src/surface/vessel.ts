@@ -91,9 +91,9 @@ function numName(n: number): string { const d = NUM_DATA[n]; return d ? d.n : St
 
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
-html, body { margin:0; background:#0A1828; }
+html, body { margin:0; background:#031831; }
 .cdp-surface {
-  --bg:#0A1828; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
+  --bg:#031831; --navy:#0D1E33; --raised:#122440; --raised2:#192E4A;
   --gold:#C9A050; --gold-soft:#E8C878; --gold-line:rgba(201,160,80,0.18);
   --text-light:#F0E6CC; --text-muted:#D4C8AE; --text-dim:#9E9282; --teal:#81CDB6; --master:#C8A0FF;
   --seal-red:#C56A5C; --seal-white:#E6DFC8; --seal-blue:#5F9BC0; --seal-yellow:#D8B24E;
@@ -1327,7 +1327,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       '.cdp-surface .cv-bd-also{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:10px 0 8px}',
       '.cdp-surface .cv-bd-also.worst{color:rgba(200,120,120,.85)}',
       '.cdp-surface .cv-bd-worst-wrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--gold-line,#3A3320)}',
-      '.cdp-surface .cv-bd-avoid{border-left:3px solid rgba(200,90,90,.5);background:var(--bg,#0A1828);border-radius:3px;padding:9px 12px;margin-bottom:7px;cursor:pointer}'
+      '.cdp-surface .cv-bd-avoid{border-left:3px solid rgba(200,90,90,.5);background:var(--bg,#031831);border-radius:3px;padding:9px 12px;margin-bottom:7px;cursor:pointer}'
     ].join('');
     document.head.appendChild(bdStyle);
   }
