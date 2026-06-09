@@ -47,6 +47,7 @@ import { openCalendar as openCalendarSurface } from './calendar';
 import { openAbout } from './about';
 import { openGuide, type GuideHandle } from './guide';
 import { openTiers, type TiersHandle } from './tiers';
+import { mountWelcome } from './welcome';
 import { getTier, setTier, tierLabel } from '../data/tier';
 import type { AboutHandle } from './about';
 import type { CalendarHandle } from './calendar';
@@ -794,6 +795,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   /* ===== home (centre) ===== */
   const home = el('main', { class: 'home' });
+
+  const welcome = mountWelcome({
+    hasHistory: repo.listReadings().length > 0,
+    onTour: () => openGuideView(),
+  });
+  if (welcome) home.appendChild(welcome);
 
   const emblem = el('div', { class: 'emblem', role: 'button', tabindex: '0', 'aria-label': 'Two telescopes, one sky' });
   emblem.innerHTML = ICON_TELESCOPES;
