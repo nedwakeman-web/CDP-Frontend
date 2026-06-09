@@ -63,9 +63,6 @@ function clip(s: string, n = 44): string {
 function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
-function lc(s: string): string {
-  return s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
-}
 function topOf(counts: Record<string, number>): { key: string; n: number } | null {
   let key = ''; let n = 0;
   for (const k in counts) { const v = counts[k] || 0; if (v > n) { n = v; key = k; } }
@@ -117,7 +114,7 @@ function analysePatterns(signals: VesselSignal[], live: HeldIntention[], resting
         hasData: true,
         lines: [
           'You have not yet marked enough of what lands in a reading for a pattern to be honest, so this is not a claim about how you see, not yet.',
-          'What is here is what you are carrying. ' + cap(clip(held.text)) + ' is the live thread, and it is the thing worth bringing to today.',
+          'What is here is what you brought most recently, and it is the thing worth bringing to today. ' + cap(clip(held.text)) + '.',
           'As you mark what reaches you, reading by reading, this turns into a reading of you rather than a count.',
         ],
       };
@@ -156,14 +153,15 @@ function analysePatterns(signals: VesselSignal[], live: HeldIntention[], resting
   }
 
   if (held) {
-    const carry = 'Through all of this you are still carrying ' + lc(clip(held.text));
-    const tail = stale ? ', and ' + lc(clip(stale.text)) + ' has been sitting untended for a while.' : '.';
-    lines.push(cap(carry) + tail);
+    lines.push('Through all of this, the thread you brought most recently is this. ' + cap(clip(held.text)) + '.');
+    if (stale) {
+      lines.push('And one has gone quiet. ' + cap(clip(stale.text)) + ', untended for a while now.');
+    }
   }
 
   if (held && tv) {
     const reach = tv.key === 'science' ? 'the mechanism' : tv.key === 'tradition' ? 'the symbol' : 'the plain reading';
-    lines.push('Worth sitting with today. When you bring ' + lc(clip(held.text)) + ' to a reading, are you reaching for ' + reach + ', or for the telescope you trust less.');
+    lines.push('Worth sitting with today. When you bring that thread to a reading, notice whether you reach for ' + reach + ', or for the telescope you trust less.');
   } else {
     lines.push('Worth watching. The next time a lens you do not usually trust is the one that lands, treat it as a signal rather than a stray.');
   }
