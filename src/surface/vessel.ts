@@ -163,6 +163,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .gcard-eyebrow { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
 .cdp-surface .glance-panel[data-voice="science"] .gcard-eyebrow { color:var(--teal); }
 .cdp-surface .gcard-label { font-family:'Cormorant Garamond','EB Garamond',Georgia,serif; font-size:14px; line-height:1.35; color:var(--text-light); }
+.cdp-surface .gcard-gloss { font-family:'EB Garamond',Georgia,serif; font-size:12.5px; line-height:1.45; color:var(--text-muted); }
 .cdp-surface .glance-foot { padding-top:14px; margin-top:6px; border-top:1px solid var(--gold-line); text-align:center; }
 .cdp-surface .glance-deeplink { background:transparent; border:none; color:var(--gold-soft); font-family:'EB Garamond',Georgia,serif; font-size:15px; cursor:pointer; }
 .cdp-surface .glance-deeplink:hover { color:var(--gold); }
@@ -590,6 +591,33 @@ function chipLabelsFor(lens: Lens, c: ChipCoords): Record<ChipKey, string> {
     lunar: c.moonLabel + (c.moonMeaning ? ' \u00b7 ' + c.moonMeaning : ''),
     symbol: c.kinTone + ' day \u00b7 ' + c.kinSeal,
     body: 'Energy check-in',
+  };
+}
+// A short, lens-aware gloss for each coordinate: what it brings or asks for
+// today, condensed from the drawer in the same voice. Empirical claims stay
+// measured, symbolic ones stay labelled as a lens rather than a forecast.
+function chipGlossFor(lens: Lens, c: ChipCoords): Record<ChipKey, string> {
+  if (lens === 'science') {
+    return {
+      time: 'A reflective bias today, one input among many.',
+      lunar: 'This phase nudges melatonin and sleep, subtly.',
+      symbol: 'A contemplative anchor, not an empirical claim.',
+      body: 'Interoception: read energy, hunger, tension, breath.',
+    };
+  }
+  if (lens === 'tradition') {
+    return {
+      time: 'A quality of attention, read as quality not script.',
+      lunar: 'A turning point in the cycle of release and renewal.',
+      symbol: 'Tone and seal name a position in the wavespell.',
+      body: 'The body is the first signal; listen there first.',
+    };
+  }
+  return {
+    time: 'Work with the grain of the day, not against it.',
+    lunar: 'Notice your sleep, patience, and appetite this week.',
+    symbol: 'A lens to help you focus, not a forecast.',
+    body: 'Thirty seconds: where is the energy, where the tension?',
   };
 }
 function cite(ref: string, text: string): string {
@@ -1789,6 +1817,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     });
     const c = glanceCoords();
     const labels = chipLabelsFor(lens, c);
+    const gloss = chipGlossFor(lens, c);
     clear(glanceCards);
     CHIP_ORDER.forEach((chip) => {
       const card = el('button', { type: 'button', class: 'gcard', 'aria-label': CHIP_META[chip].eyebrow + ': ' + labels[chip] });
@@ -1798,6 +1827,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       const txt = el('div', { class: 'gcard-txt' });
       txt.appendChild(el('span', { class: 'gcard-eyebrow' }, CHIP_META[chip].eyebrow));
       txt.appendChild(el('span', { class: 'gcard-label' }, labels[chip]));
+      txt.appendChild(el('span', { class: 'gcard-gloss' }, gloss[chip]));
       card.appendChild(txt);
       card.addEventListener('click', (e: Event) => { e.stopPropagation(); openChipDrawer(chip); });
       glanceCards.appendChild(card);
