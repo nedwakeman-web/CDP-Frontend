@@ -609,7 +609,7 @@ function ensureStyle(): void {
 .cdp-surface .card-svg { width:100%; height:auto; display:block; border-radius:14px; overflow:hidden; box-shadow:0 16px 50px rgba(0,0,0,.5); }
 .cdp-surface .card-tools { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; align-items:center; }
 .cdp-surface .card-voice { display:inline-flex; border:1px solid var(--gold-line, #3A3320); border-radius:4px; overflow:hidden; margin-right:auto; }
-.cdp-surface .card-voice button { background:none; border:none; color:var(--text-faint, #9E9282); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:7px 12px; cursor:pointer; }
+.cdp-surface .card-voice button { background:none; border:none; color:var(--text-muted, #D4C8AE); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:7px 12px; cursor:pointer; }
 .cdp-surface .card-voice button.on { color:var(--gold, #C9A050); background:rgba(201,160,80,.12); }
 .cdp-surface .card-btn { background:none; border:1px solid var(--gold, #C9A050); color:var(--gold, #C9A050); font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:7px 13px; border-radius:4px; cursor:pointer; }
 .cdp-surface .card-btn:hover { background:rgba(201,160,80,.1); }
@@ -761,7 +761,7 @@ export function openCard(o: OpenCardOptions): CardHandle {
     const fbtn = el('button', { type: 'button', class: 'card-dd-ask' }, 'Ask');
     foot.appendChild(fin); foot.appendChild(fbtn);
     panel.appendChild(foot);
-    const bridge = el('button', { type: 'button', class: 'card-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other telescope');
+    const bridge = el('button', { type: 'button', class: 'card-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other lens');
     bridge.addEventListener('click', () => {
       const other: Lens = lens === 'science' ? 'tradition' : 'science';
       const base = lastPrompt || firstPrompt;

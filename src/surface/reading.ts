@@ -648,7 +648,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     foot.appendChild(fin);
     foot.appendChild(fbtn);
     panel.appendChild(foot);
-    const bridge = el('button', { type: 'button', class: 'rdg-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other telescope');
+    const bridge = el('button', { type: 'button', class: 'rdg-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other lens');
     bridge.addEventListener('click', () => {
       const home = o.getLens();
       const other: Lens = home === 'science' ? 'tradition' : 'science';
@@ -1110,7 +1110,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     const row = el('div', { class: 'rdg-bridge' });
     for (const tele of others) {
       const meta = voiceMeta(tele);
-      const btn = el('button', { type: 'button', class: 'rdg-bridge-btn ' + meta.cls }, 'Through the ' + meta.label.toLowerCase() + ' telescope');
+      const btn = el('button', { type: 'button', class: 'rdg-bridge-btn ' + meta.cls }, 'Through the ' + meta.label.toLowerCase() + ' lens');
       let block: HTMLElement | null = null;
       btn.addEventListener('click', () => {
         if (block) { if (block.parentNode) block.parentNode.removeChild(block); block = null; btn.classList.remove('open'); return; }

@@ -239,7 +239,7 @@ export function openYear(o: OpenYearOptions): YearHandle {
     const scrim = el('div', { class: 'yr-dd-scrim' });
     const panel = el('div', { class: 'yr-dd', role: 'dialog', 'aria-label': 'The Oracle' });
     const head = el('div', { class: 'yr-dd-head' });
-    head.appendChild(el('div', { class: 'yr-dd-h' }, landSig && landSig.bridge ? 'Through the other telescope' : 'Ask the Oracle'));
+    head.appendChild(el('div', { class: 'yr-dd-h' }, landSig && landSig.bridge ? 'Through the other lens' : 'Ask the Oracle'));
     const x = el('button', { type: 'button', class: 'yr-dd-x', 'aria-label': 'Close' }, '\u00d7');
     head.appendChild(x);
     panel.appendChild(head);
@@ -380,7 +380,7 @@ export function openYear(o: OpenYearOptions): YearHandle {
     const pyBody = pyCard.querySelector('.yr-body') as HTMLElement;
     if (o.composeAsk) {
       const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
-      const bridge = el('button', { type: 'button', class: 'yr-bridge' }, 'Through the other telescope');
+      const bridge = el('button', { type: 'button', class: 'yr-bridge' }, 'Through the other lens');
       bridge.addEventListener('click', (e: Event) => { e.stopPropagation(); openAsk('My Personal Year is ' + py.value + ', ' + numName(py.value) + '. Show me this same year through the ' + (otherLens === 'science' ? 'science' : 'symbolic') + ' telescope, the same coordinate seen with the other lens.', { bridge: true, framework: 'numerology', section: 'personal-year' }); });
       pyBody.appendChild(bridge);
     }

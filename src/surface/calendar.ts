@@ -225,7 +225,7 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
     const scrim = el('div', { class: 'cal-dd-scrim' });
     const panel = el('div', { class: 'cal-dd', role: 'dialog', 'aria-label': 'The Oracle' });
     const head = el('div', { class: 'cal-dd-head' });
-    head.appendChild(el('div', { class: 'cal-dd-h' }, landSig && landSig.bridge ? 'Through the other telescope' : 'Ask the Oracle'));
+    head.appendChild(el('div', { class: 'cal-dd-h' }, landSig && landSig.bridge ? 'Through the other lens' : 'Ask the Oracle'));
     const x = el('button', { type: 'button', class: 'cal-dd-x', 'aria-label': 'Close' }, '\u00d7');
     head.appendChild(x);
     panel.appendChild(head);
@@ -423,7 +423,7 @@ export function openCalendar(o: OpenCalendarOptions): CalendarHandle {
 
       const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
       const otherWord = otherLens === 'science' ? 'science' : 'symbolic';
-      const bridge = el('button', { type: 'button', class: 'cal-bridge' }, 'Through the other telescope');
+      const bridge = el('button', { type: 'button', class: 'cal-bridge' }, 'Through the other lens');
       bridge.addEventListener('click', () => {
         if (o.recordSignal) o.recordSignal({ at: Date.now(), date: selected, kind: 'landed', surface: 'calendar', voice: otherLens, bridge: true, framework: 'convergence', section: 'day' });
         openAsk('Show me this day through the ' + otherWord + ' telescope, the same coordinates seen with the other lens.', { bridge: true, framework: 'convergence', section: 'day' });

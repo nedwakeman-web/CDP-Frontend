@@ -544,7 +544,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (o.composeAsk) {
       const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
       const otherWord = otherLens === 'science' ? 'science' : 'symbolic';
-      const bridge = el('button', { type: 'button', class: 'cm-bridge' }, 'Through the other telescope');
+      const bridge = el('button', { type: 'button', class: 'cm-bridge' }, 'Through the other lens');
       bridge.addEventListener('click', () => {
         if (o.recordSignal) o.recordSignal({ at: Date.now(), date: today, kind: 'landed', surface: 'compatibility', voice: otherLens, bridge: true, framework: 'convergence', section: 'synthesis' });
         openAsk('Show me the connection between ' + nameA + ' and ' + nameB + ' through the ' + otherWord + ' telescope, the same bond seen with the other lens.');
