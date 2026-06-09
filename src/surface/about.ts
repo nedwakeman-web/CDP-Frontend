@@ -81,41 +81,47 @@ interface Framework {
 const FRAMEWORKS: Framework[] = [
   {
     tradName: 'Numerology',
-    tradLine: 'The day carries a frequency. Attend to it before the world sets your agenda for you.',
-    sciName: 'Attentional control',
-    sciLine: 'A held orienting frame steers the brain toward selecting what you marked as relevant.',
-    authority: 'Corbetta and Shulman, Nature Reviews Neuroscience, 2002.',
+    tradLine: 'Pythagorean numerology gives the day a numerical signature, an archetypal quality to attune to rather than a fortune to receive.',
+    sciName: 'Cognitive priming',
+    sciLine: 'A frame held at the start of the day biases the salience network toward what it names, a measurable effect on attention and choice for hours after.',
+    authority: 'Broadbent 1958, Perception and Communication; Dijksterhuis and Aarts 2010, Annual Review of Psychology; Oettingen and Sevincer 2023, Journal of Personality and Social Psychology.',
   },
   {
     tradName: 'Lunar astronomy',
-    tradLine: 'The moon governs energetic tides. The two days before the new moon ask for stillness, not initiation.',
+    tradLine: 'Lunar phase is the oldest calendar we keep. The two days before the new moon ask for stripping back, the two days after for new commitment.',
     sciName: 'Circadian rhythms',
-    sciLine: 'Biological phase modulates decision quality, effort, and self belief formation, measurably.',
-    authority: 'Mehrhof and Nord, eLife, 2025.',
+    sciLine: 'Cortisol, melatonin, and prefrontal cognition follow circadian rhythms that shape which work lands cleanly when.',
+    authority: 'Mehrhof and Nord 2025, eLife; Walker 2017, Why We Sleep; Cajochen et al 2013, Current Biology.',
   },
   {
     tradName: 'Western astrology',
-    tradLine: 'Saturn returns ask you to grow up. Jupiter transits open doors. Transits name what is asking of you, now.',
+    tradLine: 'Psychological astrology reads transits as developmental archetypes. The natal chart is a map of recurring themes, not a prediction.',
     sciName: 'Predictive frameworks',
-    sciLine: 'The brain is a prediction machine. A frame that names what is coming changes how it lands.',
-    authority: 'Friston, Nature Reviews Neuroscience.',
+    sciLine: 'The brain constructs experience from prior models, so a frame that names what is coming durably shapes how it lands.',
+    authority: 'Clark 2016, Surfing Uncertainty; Tarnas 2006, Cosmos and Psyche; Greene 1976, Saturn.',
   },
   {
     tradName: 'Dreamspell',
-    tradLine: 'A cycle of 260 days, 20 solar seals and 13 galactic tones. Each day a Kin, each Kin a quality.',
+    tradLine: 'A 260-day cycle of 20 seals and 13 tones. Each day a Kin, with 52 Galactic Activation Portal days when synchronicity is read as amplified. Arguelles 1987, distinct from the daykeeper count.',
     sciName: 'Neuroplasticity',
-    sciLine: 'Repeated daily attention to a stable identity anchor strengthens its representation in the default mode network.',
-    authority: 'Raichle, Annual Review of Neuroscience.',
+    sciLine: 'Repeated daily attention to a stable anchor strengthens its representation in self-referential networks. Neurons that fire together wire together.',
+    authority: 'Raichle 2015, Annual Review of Neuroscience; Hebb 1949, The Organization of Behavior; Arguelles 1987, The Mayan Factor.',
   },
   {
     tradName: 'Relationships',
-    tradLine: 'Compatibility readings name the dynamics two people bring to each other, the gifts and the friction.',
+    tradLine: 'Synastry reads two charts together to surface recurring dynamics, naming both the gifts and the friction without flattening them to a score.',
     sciName: 'Interpersonal neurobiology',
-    sciLine: 'Co regulation between two nervous systems is real, measurable, and shapes both partners over time.',
-    authority: 'Siegel, Interpersonal Neurobiology.',
+    sciLine: 'Co-regulation between two nervous systems is measurable, and recurring relational patterns durably shape both partners.',
+    authority: 'Siegel 2020, The Developing Mind; Porges 2011, The Polyvagal Theory; Bowlby 1969, Attachment and Loss.',
+  },
+  {
+    tradName: 'Hormonal cycle',
+    tradLine: 'The menstrual cycle read as an inner moon. Follicular for building, ovulation for expression, luteal for discernment, menstruation for release. Recognition, not prescription.',
+    sciName: 'Endocrine rhythms',
+    sciLine: 'Estrogen and progesterone modulate hippocampal plasticity, prefrontal connectivity, and sleep across the cycle, so cognitive strengths shift with phase rather than degrade.',
+    authority: 'Sundstrom-Poromaa et al 2023, Neuropsychopharmacology; Pletzer 2017, Frontiers in Neuroscience; Pope and Wurlitzer 2017, Wild Power.',
   },
 ];
-
 function ensureAboutStyle(): void {
   if (document.getElementById('cdp-about-styles')) return;
   const css = [
@@ -269,7 +275,7 @@ export function openAbout(o: OpenAboutOptions): AboutHandle {
   sci.appendChild(el('p', { class: 'ab-bits' }, 'Your brain processes 11 million bits of information every second. Your conscious mind handles around 50. What makes it through that filter is determined by what you hold as important, and that is trainable.'));
   sci.appendChild(el('p', { class: 'ab-bits' }, 'When you begin your day with a clear orienting frame, your brain salience network calibrates accordingly, noticing the relevant and suppressing the noise. The cosmic framework is the instruction to the filter.'));
   sci.appendChild(el('p', { class: 'ab-bits dim' }, 'No belief required. Just the architecture of your own mind.'));
-  sci.appendChild(el('div', { class: 'ab-sci-note' }, 'Every reading at every tier draws on five frameworks, refined across millennia and centuries respectively. Each row below is one framework, told in its tradition voice and its science voice. Open any row to see the named authorities behind the claims.'));
+  sci.appendChild(el('div', { class: 'ab-sci-note' }, 'Every reading at every tier draws on six frameworks, refined across millennia and centuries respectively. Each row below is one framework, told in its tradition voice and its science voice. Open any row to see the named authorities behind the claims.'));
 
   for (const fw of FRAMEWORKS) {
     const card = el('div', { class: 'ab-fw' });
