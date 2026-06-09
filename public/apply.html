@@ -29,12 +29,16 @@
 
 <style>
 :root{
-  --bg:#031831; --bg2:#0A1828; --bg3:#122440; --bg4:#08131F;
-  --navy:#0D1E33;
+  /* Canonical CDP palette (from the monolith stylesheet). Do not drift. */
+  --bg:#031831;            /* page background, the living blue */
+  --panel:#0D1E33;         /* panel surface */
+  --card:#122440;          /* raised card */
+  --card2:#192E4A;         /* raised card, brighter */
   --gold:#C9A050; --gold2:#E8C878; --gold-soft:#E8C878;
   --gold-line:rgba(201,160,80,0.30); --gold-faint:rgba(201,160,80,0.10); --gold-fill:rgba(201,160,80,0.07);
   --teal:#81CDB6; --teal-line:rgba(129,205,182,0.45); --teal-faint:rgba(129,205,182,0.10);
-  --text:#F0E6CC; --text2:#C8BAA0; --text3:#9E9282;
+  --text:#F0E6CC; --text2:#D4C8AE; --text3:#9E9282;
+  --master:#C8A0FF;
   --div:rgba(240,230,204,0.10); --div2:rgba(240,230,204,0.06);
   --err:#E0805A;
   --maxw:680px;
@@ -43,8 +47,8 @@
 html{font-size:16px;-webkit-text-size-adjust:none;scroll-behavior:smooth}
 body{
   background:
-    radial-gradient(135% 95% at 50% -8%, rgba(30,54,92,0.70) 0%, rgba(18,36,64,0.30) 38%, rgba(10,24,40,0) 62%),
-    #0A1828;
+    radial-gradient(135% 95% at 50% -8%, rgba(25,46,74,0.55) 0%, rgba(18,36,64,0.18) 40%, rgba(3,24,49,0) 62%),
+    var(--bg);
   background-attachment:fixed;
   color:var(--text);
   font-family:'EB Garamond',Georgia,serif;
@@ -78,7 +82,7 @@ a:hover{color:var(--gold2)}
 .frame{
   width:100%;max-width:var(--maxw);position:relative;
   border:1px solid var(--gold-line);
-  background:linear-gradient(180deg, rgba(19,36,64,0.45) 0%, rgba(13,30,51,0.32) 100%);
+  background:var(--panel);
   padding:54px clamp(22px,6vw,58px) 48px;
   box-shadow:0 30px 90px -45px rgba(0,0,0,0.65), inset 0 1px 0 rgba(240,230,204,0.04);
 }
@@ -107,7 +111,7 @@ h1{
   letter-spacing:.01em;margin:6px 0 22px;
 }
 .lede{
-  text-align:center;font-style:italic;color:var(--text3);
+  text-align:center;font-style:italic;color:var(--text2);
   font-size:1.06rem;line-height:1.7;max-width:34em;margin:0 auto 42px;
 }
 .rule{display:flex;align-items:center;justify-content:center;gap:14px;color:var(--gold);opacity:.55;margin:0 auto 40px;max-width:240px}
@@ -123,15 +127,15 @@ h1{
 }
 .label .hint{color:var(--text3);font-weight:400;letter-spacing:.16em;font-size:9.5px;margin-left:6px}
 .input,textarea.input{
-  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(240,230,204,0.14);
+  width:100%;background:var(--card);border:1px solid rgba(240,230,204,0.14);
   border-radius:3px;color:var(--text);
   font-family:'EB Garamond',Georgia,serif;font-size:1.05rem;
   padding:15px 18px;line-height:1.5;transition:border-color .25s, box-shadow .25s, background .25s;
 }
-.input::placeholder,textarea.input::placeholder{color:var(--text3);font-style:italic;opacity:.9}
+.input::placeholder,textarea.input::placeholder{color:var(--text2);font-style:italic;opacity:.9}
 .input:focus,textarea.input:focus{
   outline:none;border-color:var(--gold-line);
-  background:rgba(255,255,255,0.06);
+  background:var(--card2);
   box-shadow:0 0 0 3px var(--gold-fill);
 }
 textarea.input{resize:vertical;min-height:128px}
@@ -140,7 +144,7 @@ textarea.input{resize:vertical;min-height:128px}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .opt{
   appearance:none;cursor:pointer;text-align:center;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(240,230,204,0.13);border-radius:3px;
+  background:var(--card);border:1px solid rgba(240,230,204,0.13);border-radius:3px;
   color:var(--text2);font-family:'Cinzel',serif;font-size:10.5px;font-weight:400;
   letter-spacing:.13em;text-transform:uppercase;line-height:1.4;
   padding:17px 12px;transition:all .22s ease;
@@ -156,7 +160,7 @@ textarea.input{resize:vertical;min-height:128px}
 /* agreement box */
 .agreement{
   margin:8px 0 26px;border:1px solid rgba(240,230,204,0.12);border-left:2px solid var(--teal-line);
-  background:rgba(255,255,255,0.025);border-radius:3px;padding:22px 24px;
+  background:var(--card);border-radius:3px;padding:22px 24px;
 }
 .agreement-h{
   font-family:'Cinzel',serif;font-size:10.5px;font-weight:500;letter-spacing:.20em;
@@ -196,7 +200,7 @@ textarea.input{resize:vertical;min-height:128px}
 .formMsg.ok{color:var(--teal)}
 
 .footnote{
-  text-align:center;font-style:italic;color:var(--text3);font-size:.95rem;
+  text-align:center;font-style:italic;color:var(--text2);font-size:.95rem;
   margin-top:26px;line-height:1.6;
 }
 
@@ -241,7 +245,7 @@ textarea.input{resize:vertical;min-height:128px}
 
     <div id="formView">
       <div class="eyebrow">Beta Invitation</div>
-      <p class="sample-line">Just curious? <a href="/app.html?mode=quick" data-track="sample">Try a sample reading first</a>, no signup required.</p>
+      <p class="sample-line">Just curious? <a href="/" data-track="sample">Try a sample reading first</a>, no signup required.</p>
       <h1>Join the founding cohort.</h1>
       <p class="lede">A small group of practitioners, sceptics, founders and curious minds who are using the platform before public launch and shaping what gets built.</p>
       <div class="rule"><span class="dia">&#10070;</span></div>
@@ -324,7 +328,7 @@ textarea.input{resize:vertical;min-height:128px}
     <div class="done" id="doneView">
       <div class="mark">&#10022;</div>
       <h2>Welcome to the cohort.</h2>
-      <p>Opening your Oracle now. If it does not load in a moment, your access code is <strong style="color:var(--gold);font-style:normal">COSMIC2026</strong>.</p>
+      <p>Opening your Oracle now. If it does not load in a moment, head to <strong style="color:var(--gold);font-style:normal">alpha.cosmicdailyplanner.com</strong>.</p>
     </div>
   </main>
 </div>
@@ -349,11 +353,9 @@ const CONFIG = {
   SUPABASE_URL: '',          // e.g. 'https://xxxxxxxx.supabase.co'
   SUPABASE_ANON_KEY: '',     // your public anon key
   TABLE: 'beta_applications',// run the SQL in the build notes to create this
-  // Where a successful applicant is dropped. Set to the alpha app while testing on
-  // alpha; change to the beta site (https://cosmicdailyplanner-beta.netlify.app/app)
-  // when you promote. The app.html target carries the ?mode= gate that admits them.
-  APP_URL: 'https://alpha.cosmicdailyplanner.com/app.html',
-  APP_MODE: 'quick',   // fast first reading (seeker). 'standard' maps to Oracle tier, deep but slow.
+  // Where a successful applicant is dropped: the Vessel home (the flagship surface).
+  // Change to the beta Vessel (https://cosmicdailyplanner-beta.netlify.app/) when you promote.
+  APP_URL: 'https://alpha.cosmicdailyplanner.com/',
   ACCESS_CODE: 'COSMIC2026'
 };
 
@@ -444,13 +446,10 @@ form.addEventListener('submit',async e=>{
   }
 
   showDone();
-  // ?mode= auto-admits the app cross-origin; name passed for pre-fill where the app reads it.
-  const sep=CONFIG.APP_URL.indexOf('?')===-1 ? '?' : '&';
-  const dest=CONFIG.APP_URL+sep
-    +'mode='+encodeURIComponent(CONFIG.APP_MODE)
-    +'&code='+encodeURIComponent(CONFIG.ACCESS_CODE)
-    +'&name='+encodeURIComponent(name);
-  setTimeout(()=>{ window.location.href=dest; }, 1400);
+  // The Vessel is open: no gate, sign-in optional, so we simply send them in.
+  // The application is already saved above; the legacy gate keys set earlier are a
+  // harmless fallback should APP_URL ever be pointed back at /app.html.
+  setTimeout(()=>{ window.location.href=CONFIG.APP_URL; }, 1400);
 });
 
 function showDone(){
