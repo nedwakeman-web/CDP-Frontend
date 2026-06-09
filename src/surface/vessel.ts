@@ -1014,15 +1014,81 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   }
   renderLive();
 
+  // Layer two of the pattern engine, client side. The deterministic floor below
+  // renders immediately and offline. This reaches the synthesis endpoint, which
+  // looks across everything the person has brought, questions and passing
+  // comments and deliberate intentions alike, for a link between a lighter item
+  // and something recurring. It appends only when a real link comes back, and
+  // stays silent otherwise, so the floor always stands.
+  let synthCache: { sig: string; linked: boolean; observation: string } | null = null;
+
+  function synthLine(text: string): HTMLElement {
+    const row = el('button', { type: 'button', class: 'line tappable synth', 'aria-label': 'Look closer at this' }, text);
+    row.addEventListener('click', () => {
+      closeDrawer('left');
+      void compose('You reflected this back to me from my own record. ' + text + ' Help me look at where it connects.');
+    });
+    return row;
+  }
+
+  async function appendSynthesis(host: HTMLElement): Promise<void> {
+    const signals = repo.listSignals();
+    const landed = signals.filter((s) => s.kind === 'landed');
+    const items = repo.live().concat(repo.resting()).map((t) => (t.text || '').trim()).filter(Boolean);
+    if (items.length < 2 && landed.length < 3) return;
+
+    const byF: Record<string, number> = {};
+    const byV: Record<string, number> = {};
+    let bridges = 0;
+    for (const s of landed) {
+      if (s.framework) byF[s.framework] = (byF[s.framework] || 0) + 1;
+      if (s.voice) byV[s.voice] = (byV[s.voice] || 0) + 1;
+      if (s.bridge) bridges += 1;
+    }
+    const top = (o: Record<string, number>): string | null => {
+      let k = ''; let n = 0;
+      for (const x in o) { if (o[x] > n) { n = o[x]; k = x; } }
+      return n > 0 ? k : null;
+    };
+
+    const sig = items.length + ':' + landed.length + ':' + (items[0] ? items[0].length : 0);
+    if (synthCache && synthCache.sig === sig) {
+      if (synthCache.linked) host.insertBefore(synthLine(synthCache.observation), host.firstChild);
+      return;
+    }
+
+    const payload = {
+      lens,
+      facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
+      items: items.slice(0, 24),
+      readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+    };
+    try {
+      const res = await fetch('/api/patterns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { linked?: boolean; observation?: string };
+      const linked = !!(data && data.linked && data.observation);
+      synthCache = { sig, linked, observation: linked ? String(data.observation) : '' };
+      if (linked) host.insertBefore(synthLine(synthCache.observation), host.firstChild);
+    } catch (_e) {
+      /* the deterministic floor stands */
+    }
+  }
+
   function patternsBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
     const b = el('div');
-    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); return b; }
+    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); void appendSynthesis(b); return b; }
     for (const ln of a.lines) {
       const row = el('button', { type: 'button', class: 'line tappable', 'aria-label': 'Look closer at this pattern' }, ln);
       row.addEventListener('click', () => { closeDrawer('left'); void compose('Earlier you noticed this pattern in me: ' + ln + '. Help me look closer at it today.'); });
       b.appendChild(row);
     }
+    void appendSynthesis(b);
     return b;
   }
   function yearBody(): HTMLElement {
