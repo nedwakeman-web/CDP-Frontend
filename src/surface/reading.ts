@@ -32,6 +32,8 @@ import type { Lens, VesselSignal } from '../data/model';
 import { artefactControlsFromNode } from './artefact';
 import { NUM_DATA } from '../data/numerology-content';
 import { NUM_TIME, NUM_NEURO, SEAL_ARCH } from '../data/reading-content';
+import { cdpUserKeyParts } from '../data/userKey';
+import { getTier } from '../data/tier';
 import {
   kinDescriptor, universalDay, personalNumerology, reduceNumber, lunarWindow,
 } from '../coordinates-core';
@@ -512,23 +514,31 @@ function ensureStyle(): void {
 }
 
 /* ---- pre start cache: start the job the instant the app opens ------------- */
-function startJob(
+async function startJob(
   base: string, tier: string, dateStr: string,
   prof: ReadingProfile | null, lens: Lens, userId: string | null,
 ): Promise<string> {
   const profile = prof
     ? { dob: prof.birthDate || null, birthTime: prof.birthTime || null, birthPlace: prof.birthPlace || null, name: prof.name || null, readingLang: lens }
     : { readingLang: lens };
-  const payload = JSON.stringify({ date: dateStr, profile, tier, user_id: userId });
-  const opts: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload };
-  return (async () => {
-    let res = await fetch(base + '/api/reading/start', opts);
-    if (!res.ok && res.status >= 500) { await sleep(3000); res = await fetch(base + '/api/reading/start', opts); }
-    if (!res.ok) throw new Error('start_' + res.status);
-    const data = await res.json() as { jobId?: string };
-    if (!data.jobId) throw new Error('no_job');
-    return data.jobId;
-  })();
+  /* Resolve the continuity key so a reading persists per person, anonymous or
+     signed in: the signed in id goes in the body, the anon device id in the
+     header, matching the server v19_userKey contract. An explicit userId passed
+     by a caller still wins, so existing signed in callers are unchanged. */
+  const kp = await cdpUserKeyParts();
+  const body: Record<string, unknown> = { date: dateStr, profile, tier, ...kp.body };
+  if (userId) body.user_id = userId;
+  const opts: RequestInit = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...kp.headers },
+    body: JSON.stringify(body),
+  };
+  let res = await fetch(base + '/api/reading/start', opts);
+  if (!res.ok && res.status >= 500) { await sleep(3000); res = await fetch(base + '/api/reading/start', opts); }
+  if (!res.ok) throw new Error('start_' + res.status);
+  const data = await res.json() as { jobId?: string };
+  if (!data.jobId) throw new Error('no_job');
+  return data.jobId;
 }
 
 function readingKey(base: string, tier: string, date: string): string { return base + '|' + tier + '|' + date; }
@@ -553,7 +563,7 @@ export interface PrewarmOptions {
 export function prewarmReading(po: PrewarmOptions): void {
   try {
     const base = (po.base || '').replace(/\/+$/, '');
-    const tier = po.tier || 'oracle';
+    const tier = po.tier || getTier();
     const date = po.date || new Date().toISOString().slice(0, 10);
     const key = readingKey(base, tier, date);
     if (prewarmCache && prewarmCache.key === key) return;
@@ -569,7 +579,7 @@ export function prewarmReading(po: PrewarmOptions): void {
 export function openReading(o: OpenReadingOptions): ReadingHandle {
   ensureStyle();
   const base = (o.base || '').replace(/\/+$/, '');
-  const tier = o.tier || 'oracle';
+  const tier = o.tier || getTier();
   const dateStr = o.date || new Date().toISOString().slice(0, 10);
   const ask = o.ask;
   const composeAsk = o.composeAsk;

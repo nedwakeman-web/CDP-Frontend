@@ -32,6 +32,7 @@ import { NUM_DATA } from '../data/numerology-content';
 import { SEAL_ARCH } from '../data/reading-content';
 import { analyseRecord, streakOf } from '../data/patterns';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
+import { cdpUserKeyParts } from '../data/userKey';
 import { buildProseSVG, artefactControls } from './artefact';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
@@ -45,6 +46,8 @@ import type { CompatibilityHandle } from './compatibility';
 import { openCalendar as openCalendarSurface } from './calendar';
 import { openAbout } from './about';
 import { openGuide, type GuideHandle } from './guide';
+import { openTiers, type TiersHandle } from './tiers';
+import { getTier, setTier, tierLabel } from '../data/tier';
 import type { AboutHandle } from './about';
 import type { CalendarHandle } from './calendar';
 import { createAttachmentZone } from './attachments';
@@ -662,6 +665,9 @@ function chipDrawerContentFor(chip: ChipKey, lens: Lens, c: ChipCoords): ChipDra
     bodyHtml: `Take thirty seconds. Where in your body is the energy? Where is the tension? What does your body want from you today? The answer matters more than any calendar.` };
 }
 
+/* The per person key for continuity calls now lives in ../data/userKey, shared
+ * with the reading start path so the client carries one identity, never two. */
+
 /* ---- mount ---------------------------------------------------------------- */
 
 export async function mountVessel(options: VesselOptions): Promise<void> {
@@ -679,6 +685,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   let calendarHandle: CalendarHandle | null = null;
   let aboutHandle: AboutHandle | null = null;
   let guideHandle: GuideHandle | null = null;
+  let tiersHandle: TiersHandle | null = null;
 
   const pinned: Record<string, boolean> = { left: false, right: false };
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1061,16 +1068,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       return;
     }
 
+    const kp = await cdpUserKeyParts();
     const payload = {
       lens,
       facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
       items: items.slice(0, 24),
       readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+      ...kp.body,
     };
     try {
       const res = await fetch('/api/patterns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...kp.headers },
         body: JSON.stringify(payload),
       });
       if (!res.ok) return;
@@ -1347,7 +1356,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       container: surface,
       getLens: () => lens,
       getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
-      tier: 'oracle',
+      tier: getTier(),
       userId: null,
       date,
       ask: (prompt: string) => { void compose(prompt); },
@@ -1361,7 +1370,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const rN = rPn ? rPn.personalDay.value : universalDay(recDate).value;
     const rName = (NUM_DATA[rN] && NUM_DATA[rN].n) ? NUM_DATA[rN].n : String(rN);
     const rLine = rName + ' \u00b7 ' + kinDescriptor(recDate).full.replace(/^Kin \d+ /, '');
-    void repo.recordReading({ at: Date.now(), date: recDate, tier: 'oracle', title, line: rLine });
+    void repo.recordReading({ at: Date.now(), date: recDate, tier: getTier(), title, line: rLine });
   }
   function openProfilesView(): void {
     closeDrawer('right');
@@ -1670,6 +1679,22 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       onClose: () => { guideHandle = null; },
     });
   }
+  function openTiersView(valEl?: HTMLElement): void {
+    closeDrawer('left');
+    closeDrawer('right');
+    if (tiersHandle) tiersHandle.close();
+    tiersHandle = openTiers({
+      current: getTier(),
+      onSelect: (t) => { if (valEl) valEl.textContent = tierLabel(t); },
+      onRead: (t) => {
+        setTier(t);
+        if (valEl) valEl.textContent = tierLabel(t);
+        if (tiersHandle) tiersHandle.close();
+        openReadingFor(profile ?? null, 'Today\u2019s reading');
+      },
+      onClose: () => { tiersHandle = null; },
+    });
+  }
   function openAboutView(): void {
     closeDrawer('left');
     closeDrawer('right');
@@ -1798,6 +1823,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
           ? 'Your days are counted here as you return, gently, never as pressure.'
           : 'You have shown up ' + s2.days + (s2.days === 1 ? ' day' : ' days') + (s2.run > 1 ? ', ' + s2.run + ' of them in a row most recently' : '') + '. Return when it serves you.';
       });
+    } else if (label === 'Tiers') {
+      const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
+      row.appendChild(tval);
+      row.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
     } else {
       row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
     }
@@ -1973,15 +2002,17 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       for (const x in o) { if (o[x] > n) { n = o[x]; k = x; } }
       return n > 0 ? k : null;
     };
+    const kp = await cdpUserKeyParts();
     try {
       const res = await fetch('/api/patterns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...kp.headers },
         body: JSON.stringify({
           lens,
           facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
           items: items.slice(0, 24),
           readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+          ...kp.body,
         }),
       });
       if (!res.ok) return '';
@@ -2025,16 +2056,18 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       : 'cold';
     const key = name + '|' + lens + '|' + sig;
     if (greetingCache && greetingCache.key === key) { meetLine.textContent = greetingCache.line; return; }
-    const body: { name: string; voice: Lens; context: GreetingContext; last?: GreetingLast } = {
+    const kp = await cdpUserKeyParts();
+    const body: { name: string; voice: Lens; context: GreetingContext; last?: GreetingLast; user_id?: string } = {
       name,
       voice: lens,
       context: greetingContext(),
+      ...kp.body,
     };
     if (last) body.last = last;
     try {
       const res = await fetch('/api/greeting', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...kp.headers },
         body: JSON.stringify(body),
       });
       if (!res.ok) return;
