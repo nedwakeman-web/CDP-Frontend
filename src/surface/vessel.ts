@@ -32,6 +32,7 @@ import { NUM_DATA } from '../data/numerology-content';
 import { SEAL_ARCH } from '../data/reading-content';
 import { analyseRecord, streakOf } from '../data/patterns';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
+import { buildProseSVG, artefactControls } from './artefact';
 import { openReading } from './reading';
 import type { ReadingHandle } from './reading';
 import { openProfiles } from './profiles';
@@ -118,7 +119,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
 .cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
-.cdp-surface .pillglyph { font-size:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
+.cdp-surface .pillglyph { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
@@ -150,13 +151,13 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .gv-btn.on[data-voice="tradition"] { background:var(--gold); border-color:var(--gold); color:var(--navy); }
 .cdp-surface .gv-btn.on[data-voice="science"] { background:var(--teal); border-color:var(--teal); color:var(--navy); }
 .cdp-surface .gv-btn.on[data-voice="everyday"] { background:var(--text-muted); border-color:var(--text-muted); color:var(--navy); }
-.cdp-surface .glance-body { display:flex; align-items:center; gap:22px; padding:16px 0 6px; }
-.cdp-surface .glance-compass { flex:1 1 auto; min-width:0; }
-.cdp-surface .glance-compass img, .cdp-surface .glance-compass svg { width:100%; height:auto; max-height:46vh; display:block; border-radius:3px; }
-.cdp-surface .glance-cards { flex:0 0 222px; display:flex; flex-direction:column; gap:10px; }
+.cdp-surface .glance-body { position:relative; padding:16px 0 6px; }
+.cdp-surface .glance-compass { width:100%; }
+.cdp-surface .glance-compass img, .cdp-surface .glance-compass svg { width:100%; height:auto; display:block; border-radius:3px; }
+.cdp-surface .glance-cards { position:absolute; top:50%; right:4.5%; transform:translateY(-50%); width:43%; display:flex; flex-direction:column; gap:10px; }
 .cdp-surface .gcard { display:flex; align-items:flex-start; gap:11px; width:100%; text-align:left; background:var(--raised); border:1px solid var(--gold-line); border-radius:5px; padding:11px 13px; cursor:pointer; transition:border-color .2s, background .2s; }
 .cdp-surface .gcard:hover { border-color:var(--gold); background:var(--raised2); }
-.cdp-surface .gcard-ic { font-size:17px; line-height:1.1; color:var(--gold); flex-shrink:0; }
+.cdp-surface .gcard-ic { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; line-height:1; color:var(--gold); flex-shrink:0; }
 .cdp-surface .glance-panel[data-voice="science"] .gcard-ic { color:var(--teal); }
 .cdp-surface .gcard-txt { display:flex; flex-direction:column; gap:3px; }
 .cdp-surface .gcard-eyebrow { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); }
@@ -234,14 +235,14 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .meet-context { margin-top:20px; font-size:12px; color:var(--text-dim); letter-spacing:.5px; background:transparent; border:none; cursor:pointer; border-bottom:1px solid var(--gold-line); padding-bottom:2px; }
 .cdp-surface .meet-context:hover { color:var(--gold); border-color:var(--gold); }
 
-.cdp-surface .reply { width:min(90vw, 560px); margin:22px auto 0; text-align:left; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:var(--raised); padding:16px 18px; position:relative; }
+.cdp-surface .reply { width:min(90vw, 560px); margin:22px auto 0; text-align:left; border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; background:var(--raised); padding:16px 18px; position:relative; font-family:'EB Garamond', Georgia, serif; }
 .cdp-surface .reply .corner { position:absolute; top:10px; right:12px; font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); }
-.cdp-surface .reply .person { font-style:italic; color:var(--text-muted); margin-bottom:10px; }
-.cdp-surface .reply p { font-size:14px; line-height:1.7; margin-bottom:10px; }
+.cdp-surface .reply .person { font-style:italic; font-size:15px; color:var(--text-muted); margin-bottom:12px; padding-right:64px; }
+.cdp-surface .reply p { font-family:'EB Garamond', Georgia, serif; font-weight:400; font-size:15px; line-height:1.75; color:var(--text-light); margin-bottom:11px; }
 .cdp-surface .reply p:last-child { margin-bottom:0; }
 .cdp-surface .reply p.keel { color:var(--gold); }
-.cdp-surface .reply .living { font-style:italic; font-size:12px; color:var(--text-dim); margin-top:10px; }
-.cdp-surface .reply .busy { font-style:italic; color:var(--text-muted); }
+.cdp-surface .reply .living { font-size:13px; color:var(--text-muted); margin-top:12px; }
+.cdp-surface .reply .busy { font-style:italic; font-size:15px; color:var(--text-muted); }
 
 .cdp-surface .edge { position:fixed; top:58px; bottom:0; width:26px; z-index:40; }
 .cdp-surface .edge-left { left:0; } .cdp-surface .edge-right { right:0; }
@@ -293,7 +294,9 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-left-color:var(--gold); background:rgba(201,160,80,0.06); outline:none; }
 .cdp-surface .line.tappable .meta { color:var(--text-muted); }
 /* reply actions: share to anywhere, and tell us whether it landed */
-.cdp-surface .reply-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gold-line); }
+.cdp-surface .reply-actions { display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gold-line); }
+.cdp-surface .reply-actions .share-bar { margin:0; }
+.cdp-surface .reply-feedback { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .cdp-surface .reply-act { display:inline-flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--gold-line); color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; padding:6px 12px; border-radius:2px; cursor:pointer; transition:color .2s, border-color .2s, background .2s; }
 .cdp-surface .reply-act:hover { color:var(--gold); border-color:var(--gold); }
 .cdp-surface .reply-act.chosen { color:var(--navy); background:var(--gold); border-color:var(--gold); }
@@ -431,8 +434,8 @@ html, body { margin:0; background:#031831; }
   .cdp-surface .coords { width:86vw; }
   .cdp-surface .glance-overlay { padding:48px 12px 18px; }
   .cdp-surface .glance-panel { padding:16px 14px 18px; }
-  .cdp-surface .glance-body { flex-direction:column; gap:16px; }
-  .cdp-surface .glance-cards { flex:0 0 auto; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cdp-surface .glance-body { flex-direction:column; gap:16px; position:static; }
+  .cdp-surface .glance-cards { position:static; transform:none; right:auto; top:auto; flex:0 0 auto; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .cdp-surface .glance-drawer { padding:16px 14px 18px; }
   .cdp-surface .topnav { display:none; }
 }
@@ -546,6 +549,24 @@ const CHIP_META: Record<ChipKey, { glyph: string; eyebrow: string }> = {
   symbol: { glyph: '\u25C8', eyebrow: 'Symbol' },
   body: { glyph: '\u2726', eyebrow: 'Body' },
 };
+
+// Crisp inline SVG glyphs. The unicode characters render with emoji or font
+// metrics that distort under scale and animation (the half-moon looked stretched);
+// drawn paths inherit currentColor so the gold and teal voice colours still apply.
+const GLYPH_SVG: Record<ChipKey, string> = {
+  // half-moon: full ring with the left half filled
+  time: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M8 1.6 A6.4 6.4 0 0 0 8 14.4 Z" fill="currentColor"/></svg>',
+  // crescent moon, opening to the right
+  lunar: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M10.2 2 A6.3 6.3 0 1 0 10.2 14 A4.9 4.9 0 1 1 10.2 2 Z" fill="currentColor"/></svg>',
+  // a galactic seal, diamond within a diamond
+  symbol: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M8 1.4 L14.6 8 L8 14.6 L1.4 8 Z" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M8 4.8 L11.2 8 L8 11.2 L4.8 8 Z" fill="currentColor"/></svg>',
+  // a four-point sparkle for the body
+  body: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><path d="M8 0.6 C8.6 5.3 10.7 7.4 15.4 8 C10.7 8.6 8.6 10.7 8 15.4 C7.4 10.7 5.3 8.6 0.6 8 C5.3 7.4 7.4 5.3 8 0.6 Z" fill="currentColor"/></svg>',
+};
+
+// the doorway glyph on the home daystrip, a crescent moon, drawn so the breathing
+// scale animation stays crisp instead of distorting a font character
+const PILL_MOON_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M10.4 1.8 A6.6 6.6 0 1 0 10.4 14.2 A5.1 5.1 0 1 1 10.4 1.8 Z" fill="currentColor"/></svg>';
 function chipLabelsFor(lens: Lens, c: ChipCoords): Record<ChipKey, string> {
   const pdTxt = 'PD ' + c.pd;
   if (lens === 'science') {
@@ -746,7 +767,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // the half-moon glyph is the doorway: a tap opens the compass surface in place,
   // larger, with four coordinate cards that each go deeper without leaving home
   const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' });
-  pill.appendChild(el('span', { class: 'pillglyph', 'aria-hidden': 'true' }, '\u263D'));
+  const pillIc = el('span', { class: 'pillglyph', 'aria-hidden': 'true' });
+  pillIc.innerHTML = PILL_MOON_SVG;
+  pill.appendChild(pillIc);
   daystrip.appendChild(pill);
   home.appendChild(daystrip);
 
@@ -1757,7 +1780,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     clear(glanceCards);
     CHIP_ORDER.forEach((chip) => {
       const card = el('button', { type: 'button', class: 'gcard', 'aria-label': CHIP_META[chip].eyebrow + ': ' + labels[chip] });
-      card.appendChild(el('span', { class: 'gcard-ic', 'aria-hidden': 'true' }, CHIP_META[chip].glyph));
+      const ic = el('span', { class: 'gcard-ic', 'aria-hidden': 'true' });
+      ic.innerHTML = GLYPH_SVG[chip];
+      card.appendChild(ic);
       const txt = el('div', { class: 'gcard-txt' });
       txt.appendChild(el('span', { class: 'gcard-eyebrow' }, CHIP_META[chip].eyebrow));
       txt.appendChild(el('span', { class: 'gcard-label' }, labels[chip]));
@@ -1856,23 +1881,35 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     card.appendChild(bodyWrap);
     if (it.summary) card.appendChild(el('div', { class: 'living' }, it.summary));
 
-    // actions: share to anywhere, and tell us whether it landed
+    // actions: share the styled writing anywhere, and tell us whether it landed
     const replyText = vt ? vt.text : '';
+    const proseParas = replyText.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p.length > 0);
+    const buildSvg = (): string => buildProseSVG({
+      voice: lensLabel(lens),
+      dateLabel: longDate(dateStr),
+      prompt: it.text,
+      paragraphs: proseParas,
+    });
+
     const actions = el('div', { class: 'reply-actions' });
     const ack = el('div', { class: 'reply-ack' });
-    const shareBtnEl = el('button', { type: 'button', class: 'reply-act' }, 'Share');
-    shareBtnEl.addEventListener('click', () => {
-      const payload = { title: 'Cosmic Daily Planner', text: replyText, url: window.location.origin };
-      const nav = navigator as Navigator & { share?: (d: unknown) => Promise<void> };
-      trackEvent('reply_shared', { lens });
-      if (nav.share) {
-        nav.share(payload).catch(() => { /* the person dismissed the sheet */ });
-      } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(replyText).then(() => { ack.textContent = 'Copied. Paste it anywhere you like.'; }).catch(() => { ack.textContent = 'Could not copy on this device.'; });
-      } else {
-        ack.textContent = 'Sharing is not available on this device.';
-      }
+
+    // Copy, Share, Save as image, Save as PDF: every route carries the writing
+    // on the same parchment as the daily card and the Cosmic Signature
+    const shareBar = artefactControls({
+      title: 'Cosmic Daily Planner reading',
+      fileBase: 'cdp-reading-' + dateStr,
+      svg: buildSvg,
+      text: () => replyText,
+      noun: 'reading',
+      reflect: (note: string) => { ack.textContent = note; },
     });
+    shareBar.addEventListener('click', (e: Event) => {
+      const t = e.target as HTMLElement;
+      if (t && t.classList && t.classList.contains('share-btn')) trackEvent('reply_shared', { lens });
+    });
+
+    const fbRow = el('div', { class: 'reply-feedback' });
     const landed = el('button', { type: 'button', class: 'reply-act' }, 'That landed');
     const missed = el('button', { type: 'button', class: 'reply-act' }, 'Did not land');
     function feedback(value: 'landed' | 'missed', chosen: HTMLElement, other: HTMLElement): void {
@@ -1895,10 +1932,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
     landed.addEventListener('click', () => feedback('landed', landed, missed));
     missed.addEventListener('click', () => feedback('missed', missed, landed));
-    actions.appendChild(shareBtnEl);
-    actions.appendChild(el('span', { class: 'reply-fb-spacer' }));
-    actions.appendChild(landed);
-    actions.appendChild(missed);
+    fbRow.appendChild(landed);
+    fbRow.appendChild(missed);
+
+    actions.appendChild(shareBar);
+    actions.appendChild(fbRow);
     card.appendChild(actions);
     card.appendChild(ack);
 
