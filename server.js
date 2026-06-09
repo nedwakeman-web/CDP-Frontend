@@ -1309,7 +1309,7 @@ async function generateReading(dateStr, profile = {}, tier = 'oracle', recentHis
   }
   
   const _langNote = (profile && profile.readingLang === 'modern')
-    ? '\n\nLANGUAGE MODE. MODERN SCIENTIFIC: Translate every cosmic insight into neuroscience terms. Frame numerology as cognitive priming (salience network), lunar cycles as circadian biology, shadow work as interoceptive signal (Barrett 2017), transits as predictive framework shifts. Name the mechanism. The ancient framework is the scaffold; the language is neuroscience.'
+    ? '\n\nLANGUAGE MODE. MODERN SCIENTIFIC. The cosmic inputs (Dreamspell seal and tone, Kin number, personal year, personal day, transits, lunar phase) are scaffolding for you only. They must NEVER appear in the output. Do not write seal or tone names such as Red Dragon, White Wind, Crystal, Overtone. Do not write a Kin number. Do not write "personal year" or "personal day" or any bare numerology label. A line like "Crystal Red Dragon in year 22" is a failure, because it names a symbol the reader cannot act on. Instead, translate each input into one concrete, observable thing about today that the reader can do something with, then, only where it earns its place, ground that observation in plain mechanism (numerology as salience and priming, lunar phase as circadian and sleep pressure, shadow work as interoceptive signal per Barrett 2017, transits as a shift in what feels predictable). Lead every point with the observation, not the mechanism. A bare mechanism term dropped as a label ("hippocampal consolidation", "default mode network") is also a failure. If a translated line would say nothing the reader could not already feel, cut it.'
     : '';
   // Accept pre-calculated data from two-phase flow to avoid recalculating
   const planets = _planets || buildPlanets(dateStr);
@@ -2484,6 +2484,86 @@ RULES:
   } catch(e) {
     console.error('Ask error:', e.message);
     res.status(500).json({error: e.message});
+  }
+});
+
+// Emerging patterns synthesis. Layer two of the pattern engine. It does not
+// hunt raw text for patterns on its own; it is handed the substance of what the
+// person brings and engages, plus any thematic memory of past readings, and its
+// one job is to name what is actually emerging in that content, the through-line
+// a careful reader would notice and they might not have named. Reading-style
+// facts (which lens or framework lands) are deliberately kept out: that is how
+// they read, not what is emerging, and must never be the subject. Observation
+// only. It names the absence of a through-line as readily as the presence of one.
+app.post('/api/patterns', async (req, res) => {
+  try {
+    const { lens, facts, items, readings } = req.body || {};
+    const safeItems = Array.isArray(items)
+      ? items.filter((s) => typeof s === 'string' && s.trim()).slice(0, 24)
+      : [];
+    const landedCount = (facts && typeof facts.landedCount === 'number') ? facts.landedCount : 0;
+
+    // Substantive thematic memory, when it exists. Per-reading summaries hold the
+    // themes and insight of past readings, which is where emergence actually
+    // lives. This activates as readings persist summaries; when empty, the
+    // synthesis works from the brought items alone.
+    let memory = [];
+    try {
+      if (typeof v19_userKey === 'function' && typeof v19_summaries !== 'undefined') {
+        const uid = v19_userKey(req);
+        if (uid && v19_summaries.has(uid)) {
+          memory = (v19_summaries.get(uid) || [])
+            .slice(-12)
+            .map((s) => ({ themes: Array.isArray(s.themes) ? s.themes : [], insight: (s.insight || '').trim() }))
+            .filter((s) => s.insight);
+        }
+      }
+    } catch (_e) {
+      memory = [];
+    }
+
+    // Honesty before eagerness: too little substance to find a real through-line.
+    if (safeItems.length < 2 && memory.length < 1 && landedCount < 3) {
+      return res.json({ linked: false, observation: '' });
+    }
+
+    const voiceWord = lens === 'science' ? 'Science' : lens === 'tradition' ? 'Tradition' : 'Everyday';
+
+    const material = [
+      safeItems.length ? 'What this person has been bringing, most recent first, questions and passing comments and deliberate intentions all as equal material:\n' + safeItems.map((s, i) => (i + 1) + '. ' + s).join('\n') : '',
+      memory.length ? 'Themes and insights that surfaced across their recent readings:\n' + memory.map((m, i) => (i + 1) + '. ' + (m.themes.length ? '[' + m.themes.join(', ') + '] ' : '') + m.insight).join('\n') : '',
+      (Array.isArray(readings) && readings.length) ? 'Recent reading coordinates, for provenance only, not the subject:\n' + readings.slice(0, 12).join('\n') : '',
+    ].filter(Boolean).join('\n\n');
+
+    const sys = `You are the reflective intelligence of Cosmic Daily Planner, writing one short observation for the Emerging patterns panel.
+
+What is emerging means the substance moving through what this person brings and engages: the concern they keep circling, the question that keeps returning under different surfaces, the theme that links an offhand ask to something larger they are working out. A brief or passing item is often the first surfacing of something not yet named, so treat it as a possible edge of something central rather than as noise.
+
+Your one job is to name what is actually emerging in the content of their material, the through-line a careful reader would notice and that they might not have named themselves, and to put it in front of them as an observation they can recognise.
+
+Constraints. Speak only from the material given. Do not make the observation about which voice, lens, framework, or telescope they prefer; that is reading style, not emergence, and it is not the subject here. Introduce no theme, fact, or claim that is not present in the material. Observation only, never a forecast, never advice, never an instruction. Do not end with a question. Do not ask the person what they are holding or carrying or sitting with, since that register is not used here. Write in the ${voiceWord} voice, plain and grounded, with no decorative or AI poetic phrasing. If there is no genuine through-line yet, do not manufacture one.`;
+
+    const user = material + `
+
+Return only a JSON object and nothing else, no preface and no code fence: {"linked": boolean, "observation": string}. Set linked to true only when a real through-line in the substance is present, a recurring concern or theme that connects more than one item. When nothing genuine connects yet, set linked to false and observation to an empty string. The observation, when present, is two to four sentences of plain prose naming what is emerging, observation only, with no closing question and no instruction.`;
+
+    const raw = await callAPI('claude-sonnet-4-6', 700, sys, user);
+    let out = { linked: false, observation: '' };
+    try {
+      const cleaned = String(raw).replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed && typeof parsed.observation === 'string') {
+        const obs = parsed.observation.trim();
+        out = { linked: !!parsed.linked && obs.length > 0, observation: obs.length > 0 ? obs : '' };
+      }
+    } catch (_e) {
+      out = { linked: false, observation: '' };
+    }
+    res.json(out);
+  } catch (e) {
+    console.error('Patterns synthesis error:', e.message);
+    // Degrade silently: the deterministic floor on the client still stands.
+    res.status(200).json({ linked: false, observation: '' });
   }
 });
 
