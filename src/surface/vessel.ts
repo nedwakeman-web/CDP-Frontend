@@ -121,9 +121,9 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:6px; cursor:pointer; }
 .cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
 .cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
-.cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:none; background:transparent; cursor:pointer; padding:1px 4px; color:var(--gold); opacity:.72; transition:opacity .2s, transform .2s; }
+.cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:1px solid rgba(201,160,80,.3); border-radius:10px; background:transparent; cursor:pointer; padding:2px 6px; color:var(--gold); opacity:.8; transition:opacity .2s, transform .2s; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
-.cdp-surface .pillglyph { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
+.cdp-surface .pillglyph { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
@@ -301,7 +301,7 @@ html, body { margin:0; background:#031831; }
 /* a topic line you can reopen: full-width, left-aligned, clearly a control */
 .cdp-surface .line.tappable { width:100%; text-align:left; background:transparent; cursor:pointer; font-family:Georgia, serif; border-top:none; border-right:none; border-bottom:none; transition:border-left-color .2s, color .2s, background .2s; }
 .cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-left-color:var(--gold); background:rgba(201,160,80,0.06); outline:none; }
-.cdp-surface .line.tappable .meta { color:var(--text-muted); }
+.cdp-surface .line.tappable .meta { color:var(--text-dim,#D4C8AE); font-size:11.5px; }
 /* reply actions: share to anywhere, and tell us whether it landed */
 .cdp-surface .reply-actions { display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gold-line); }
 .cdp-surface .reply-actions .share-bar { margin:0; }
@@ -588,7 +588,7 @@ const GLYPH_SVG: Record<ChipKey, string> = {
 
 // the doorway glyph on the home daystrip, a crescent moon, drawn so the breathing
 // scale animation stays crisp instead of distorting a font character
-const PILL_MOON_SVG = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M10.4 1.8 A6.6 6.6 0 1 0 10.4 14.2 A5.1 5.1 0 1 1 10.4 1.8 Z" fill="currentColor"/></svg>';
+const PILL_MOON_SVG = '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true" focusable="false"><path d="M10.4 1.8 A6.6 6.6 0 1 0 10.4 14.2 A5.1 5.1 0 1 1 10.4 1.8 Z" fill="currentColor"/></svg>';
 function chipLabelsFor(lens: Lens, c: ChipCoords): Record<ChipKey, string> {
   const pdTxt = 'PD ' + c.pd;
   if (lens === 'science') {
@@ -1886,6 +1886,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   rowTiers.appendChild(tval);
   rowTiers.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
   secDepth.appendChild(rowTiers);
+
+  const rowAboutMenu = mkRow(ICON_STAR, 'About', 'Two telescopes, one sky');
+  rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
+  secDepth.appendChild(rowAboutMenu);
 
   menuBody.appendChild(secDepth);
   menuBody.appendChild(el('div', { class: 'menu-divider' }));
