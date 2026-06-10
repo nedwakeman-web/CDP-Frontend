@@ -127,14 +127,15 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .pill-label { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); opacity:.9; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
-.cdp-surface .home-instruments { display:flex; gap:14px; justify-content:center; width:min(560px,92vw); margin:10px auto 6px; }
-.cdp-surface .inst-card { flex:1; max-width:260px; background:var(--navy); border:1px solid rgba(201,160,80,.25); border-radius:8px; padding:8px; display:flex; flex-direction:column; align-items:center; cursor:pointer; transition:border-color .2s, background .2s; overflow:hidden; }
-.cdp-surface .inst-card:hover, .cdp-surface .inst-card.open { border-color:var(--gold); background:var(--raised); }
-.cdp-surface .inst-card-compass { border-color:rgba(129,205,198,.3); }
-.cdp-surface .inst-card-compass:hover, .cdp-surface .inst-card-compass.open { border-color:var(--teal); }
-.cdp-surface .inst-card img { width:100%; height:140px; object-fit:cover; object-position:center; display:block; border-radius:4px; }
-.cdp-surface .inst-card-label { font-family:Cinzel,Georgia,serif; font-size:8px; letter-spacing:.2em; text-transform:uppercase; color:rgba(201,160,80,.6); margin-top:7px; }
-.cdp-surface .inst-card-compass .inst-card-label { color:rgba(129,205,198,.65); }
+.cdp-surface .home-instruments { display:flex; gap:16px; justify-content:center; width:min(740px,90vw); margin:12px auto 14px; }
+.cdp-surface .inst-card { flex:1; max-width:340px; background:transparent; border:none; padding:0; display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+.cdp-surface .inst-card-img { width:100%; aspect-ratio:4/3; object-fit:contain; object-position:center; display:block; transition:opacity .2s; border:none; background:transparent; }
+.cdp-surface .inst-card:hover .inst-card-img { opacity:.88; }
+.cdp-surface .inst-card-label { font-family:Cinzel,Georgia,serif; font-size:8px; letter-spacing:.22em; text-transform:uppercase; color:rgba(201,160,80,.55); margin-top:6px; }
+@media (max-width:560px) {
+  .cdp-surface .home-instruments { gap:10px; }
+  .cdp-surface .inst-card-img { max-height:44vw; }
+}
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
 .cdp-surface .coords.open { display:block; }
 .cdp-surface .coords .crow { display:flex; align-items:baseline; justify-content:space-between; gap:18px; padding:10px 0; border-bottom:1px solid var(--gold-line); }
@@ -264,7 +265,7 @@ html, body { margin:0; background:#031831; }
    carries its own gold double-rule frame and corner ornaments, so the tile adds
    no competing border, only a hairline edge and a soft lift. Landscape, sized to
    the 4:3 artwork so nothing is shrunk or letterboxed, on the artwork navy. */
-.cdp-surface .handle { position:fixed; top:64px; z-index:41; width:150px; height:113px; padding:0; overflow:hidden; cursor:pointer; color:var(--gold); background:#031731; border:1px solid var(--gold-line); border-radius:0; box-shadow:0 8px 24px rgba(0,0,0,0.50); opacity:0.97; transition:box-shadow .2s, opacity .2s, border-color .2s, transform .2s; }
+.cdp-surface .handle { position:fixed; top:64px; z-index:41; width:150px; height:113px; padding:0; overflow:hidden; cursor:pointer; color:var(--gold); background:#031731; border:1px solid var(--gold-line); border-radius:0; box-shadow:0 8px 24px rgba(0,0,0,0.50); opacity:0.97; transition:box-shadow .2s, opacity .2s, border-color .2s, transform .2s; display:none; }
 .cdp-surface .handle:hover, .cdp-surface .handle:focus-visible { opacity:1; transform:translateY(-1px); outline:none; border-color:var(--gold); box-shadow:0 0 18px rgba(201,160,80,0.28), 0 10px 28px rgba(0,0,0,0.50); }
 .cdp-surface .handle .corner-art { width:100%; height:100%; display:block; overflow:hidden; background:#031731; }
 .cdp-surface .handle .corner-art svg { display:block; width:100%; height:100%; }
@@ -273,22 +274,15 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .handle-right { right:16px; }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
-.cdp-surface .drawer-left { left:0; border-right:1px solid rgba(129,205,198,.35); transform:translateX(-100%); }
+.cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
 .cdp-surface .drawer-right { right:0; border-left:1px solid var(--gold-line); transform:translateX(100%); }
 .cdp-surface .drawer.open { transform:translateX(0); }
 .cdp-surface .drawer-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .cdp-surface .drawer-title { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
-.cdp-surface .drawer-left .drawer-title { color:var(--teal); }
-.cdp-surface .drawer-left .pin { border-color:rgba(129,205,198,.4); color:var(--teal); }
-.cdp-surface .drawer-left .pin.pinned { border-color:var(--teal); color:var(--teal); background:rgba(129,205,198,.12); }
 .cdp-surface .pin { background:transparent; border:1px solid var(--text-dim); color:var(--text-dim); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
 .cdp-surface .pin.pinned { border-color:var(--gold); color:var(--gold); }
 
 .cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:var(--raised); }
-.cdp-surface .drawer-left .module { border-color:rgba(129,205,198,.22); }
-.cdp-surface .drawer-left .module-head { border-bottom-color:rgba(129,205,198,.18); }
-.cdp-surface .drawer-left .module-name { color:var(--teal); }
-.cdp-surface .drawer-left .module.drop-target { border-color:var(--teal); }
 .cdp-surface .module.dragging { opacity:0.45; }
 .cdp-surface .module.drop-target { border-color:var(--gold); }
 .cdp-surface .module-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--gold-line); cursor:grab; }
@@ -834,29 +828,23 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
   if (welcome) home.appendChild(welcome);
 
+  // cipher above the date: premise emblem, opens voice note on tap
   const emblem = el('div', { class: 'emblem', role: 'button', tabindex: '0', 'aria-label': 'Two telescopes, one sky' });
   emblem.innerHTML = ICON_TELESCOPES;
   emblem.addEventListener('click', () => voiceNote.classList.toggle('show'));
-  // appended after voiceWrap below so cipher sits between toggle and instrument cards
+  home.appendChild(emblem);
 
   // a quiet date with the day in a glance, a readable pill set opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
   home.appendChild(daystrip);
 
-  // instrument cards replace the pill: compass (left drawer) and telescope (right drawer)
-  const instrumentRow = el('div', { class: 'home-instruments' });
-
-  const compassCard = el('button', { type: 'button', class: 'inst-card inst-card-compass', 'aria-label': 'Open emerging patterns' }) as HTMLButtonElement;
-  compassCard.innerHTML = '<img src="/cdp-compass-tile.png" alt="Compass"><span class="inst-card-label">Compass</span>';
-  instrumentRow.appendChild(compassCard);
-
-  const telescopeCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open readings' }) as HTMLButtonElement;
-  telescopeCard.innerHTML = '<img src="/two-telescopes.png" alt="Two Telescopes"><span class="inst-card-label">Reading</span>';
-  instrumentRow.appendChild(telescopeCard);
-
-  // pill alias retained so glance wiring below compiles; compass card opens left drawer not glance
-  const pill = el('button', { type: 'button', class: 'pill', style: 'display:none', 'aria-hidden': 'true' });
+  // the half-moon pill is the doorway to the compass glance: placed below the
+  // voice toggle so it has its own breathing room and reads as an invitation
+  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' });
+  const pillIc = el('span', { class: 'pillglyph', 'aria-hidden': 'true' });
+  pillIc.innerHTML = PILL_MOON_SVG;
+  pill.appendChild(pillIc);
 
   // the pop-out compass surface (a modal over home, never a navigation away)
   const glanceOverlay = el('div', { class: 'glance-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The compass: today in four coordinates' });
@@ -923,17 +911,31 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function closeGlance(): void { glanceOpen = false; closeChipDrawer(); glanceOverlay.classList.remove('open'); pill.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
 
   pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (glanceOpen) closeGlance(); else openGlance(); });
-  compassCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.left.classList.contains('open') ? closeDrawer('left') : openDrawer('left'); });
-  telescopeCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
   glanceCloseBtn.addEventListener('click', () => closeGlance());
   glanceDrawerBack.addEventListener('click', () => closeChipDrawer());
   glancePanel.addEventListener('click', (e: Event) => { e.stopPropagation(); });
   glanceOverlay.addEventListener('click', () => closeGlance());
   document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && glanceOpen) { if (currentChip) closeChipDrawer(); else closeGlance(); } });
 
-  // voice toggle, then cipher (premise emblem), then instrument cards
+  // two centred instrument cards: compass opens left drawer, telescope opens right drawer
+  const instrumentRow = el('div', { class: 'home-instruments' });
+
+  const compassCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open emerging patterns' }) as HTMLButtonElement;
+  const compassImg = el('img', { src: '/cdp-compass-tile.png', alt: 'Compass', class: 'inst-card-img' }) as HTMLImageElement;
+  compassCard.appendChild(compassImg);
+  compassCard.appendChild(el('span', { class: 'inst-card-label' }, 'Compass'));
+  instrumentRow.appendChild(compassCard);
+
+  const telescopeCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open readings' }) as HTMLButtonElement;
+  const telescopeImg = el('img', { src: '/two-telescopes.png', alt: 'Two Telescopes', class: 'inst-card-img' }) as HTMLImageElement;
+  telescopeCard.appendChild(telescopeImg);
+  telescopeCard.appendChild(el('span', { class: 'inst-card-label' }, 'Reading'));
+  instrumentRow.appendChild(telescopeCard);
+
+  // order: cipher already appended before daystrip above
+  // voice toggle (with cycling line inside), then pill (glance), then instrument cards
   home.appendChild(voiceWrap);
-  home.appendChild(emblem);
+  home.appendChild(pill);
   home.appendChild(instrumentRow);
 
   // The compass no longer sits in the centre. The front is the greeting line
@@ -1783,6 +1785,8 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   });
   handleLeft.addEventListener('click', () => { drawers.left.classList.contains('open') ? closeDrawer('left') : openDrawer('left'); });
   handleRight.addEventListener('click', () => { drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
+  compassCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.left.classList.contains('open') ? closeDrawer('left') : openDrawer('left'); });
+  telescopeCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
   drawerScrim.addEventListener('click', () => { drawers.left.classList.remove('open'); drawers.right.classList.remove('open'); refreshDrawerScrim(); });
 
   /* The full year is the single year view. It opens from the left rail, Emerging
