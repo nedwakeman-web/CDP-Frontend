@@ -379,10 +379,10 @@ export function printSvgPdf(svg: string, title: string): void {
   const doc = frame.contentWindow && frame.contentWindow.document;
   if (!doc) { document.body.removeChild(frame); return; }
   const safe = String(title || 'Cosmic Daily Planner').replace(/</g, '').replace(/>/g, '');
-  const css = '@page{margin:14mm}'
-    + 'html,body{margin:0;background:' + C.page + ';-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    + '*{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    + 'svg{width:100%;height:auto;display:block}';
+  const css = '@page{size:A4 portrait;margin:14mm}'
+    + 'html,body{margin:0;padding:0;background:' + C.page + ';-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}'
+    + 'svg{width:100%;max-width:100%;height:auto;display:block;page-break-inside:avoid;break-inside:avoid}';
   doc.open();
   doc.write('<html><head><title>' + safe + '</title><meta charset="utf-8"><style>' + css + '</style></head><body>' + svg + '</body></html>');
   doc.close();

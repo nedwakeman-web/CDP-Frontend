@@ -69,6 +69,10 @@ function ensureStyle(): void {
     '.cdp-surface .ab2-voice.t{color:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
     '.cdp-surface .ab2-voice.e{color:var(--text-dim,#D4C8AE);border-color:var(--gold-line,#3A3320)}',
     '.cdp-surface .ab2-voice.s{color:var(--teal,#81CDB6);border-color:var(--teal,#81CDB6)}',
+    '.cdp-surface .ab2-voice{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s}',
+    '.cdp-surface .ab2-voice.active-t{background:rgba(201,160,80,.14);border-color:var(--gold,#C9A050)}',
+    '.cdp-surface .ab2-voice.active-e{background:rgba(212,200,174,.10);border-color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .ab2-voice.active-s{background:rgba(129,205,182,.12);border-color:var(--teal,#81CDB6)}',
     /* coda paragraphs */
     '.cdp-surface .ab2-coda{font-family:"EB Garamond",Georgia,serif;font-size:16px;line-height:1.7;color:var(--text-dim,#D4C8AE);margin:0 0 14px}',
     '.cdp-surface .ab2-belief{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.1em;color:var(--gold,#C9A050);margin:0 0 14px}',
@@ -103,12 +107,13 @@ function ensureStyle(): void {
     '.cdp-surface .ab2-exp-ref{font-family:"EB Garamond",Georgia,serif;font-size:13px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin-bottom:4px}',
     '.cdp-surface .ab2-exp-ref em{font-style:italic}',
     /* epigraph */
-    '.cdp-surface .ab2-epi{margin:28px 0 20px;padding:18px 20px;border-left:2px solid var(--gold,#C9A050);background:rgba(201,160,80,.04)}',
-    '.cdp-surface .ab2-epi-q{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:18px;line-height:1.5;color:var(--text-light,#F0E6CC);margin-bottom:6px}',
-    '.cdp-surface .ab2-epi-a{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .ab2-epi{margin:28px 0 20px;padding:22px 20px;text-align:center}',
+    '.cdp-surface .ab2-epi-q{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:20px;line-height:1.5;color:var(--text-light,#F0E6CC);margin-bottom:8px;text-align:center}',
+    '.cdp-surface .ab2-epi-a{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE);text-align:center}',
     /* cta */
-    '.cdp-surface .ab2-cta{font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.16em;background:transparent;color:var(--gold,#C9A050);border:1px solid var(--gold,#C9A050);padding:13px 16px;border-radius:8px;cursor:pointer;width:100%;margin-top:20px}',
-    '.cdp-surface .ab2-cta:hover{background:rgba(201,160,80,.08)}',
+    '.cdp-surface .ab2-cta{font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.16em;background:transparent;color:var(--gold,#C9A050);border:1px solid var(--gold,#C9A050);padding:15px 16px;border-radius:8px;cursor:pointer;width:100%;margin-top:20px;-webkit-tap-highlight-color:rgba(201,160,80,.18);transition:background .15s,transform .1s}',
+    '.cdp-surface .ab2-cta:hover{background:rgba(201,160,80,.1)}',
+    '.cdp-surface .ab2-cta:active{background:rgba(201,160,80,.2);transform:scale(.98)}',
     '.cdp-surface .ab2-cta-note{font-family:"EB Garamond",Georgia,serif;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;margin-top:8px}',
   ].join('');
   const tag = el('style', { id: STYLE_ID });
@@ -116,7 +121,7 @@ function ensureStyle(): void {
   document.head.appendChild(tag);
 }
 
-const STAR_SVG = `<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="#E8C878" stroke-linecap="round"><line x1="20" y1="1" x2="20" y2="39" stroke-width="1.1"/><line x1="1" y1="20" x2="39" y2="20" stroke-width="1.1"/><line x1="8" y1="8" x2="32" y2="32" stroke-width="0.6"/><line x1="32" y1="8" x2="8" y2="32" stroke-width="0.6"/></g><circle cx="20" cy="20" r="2.3" fill="#E8C878"/></svg>`;
+const STAR_SVG = `<svg width="48" height="48" viewBox="0 0 60 60" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="26" fill="none" stroke="rgba(201,160,80,0.22)" stroke-width="0.8"/><circle cx="30" cy="30" r="18" fill="none" stroke="rgba(201,160,80,0.12)" stroke-width="0.5"/><g fill="none" stroke="#E8C878" stroke-linecap="round"><line x1="30" y1="4" x2="30" y2="56" stroke-width="1.1"/><line x1="4" y1="30" x2="56" y2="30" stroke-width="1.1"/><line x1="13" y1="13" x2="47" y2="47" stroke-width="0.6"/><line x1="47" y1="13" x2="13" y2="47" stroke-width="0.6"/></g><circle cx="30" cy="30" r="3.2" fill="#E8C878"/></svg>`;
 
 const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><line x1="280" y1="0" x2="80" y2="44" stroke="#6f5d34" stroke-width="1"/><line x1="280" y1="0" x2="480" y2="44" stroke="#6f5d34" stroke-width="1"/></svg>`;
 
@@ -243,16 +248,55 @@ export function openAbout(o: OpenAboutOptions): AboutHandle {
   readingCard.appendChild(el('div', { class: 'ab2-ce' }, 'The reading'));
   readingCard.appendChild(el('div', { class: 'ab2-cs' }, 'the room you enter for depth'));
   readingCard.appendChild(el('p', {}, 'The same day read in full, through tradition and through science, each claim traced to its source and the sceptical voice kept beside the supportive one. Summoned when you want it, never pushed.'));
+
+  // three interactive voice pills with live example swap
+  const voiceExamples: Record<string, { note: string; example: string }> = {
+    tradition: {
+      note: 'The archetypal voice. Ancient symbols read as living patterns.',
+      example: 'Kin 207, Blue Crystal Hand. A day of accomplishment and healing, the crystal tone asks what you are clarifying in relationship. The waning moon invites release rather than push. Set one clear intention and let the rest breathe.'
+    },
+    everyday: {
+      note: 'Plain synthesis. The two telescopes in plain language.',
+      example: 'A reflective Wednesday. The numbers say 7 of introspection; the moon is waning. Good for naming the one thing you have been carrying, less good for forcing a new beginning. One honest conversation today is worth three planned ones next week.'
+    },
+    science: {
+      note: 'Neuroscience-grounded. Every claim cited.',
+      example: 'Late-cycle lunar phase correlates with elevated melatonin onset and reduced prefrontal drive (Walker 2017). Day-number 7 primes introspective salience networks (Oettingen 2023). Conditions favour consolidation over initiation. Protect sleep onset tonight.'
+    }
+  };
+  let activeVoice = 'everyday';
+
   const voices = el('div', { class: 'ab2-voices' });
-  const vt = el('div', { class: 'ab2-voice t' }, 'Tradition');
-  const ve = el('div', { class: 'ab2-voice e' }, 'Everyday');
-  const vs = el('div', { class: 'ab2-voice s' }, 'Science');
-  voices.appendChild(vt); voices.appendChild(ve); voices.appendChild(vs);
+  const pillT = el('button', { type: 'button', class: 'ab2-voice t', 'aria-label': 'Tradition voice example' }, 'Tradition');
+  const pillE = el('button', { type: 'button', class: 'ab2-voice e active-e', 'aria-label': 'Everyday voice example (default)' }, 'Everyday');
+  const pillS = el('button', { type: 'button', class: 'ab2-voice s', 'aria-label': 'Science voice example' }, 'Science');
+  voices.appendChild(pillT); voices.appendChild(pillE); voices.appendChild(pillS);
   readingCard.appendChild(voices);
-  readingCard.appendChild(el('p', {}, 'Everyday is the synthesis you receive by default. Tradition and Science are there on demand, to validate and cross-reference, in whichever language you want.'));
+
+  const voiceNote = el('p', {}, voiceExamples['everyday'].note);
+  readingCard.appendChild(voiceNote);
+
   const eg3 = el('div', { class: 'ab2-eg' });
-  eg3.innerHTML = '<b>For example</b>Today\'s 7 of reflection meets a waning crescent, and the science of rest and consolidation points the same way, attend, and let things settle rather than push.';
+  const eg3label = el('b', {}, 'For example');
+  const eg3text = document.createTextNode(voiceExamples['everyday'].example);
+  eg3.appendChild(eg3label);
+  eg3.appendChild(eg3text);
   readingCard.appendChild(eg3);
+
+  function activatePill(v: string): void {
+    activeVoice = v;
+    pillT.className = 'ab2-voice t' + (v === 'tradition' ? ' active-t' : '');
+    pillE.className = 'ab2-voice e' + (v === 'everyday' ? ' active-e' : '');
+    pillS.className = 'ab2-voice s' + (v === 'science' ? ' active-s' : '');
+    voiceNote.textContent = voiceExamples[v].note;
+    // replace text node
+    while (eg3.firstChild) eg3.removeChild(eg3.firstChild);
+    eg3.appendChild(el('b', {}, 'For example'));
+    eg3.appendChild(document.createTextNode(voiceExamples[v].example));
+  }
+  pillT.addEventListener('click', () => activatePill('tradition'));
+  pillE.addEventListener('click', () => activatePill('everyday'));
+  pillS.addEventListener('click', () => activatePill('science'));
   grid.appendChild(readingCard);
   wrap.appendChild(grid);
 

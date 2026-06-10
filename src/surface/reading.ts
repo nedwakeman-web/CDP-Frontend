@@ -349,6 +349,9 @@ function ensureStyle(): void {
 .cdp-surface .rdg-close { background:none; border:none; cursor:pointer; color:var(--text-dim); font-size:22px; line-height:1; padding:4px 8px; }
 .cdp-surface .rdg-close:hover { color:var(--gold); }
 .cdp-surface .rdg-status { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim); padding:18px 6px; text-align:center; line-height:1.6; }
+.cdp-surface .rdg-progress-wrap { padding:0 6px 14px; }
+.cdp-surface .rdg-progress-track { height:3px; background:var(--gold-line,#3A3320); border-radius:2px; overflow:hidden; }
+.cdp-surface .rdg-progress-bar { height:100%; background:var(--gold,#C9A050); border-radius:2px; width:4%; transition:width 2s ease; }
 .cdp-surface .rdg-note { font-family:Georgia, serif; font-size:13px; color:var(--gold-soft); margin:0 0 18px; }
 
 /* computed zone: telescopes, date, decision tiles, coordinate cards, signal, biorhythms, numerology */
@@ -504,6 +507,11 @@ function ensureStyle(): void {
 .cdp-surface .rdg-emergent-p:last-child { margin-bottom:0; }
 .cdp-surface .rdg-emergent-p.null { color:var(--text-dim, #D4C8AE); }
 .cdp-surface .rdg-win-line { font-family:Georgia, serif; font-size:12.5px; line-height:1.6; margin:8px 0 0; color:var(--text-dim, #D4C8AE); }
+.cdp-surface .rdg-energy.expandable { cursor:pointer; }
+.cdp-surface .rdg-energy.expandable:hover { border-color:var(--gold,#C9A050); }
+.cdp-surface .rdg-energy .rdg-win-lines { display:none; padding-top:6px; }
+.cdp-surface .rdg-energy.open .rdg-win-lines { display:block; }
+.cdp-surface .rdg-energy-tap-hint { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.1em; color:var(--text-faint,#9E9282); margin-top:4px; }
 .cdp-surface .rdg-win-tag { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:2px; display:block; }
 .cdp-surface .rdg-win-tag.tradition { color:var(--gold, #C9A050); }
 .cdp-surface .rdg-win-tag.science { color:var(--teal, #81CDB6); }
@@ -607,6 +615,15 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   shell.appendChild(aiZone);
   const status = el('div', { class: 'rdg-status' }, 'The Oracle is composing the full depth of your reading.');
   aiZone.appendChild(status);
+  const progressWrap = el('div', { class: 'rdg-progress-wrap' });
+  const progressTrack = el('div', { class: 'rdg-progress-track' });
+  const progressBar = el('div', { class: 'rdg-progress-bar' });
+  progressTrack.appendChild(progressBar);
+  progressWrap.appendChild(progressTrack);
+  aiZone.appendChild(progressWrap);
+  function setProgress(pct: number): void {
+    progressBar.style.width = Math.max(4, Math.min(96, pct)) + '%';
+  }
 
   let shareInserted = false;
   function ensureShareBar(): void {
@@ -659,15 +676,33 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     foot.appendChild(fin);
     foot.appendChild(fbtn);
     panel.appendChild(foot);
-    const bridge = el('button', { type: 'button', class: 'rdg-dd-ask', style: 'margin-top:8px;width:100%;background:transparent;border-color:#81CDB6;color:#81CDB6' }, 'Through the other lens');
-    bridge.addEventListener('click', () => {
-      const home = o.getLens();
-      const other: Lens = home === 'science' ? 'tradition' : 'science';
-      const base = lastPrompt || firstPrompt;
-      if (o.recordSignal) o.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'reading', voice: other, bridge: true });
-      void run(base + ' Show me this same coordinate through the ' + (other === 'science' ? 'science' : 'symbolic') + ' telescope, the other lens on the same sky.', lensName(other));
-    });
-    panel.appendChild(bridge);
+    // lens pill strip: shows current lens and lets user switch to either other
+    const lensBar = el('div', { style: 'display:flex;gap:6px;margin-top:10px;' });
+    const allLenses: Lens[] = ['tradition', 'everyday', 'science'];
+    function refreshLensPills(): void {
+      const cur = o.getLens();
+      while (lensBar.firstChild) lensBar.removeChild(lensBar.firstChild);
+      for (const lv of allLenses) {
+        const pill = el('button', { type: 'button' });
+        const active = lv === cur;
+        pill.textContent = lensName(lv);
+        pill.style.cssText = 'flex:1;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border-radius:3px;cursor:pointer;border:1px solid;'
+          + (lv === 'tradition' ? 'color:#C9A050;border-color:' + (active ? '#C9A050' : '#3A3320') + ';background:' + (active ? 'rgba(201,160,80,.12)' : 'transparent') + ';'
+          : lv === 'science' ? 'color:#81CDB6;border-color:' + (active ? '#81CDB6' : '#3A3320') + ';background:' + (active ? 'rgba(129,205,182,.12)' : 'transparent') + ';'
+          : 'color:#D4C8AE;border-color:' + (active ? '#D4C8AE' : '#3A3320') + ';background:' + (active ? 'rgba(212,200,174,.10)' : 'transparent') + ';');
+        if (!active) {
+          pill.addEventListener('click', () => {
+            const base2 = lastPrompt || firstPrompt;
+            if (o.recordSignal) o.recordSignal({ at: Date.now(), date: dateStr, kind: 'landed', surface: 'reading', voice: lv, bridge: true });
+            void run(base2 + ' Show me this same coordinate through the ' + lensName(lv) + ' lens.', lensName(lv));
+            refreshLensPills();
+          });
+        }
+        lensBar.appendChild(pill);
+      }
+    }
+    refreshLensPills();
+    panel.appendChild(lensBar);
     scrim.appendChild(panel);
     view.appendChild(scrim);
 
@@ -1038,20 +1073,31 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     card.appendChild(el('div', { class: 'rdg-energy-num' + (master ? ' master' : '') }, String(n) + (master ? ' \u2605' : '')));
     const name = numName(n);
     if (name) card.appendChild(el('div', { class: 'rdg-energy-name' }, name));
-    // the two telescopes for this window, authored content from the monolith
+    // collapsible tradition + science lines
     const trad = NUM_TIME[n] ? NUM_TIME[n][slot] : '';
-    if (trad) {
-      const t = el('div', { class: 'rdg-win-line' });
-      t.appendChild(el('span', { class: 'rdg-win-tag tradition' }, 'Tradition'));
-      t.appendChild(document.createTextNode(trad));
-      card.appendChild(t);
-    }
     const sci = NUM_NEURO[n] ? NUM_NEURO[n][slot] : '';
-    if (sci) {
-      const s = el('div', { class: 'rdg-win-line' });
-      s.appendChild(el('span', { class: 'rdg-win-tag science' }, 'Science'));
-      s.appendChild(document.createTextNode(sci));
-      card.appendChild(s);
+    if (trad || sci) {
+      card.classList.add('expandable');
+      card.appendChild(el('div', { class: 'rdg-energy-tap-hint' }, 'Tap to expand'));
+      const lines = el('div', { class: 'rdg-win-lines' });
+      if (trad) {
+        const t = el('div', { class: 'rdg-win-line' });
+        t.appendChild(el('span', { class: 'rdg-win-tag tradition' }, 'Tradition'));
+        t.appendChild(document.createTextNode(trad));
+        lines.appendChild(t);
+      }
+      if (sci) {
+        const s = el('div', { class: 'rdg-win-line' });
+        s.appendChild(el('span', { class: 'rdg-win-tag science' }, 'Science'));
+        s.appendChild(document.createTextNode(sci));
+        lines.appendChild(s);
+      }
+      card.appendChild(lines);
+      card.addEventListener('click', () => {
+        const open = card.classList.toggle('open');
+        const hint = card.querySelector('.rdg-energy-tap-hint') as HTMLElement | null;
+        if (hint) hint.textContent = open ? 'Tap to close' : 'Tap to expand';
+      });
     }
     return card;
   }
@@ -1581,7 +1627,7 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       // a single bad payload is logged precisely and polling continues, giving
       // completion every chance to land.
       try {
-        if (st.status === 'complete') { renderAI(st.result); ensureShareBar(); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
+        if (st.status === 'complete') { setProgress(100); progressWrap.style.display = 'none'; renderAI(st.result); ensureShareBar(); if (o.reflect) o.reflect((o.title || 'Your reading') + ' is ready, here under your hand.'); return; }
         if (st.status === 'error') { setStatus('The reading hit a snag on the server. The day above is yours in full; please try the depth again shortly.'); return; }
         if (st.status === 'phase1_complete' && st.phase1 && !shownPhase1) {
           shownPhase1 = true;
@@ -1593,6 +1639,11 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         if (st.status === 'pending' || st.status === 'phase1_complete') {
           const secs = Math.round((Date.now() - t0) / 1000);
           const ready = typeof st.sectionsReady === 'number' ? st.sectionsReady : 0;
+          // progress: 4-60% during compose, steps up with sections ready
+          const estSecs = ({ free: 20, seeker: 40, initiate: 80, mystic: 120, oracle: 180 } as Record<string,number>)[tier] || 100;
+          const timePct = Math.min(55, (secs / estSecs) * 55);
+          const readyPct = ready > 0 ? Math.min(35, ready * 7) : 0;
+          setProgress(4 + timePct + readyPct);
           if (shownPhase1) {
             setStatus(ready > 0
               ? 'The core is here. The fuller sections are composing, ' + ready + ' ready, ' + secs + ' seconds in.'
