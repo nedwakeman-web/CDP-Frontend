@@ -1893,6 +1893,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
   secDepth.appendChild(rowAboutMenu);
 
+  const rowGuideMenu = mkRow(ICON_BOOK, 'Guide', 'How to read your reading');
+  rowGuideMenu.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
+  secDepth.appendChild(rowGuideMenu);
+
   menuBody.appendChild(secDepth);
   menuBody.appendChild(el('div', { class: 'menu-divider' }));
 
