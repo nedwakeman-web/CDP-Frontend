@@ -218,10 +218,9 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .topnav-link:hover { color:var(--gold); }
 .cdp-surface .topnav-link.active { color:var(--gold); border-bottom-color:var(--gold); }
 .cdp-surface .rdg-list { padding:2px 0; }
-.cdp-surface .rdg-recent-label { font-family:Cinzel, Georgia, serif; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-muted); margin:14px 0 4px; padding:0 2px; }
-.cdp-surface .rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
-.cdp-surface .rdg-recent-date { color:var(--text-light); }
-.cdp-surface .rdg-recent-line { font-size:12px; color:var(--text-muted); line-height:1.35; }
+.cdp-surface .rdg-link.rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.cdp-surface .rdg-recent-date { color:var(--gold); font-size:12.5px; }
+.cdp-surface .rdg-recent-line { font-size:12px; font-style:italic; color:var(--text-muted); line-height:1.4; }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 20px 56px; text-align:center; overflow-y:auto; background-image:radial-gradient(1.5px 1.5px at 15% 12%, rgba(240,230,200,0.32), transparent 62%),radial-gradient(1px 1px at 32% 7%, rgba(240,230,200,0.22), transparent 62%),radial-gradient(1px 1px at 52% 14%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 72% 9%, rgba(240,230,200,0.28), transparent 62%),radial-gradient(1px 1px at 88% 16%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 8% 40%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.3px 1.3px at 22% 55%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 90% 46%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 12% 78%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.4px 1.4px at 40% 88%, rgba(240,230,200,0.26), transparent 62%),radial-gradient(1px 1px at 65% 82%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 84% 90%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 58% 60%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1px 1px at 78% 68%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1100px 720px at 50% 20%, rgba(28,50,82,0.50), transparent 72%); background-repeat:no-repeat; background-attachment:fixed; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -297,8 +296,10 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .move { width:18px; height:18px; display:grid; place-items:center; border:1px solid var(--gold-line); border-radius:3px; color:var(--teal); background:transparent; cursor:pointer; font-size:9px; line-height:1; padding:0; transition:.2s; }
 .cdp-surface .move:hover { border-color:rgba(129,205,182,.3); color:var(--gold-soft); background:rgba(129,205,182,.08); }
 .cdp-surface .module-name { cursor:pointer; flex:1; }
-.cdp-surface .rdg-link { display:block; width:100%; text-align:left; appearance:none; -webkit-appearance:none; background:transparent; border:none; border-bottom:1px solid var(--gold-line); padding:9px 2px; color:var(--text-light); font-family:Georgia, serif; font-size:14px; letter-spacing:.3px; cursor:pointer; text-decoration:none; }
-.cdp-surface .rdg-link:hover { color:var(--gold); }
+.cdp-surface .rdg-head { display:flex; align-items:center; padding:7px 9px; margin:14px 0 9px; background:linear-gradient(90deg, rgba(18,36,64,.9), rgba(13,30,51,.4)); border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
+.cdp-surface .rdg-head:first-child { margin-top:0; }
+.cdp-surface .rdg-link { display:block; width:100%; text-align:left; appearance:none; -webkit-appearance:none; background:var(--raised); border:1px solid var(--gold-line); border-radius:3px; padding:9px 10px; margin-bottom:7px; color:var(--text-light); font-family:Georgia, serif; font-size:13.5px; letter-spacing:.3px; cursor:pointer; text-decoration:none; transition:.25s; }
+.cdp-surface .rdg-link:hover { color:var(--gold); background:var(--raised2); }
 .cdp-surface .module.collapsed .module-body { display:none; }
 .cdp-surface .module-body { padding:0 1px; }
 
@@ -767,17 +768,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   /* ===== header ===== */
   const header = el('header', { class: 'header' });
   header.appendChild(el('a', { class: 'brand', href: '/' }, 'COSMIC DAILY PLANNER'));
-  const topnav = el('nav', { class: 'topnav', 'aria-label': 'Primary' });
-  const aboutLink = el('button', { type: 'button', class: 'topnav-link' }, 'About');
-  aboutLink.addEventListener('click', () => openAboutView());
-  topnav.appendChild(aboutLink);
-  const guideLink = el('button', { type: 'button', class: 'topnav-link' }, 'Guide');
-  guideLink.addEventListener('click', () => openGuideView());
-  topnav.appendChild(guideLink);
+  // The mockup header carries the brand and three icon buttons only; About,
+  // Guide and Account live in the menu. The signin link survives detached so
+  // refreshAuthLabels keeps a single code path.
   const signinLink = el('button', { type: 'button', class: 'topnav-link' }, 'Sign in');
   signinLink.addEventListener('click', () => signin.classList.toggle('open'));
-  topnav.appendChild(signinLink);
-  header.appendChild(topnav);
 
   const voiceWrap = el('div', { class: 'voice-wrap' });
   const voiceCycle = el('div', { class: 'voice-cycle', 'aria-hidden': 'true' });
@@ -808,7 +803,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   calBtn.innerHTML = ICON_CALENDAR;
   calBtn.addEventListener('click', () => openCalendar());
   const profBtn = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Menu', title: 'Menu' });
-  profBtn.innerHTML = ICON_PROFILE;
+  profBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>';
   profBtn.addEventListener('click', (e: Event) => {
     e.stopPropagation();
     menu.classList.toggle('open');
@@ -1375,6 +1370,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     top.appendChild(pin);
     drawer.appendChild(top);
     const list = el('div', { class: 'rdg-list' });
+    list.appendChild(el('div', { class: 'rdg-head' }, 'Open today'));
     const dests: Array<[string, string]> = [
       ['Daily card', 'scard'], ['Full reading', 'sr'], ['My year', 'sctx'],
       ['Compatibility', 'scompat'], ['Profiles and people', 'sp']
@@ -1403,7 +1399,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
     const recents = repo.listReadings();
     if (recents.length > 0) {
-      list.appendChild(el('div', { class: 'rdg-recent-label' }, 'Recent'));
+      list.appendChild(el('div', { class: 'rdg-head' }, 'Recent'));
       for (const rec of recents.slice(0, 6)) {
         const label = new Date(rec.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
         const link = el('button', { type: 'button', class: 'rdg-link rdg-recent' });
@@ -1958,6 +1954,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const rowAboutMenu = mkRow(ICON_STAR, 'About', 'Two telescopes, one sky');
   rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
   secDepth.appendChild(rowAboutMenu);
+
+  const rowGuideMenu = mkRow(ICON_BOOK, 'Guide', 'How to read the day');
+  rowGuideMenu.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
+  secDepth.appendChild(rowGuideMenu);
 
   menuBody.appendChild(secDepth);
   menuBody.appendChild(el('div', { class: 'menu-divider' }));
