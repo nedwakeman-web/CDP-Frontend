@@ -130,8 +130,11 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .home-instruments { display:flex; gap:14px; justify-content:center; width:min(560px,92vw); margin:10px auto 6px; }
 .cdp-surface .inst-card { flex:1; max-width:260px; background:var(--navy); border:1px solid rgba(201,160,80,.25); border-radius:8px; padding:8px; display:flex; flex-direction:column; align-items:center; cursor:pointer; transition:border-color .2s, background .2s; overflow:hidden; }
 .cdp-surface .inst-card:hover, .cdp-surface .inst-card.open { border-color:var(--gold); background:var(--raised); }
+.cdp-surface .inst-card-compass { border-color:rgba(129,205,198,.3); }
+.cdp-surface .inst-card-compass:hover, .cdp-surface .inst-card-compass.open { border-color:var(--teal); }
 .cdp-surface .inst-card img { width:100%; height:140px; object-fit:cover; object-position:center; display:block; border-radius:4px; }
 .cdp-surface .inst-card-label { font-family:Cinzel,Georgia,serif; font-size:8px; letter-spacing:.2em; text-transform:uppercase; color:rgba(201,160,80,.6); margin-top:7px; }
+.cdp-surface .inst-card-compass .inst-card-label { color:rgba(129,205,198,.65); }
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
 .cdp-surface .coords.open { display:block; }
 .cdp-surface .coords .crow { display:flex; align-items:baseline; justify-content:space-between; gap:18px; padding:10px 0; border-bottom:1px solid var(--gold-line); }
@@ -270,15 +273,22 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .handle-right { right:16px; }
 
 .cdp-surface .drawer { position:fixed; top:58px; bottom:0; width:332px; background:var(--navy); z-index:50; overflow-y:auto; padding:18px 16px 40px; transition:transform .28s ease; box-shadow:0 0 40px rgba(0,0,0,0.45); }
-.cdp-surface .drawer-left { left:0; border-right:1px solid var(--gold-line); transform:translateX(-100%); }
+.cdp-surface .drawer-left { left:0; border-right:1px solid rgba(129,205,198,.35); transform:translateX(-100%); }
 .cdp-surface .drawer-right { right:0; border-left:1px solid var(--gold-line); transform:translateX(100%); }
 .cdp-surface .drawer.open { transform:translateX(0); }
 .cdp-surface .drawer-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .cdp-surface .drawer-title { font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
+.cdp-surface .drawer-left .drawer-title { color:var(--teal); }
+.cdp-surface .drawer-left .pin { border-color:rgba(129,205,198,.4); color:var(--teal); }
+.cdp-surface .drawer-left .pin.pinned { border-color:var(--teal); color:var(--teal); background:rgba(129,205,198,.12); }
 .cdp-surface .pin { background:transparent; border:1px solid var(--text-dim); color:var(--text-dim); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
 .cdp-surface .pin.pinned { border-color:var(--gold); color:var(--gold); }
 
 .cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:var(--raised); }
+.cdp-surface .drawer-left .module { border-color:rgba(129,205,198,.22); }
+.cdp-surface .drawer-left .module-head { border-bottom-color:rgba(129,205,198,.18); }
+.cdp-surface .drawer-left .module-name { color:var(--teal); }
+.cdp-surface .drawer-left .module.drop-target { border-color:var(--teal); }
 .cdp-surface .module.dragging { opacity:0.45; }
 .cdp-surface .module.drop-target { border-color:var(--gold); }
 .cdp-surface .module-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--gold-line); cursor:grab; }
@@ -827,32 +837,26 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const emblem = el('div', { class: 'emblem', role: 'button', tabindex: '0', 'aria-label': 'Two telescopes, one sky' });
   emblem.innerHTML = ICON_TELESCOPES;
   emblem.addEventListener('click', () => voiceNote.classList.toggle('show'));
-  // emblem is appended below, after voiceWrap, so the cipher sits between the toggle and the instrument cards
+  // appended after voiceWrap below so cipher sits between toggle and instrument cards
 
   // a quiet date with the day in a glance, a readable pill set opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
   home.appendChild(daystrip);
 
-  // the half-moon pill doorway is replaced by two centred instrument cards.
-  // Compass (left) opens the left drawer; Telescopes (right) opens the right drawer.
-  // The cipher emblem sits above the cards as a non-tappable premise mark.
+  // instrument cards replace the pill: compass (left drawer) and telescope (right drawer)
   const instrumentRow = el('div', { class: 'home-instruments' });
 
-  const compassCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open emerging patterns' }) as HTMLButtonElement;
-  const compassImg = el('img', { src: '/cdp-compass-tile.png', alt: 'Compass' }) as HTMLImageElement;
-  compassCard.appendChild(compassImg);
-  compassCard.appendChild(el('span', { class: 'inst-card-label' }, 'Compass'));
+  const compassCard = el('button', { type: 'button', class: 'inst-card inst-card-compass', 'aria-label': 'Open emerging patterns' }) as HTMLButtonElement;
+  compassCard.innerHTML = '<img src="/cdp-compass-tile.png" alt="Compass"><span class="inst-card-label">Compass</span>';
   instrumentRow.appendChild(compassCard);
 
   const telescopeCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open readings' }) as HTMLButtonElement;
-  const telescopeImg = el('img', { src: '/two-telescopes.png', alt: 'Two Telescopes' }) as HTMLImageElement;
-  telescopeCard.appendChild(telescopeImg);
-  telescopeCard.appendChild(el('span', { class: 'inst-card-label' }, 'Reading'));
+  telescopeCard.innerHTML = '<img src="/two-telescopes.png" alt="Two Telescopes"><span class="inst-card-label">Reading</span>';
   instrumentRow.appendChild(telescopeCard);
 
-  // keep a stub pill reference so the glance overlay wiring below compiles unchanged
-  const pill = compassCard;
+  // pill alias retained so glance wiring below compiles; compass card opens left drawer not glance
+  const pill = el('button', { type: 'button', class: 'pill', style: 'display:none', 'aria-hidden': 'true' });
 
   // the pop-out compass surface (a modal over home, never a navigation away)
   const glanceOverlay = el('div', { class: 'glance-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The compass: today in four coordinates' });
@@ -918,7 +922,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function openGlance(): void { glanceOpen = true; paintGlance(); glanceOverlay.classList.add('open'); pill.classList.add('open'); pill.setAttribute('aria-expanded', 'true'); }
   function closeGlance(): void { glanceOpen = false; closeChipDrawer(); glanceOverlay.classList.remove('open'); pill.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
 
-  // compassCard opens the left drawer; the glance overlay is accessible via the deeplink inside it
+  pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (glanceOpen) closeGlance(); else openGlance(); });
   compassCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.left.classList.contains('open') ? closeDrawer('left') : openDrawer('left'); });
   telescopeCard.addEventListener('click', (e: Event) => { e.stopPropagation(); drawers.right.classList.contains('open') ? closeDrawer('right') : openDrawer('right'); });
   glanceCloseBtn.addEventListener('click', () => closeGlance());
@@ -927,7 +931,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   glanceOverlay.addEventListener('click', () => closeGlance());
   document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && glanceOpen) { if (currentChip) closeChipDrawer(); else closeGlance(); } });
 
-  // voice toggle, then cipher (premise emblem, opens voice note), then the two instrument cards
+  // voice toggle, then cipher (premise emblem), then instrument cards
   home.appendChild(voiceWrap);
   home.appendChild(emblem);
   home.appendChild(instrumentRow);
