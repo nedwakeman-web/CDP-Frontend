@@ -285,36 +285,41 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .pin { background:transparent; border:1px solid var(--text-dim); color:var(--text-dim); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:2px; cursor:pointer; }
 .cdp-surface .pin.pinned { border-color:var(--gold); color:var(--gold); }
 
-.cdp-surface .module { border:1px solid var(--gold-line); border-radius:3px; margin-bottom:12px; background:var(--raised); }
+.cdp-surface .module { border:none; border-radius:3px; margin-bottom:16px; background:transparent; }
 .cdp-surface .module.dragging { opacity:0.45; }
-.cdp-surface .module.drop-target { border-color:var(--gold); }
-.cdp-surface .module-head { display:flex; align-items:center; gap:8px; padding:9px 10px; border-bottom:1px solid var(--gold-line); cursor:grab; }
-.cdp-surface .grip { color:var(--text-dim); font-size:10px; letter-spacing:1px; line-height:1; cursor:grab; text-transform:uppercase; }
+.cdp-surface .module.drop-target .module-head { border-color:var(--gold); }
+.cdp-surface .module-head { display:flex; align-items:center; gap:9px; padding:7px 9px; margin-bottom:9px; background:linear-gradient(90deg, rgba(18,36,64,.9), rgba(13,30,51,.4)); border:1px solid var(--gold-line); border-left:2px solid var(--gold); border-radius:3px; cursor:grab; transition:.25s; }
+.cdp-surface .module-head:hover { border-color:var(--gold-line); border-left-color:var(--gold-soft); background:linear-gradient(90deg, var(--raised2), rgba(13,30,51,.5)); }
+.cdp-surface .module-head:active { cursor:grabbing; }
+.cdp-surface .grip { display:grid; grid-template-columns:repeat(2,3px); gap:3px; opacity:.7; cursor:grab; }
+.cdp-surface .grip i { width:3px; height:3px; border-radius:50%; background:var(--gold); display:block; }
 .cdp-surface .module-name { flex:1; font-family:Cinzel, Georgia, serif; font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; }
-.cdp-surface .move { background:transparent; border:none; color:var(--text-dim); cursor:pointer; font-size:11px; padding:0 4px; }
-.cdp-surface .move:hover { color:var(--gold); }
+.cdp-surface .move { width:18px; height:18px; display:grid; place-items:center; border:1px solid var(--gold-line); border-radius:3px; color:var(--teal); background:transparent; cursor:pointer; font-size:9px; line-height:1; padding:0; transition:.2s; }
+.cdp-surface .move:hover { border-color:rgba(129,205,182,.3); color:var(--gold-soft); background:rgba(129,205,182,.08); }
 .cdp-surface .module-name { cursor:pointer; flex:1; }
 .cdp-surface .rdg-link { display:block; width:100%; text-align:left; appearance:none; -webkit-appearance:none; background:transparent; border:none; border-bottom:1px solid var(--gold-line); padding:9px 2px; color:var(--text-light); font-family:Georgia, serif; font-size:14px; letter-spacing:.3px; cursor:pointer; text-decoration:none; }
 .cdp-surface .rdg-link:hover { color:var(--gold); }
 .cdp-surface .module.collapsed .module-body { display:none; }
-.cdp-surface .module-body { padding:11px; }
+.cdp-surface .module-body { padding:0 1px; }
 
 .cdp-surface .stat { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
 .cdp-surface .stat-num { font-family:Cinzel, Georgia, serif; font-size:22px; color:var(--gold); font-weight:bold; letter-spacing:.5px; }
 .cdp-surface .stat-label { font-size:12px; color:var(--text-muted); }
-.cdp-surface .line { font-size:13px; color:var(--text-light); padding:6px 0 6px 10px; border-left:2px solid var(--text-dim); margin-bottom:8px; }
+.cdp-surface .line { font-size:13.5px; color:var(--text-muted); line-height:1.45; padding:9px 10px; margin-bottom:7px; background:var(--raised); border:1px solid var(--gold-line); border-left:2px solid var(--gold-line); border-radius:3px; transition:.25s; }
+.cdp-surface .line strong { color:var(--gold); font-weight:400; font-style:normal; }
+.cdp-surface .line:hover { background:var(--raised2); }
 .cdp-surface .line:last-child { margin-bottom:0; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
-.cdp-surface .line .meta { display:block; font-size:11px; color:var(--text-dim); margin-top:2px; }
+.cdp-surface .line .meta { display:block; font-size:11.5px; font-style:italic; color:var(--text-muted); margin-top:3px; }
 .cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
 .cdp-surface .synth-floor.demoted { display:none; }
 .cdp-surface .synth-floor.demoted.open { display:block; }
 .cdp-surface .synth-disclose { display:block; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-family:Georgia, serif; font-size:12px; color:var(--text-muted); padding:6px 0 4px 10px; margin-top:6px; transition:color .2s; }
 .cdp-surface .synth-disclose:hover, .cdp-surface .synth-disclose:focus-visible { color:var(--gold-soft); outline:none; }
 /* a topic line you can reopen: full-width, left-aligned, clearly a control */
-.cdp-surface .line.tappable { width:100%; text-align:left; background:transparent; cursor:pointer; font-family:Georgia, serif; border-top:none; border-right:none; border-bottom:none; transition:border-left-color .2s, color .2s, background .2s; }
-.cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-left-color:var(--gold); background:rgba(201,160,80,0.06); outline:none; }
-.cdp-surface .line.tappable .meta { color:var(--text-dim,#D4C8AE); font-size:11.5px; }
+.cdp-surface .line.tappable { width:100%; text-align:left; cursor:pointer; font-family:Georgia, serif; }
+.cdp-surface .line.tappable:hover, .cdp-surface .line.tappable:focus-visible { color:var(--gold-soft); border-color:var(--gold-line); border-left-color:var(--gold); background:var(--raised2); outline:none; }
+.cdp-surface .line.tappable .meta { color:var(--text-muted); font-size:11.5px; }
 /* reply actions: share to anywhere, and tell us whether it landed */
 .cdp-surface .reply-actions { display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--gold-line); }
 .cdp-surface .reply-actions .share-bar { margin:0; }
@@ -1057,11 +1062,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const isTouch = (typeof window !== 'undefined') && (('ontouchstart' in window) || ((navigator && navigator.maxTouchPoints) || 0) > 0);
     const section = el('section', { class: 'module collapsed', draggable: isTouch ? 'false' : 'true', 'data-name': name });
     const head = el('div', { class: 'module-head', role: 'button', tabindex: '0', 'aria-label': 'Open or close ' + name });
-    head.appendChild(el('span', { class: 'grip', 'aria-hidden': 'true' }, 'drag'));
+    const gripEl = el('span', { class: 'grip', 'aria-hidden': 'true' });
+    gripEl.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
+    head.appendChild(gripEl);
     const nameEl = el('span', { class: 'module-name' }, name);
     head.appendChild(nameEl);
-    head.appendChild(el('button', { type: 'button', class: 'move up' }, 'up'));
-    head.appendChild(el('button', { type: 'button', class: 'move down' }, 'down'));
+    head.appendChild(el('button', { type: 'button', class: 'move up', 'aria-label': 'Move ' + name + ' up' }, '\u25B2'));
+    head.appendChild(el('button', { type: 'button', class: 'move down', 'aria-label': 'Move ' + name + ' down' }, '\u25BC'));
     // the whole header is the tap target; the reorder buttons keep their own action
     head.addEventListener('click', (e: Event) => {
       const t = e.target as HTMLElement;
