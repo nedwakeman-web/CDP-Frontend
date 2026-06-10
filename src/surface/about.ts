@@ -1,334 +1,346 @@
 /*
- * CDP Vessel, surface: About, "Two telescopes".
+ * CDP Vessel, surface: About, "Arriving at the same coordinates."
  *
- * The monolith assets are the floor and are carried forward verbatim: the two
- * telescope cipher, the premise, the three voices. On that floor sits the value
- * that is the reason CDP exists, the bridge between registers: the same day read
- * in two grammars, the science told beside the tradition with its named
- * authorities, and the door into the reading where the two telescopes meet.
+ * Ported directly from the index.html coordinates section and science rows
+ * built today. The surface renders: the You/star emblem, the V-lines, the
+ * two-panel Compass/Reading layout, the coda and keel paragraphs, and the
+ * six expandable framework rows with tradition and science voices and named
+ * authorities.
  *
- * The frameworks are not put on trial here. They are lenses. The honesty is in
- * precision of claim, what is symbol is named as symbol, what is shown is traced
- * to source, which is what lets one reading speak to the believer and the
- * sceptic at once.
- *
- * House style holds in code and copy alike: no em dashes, no en dashes, no
- * exclamation marks, no spaced hyphen patterns. Legibility first: nothing a
- * person must read is set in small italic or in faint grey.
+ * House style holds: no em dashes, no en dashes, no exclamation marks,
+ * no spaced hyphen patterns. Legibility first: nothing essential small and
+ * italic. Canonical palette via CSS variables.
  */
 
 import type { Lens } from '../data/model';
-import { ABOUT_HERO } from './about-hero';
 
 export interface OpenAboutOptions {
   container: HTMLElement;
-  getLens: () => Lens;
-  /** Lets the About voice toggle move the whole vessel's lens, when provided. */
+  getLens?: () => Lens;
   setLens?: (lens: Lens) => void;
-  /** Opens the daily reading, the room where the two telescopes meet. */
-  onEnterReading?: () => void;
-  /** Opens the make it yours flow, birth date then the full profile. */
-  onMakeMine?: () => void;
-  /** Surfaces a brief confirmation note in the vessel, when provided. */
   reflect?: (note: string) => void;
+  onEnterReading?: () => void;
+  onMakeMine?: () => void;
+  onClose?: () => void;
 }
 
 export interface AboutHandle { close(): void; }
 
 type Attrs = Record<string, string>;
-
 function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
   const node = document.createElement(tag);
-  for (const k in attrs) node.setAttribute(k, attrs[k]);
-  if (text != null) node.textContent = text;
+  for (const k in attrs) node.setAttribute(k, attrs[k]!);
+  if (text !== undefined) node.textContent = text;
   return node;
 }
+function clear(node: HTMLElement): void { while (node.firstChild) node.removeChild(node.firstChild); }
 
-const CIPHER =
-  '<svg width="60" height="36" viewBox="0 0 60 36" fill="none" stroke="#C9A050" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">'
-  + '<circle cx="22" cy="18" r="13"></circle><circle cx="38" cy="18" r="13"></circle></svg>';
-
-const CYCLING: Record<Lens, string[]> = {
-  tradition: ['Ancient and modern', 'Tradition and science', 'Ritual and research', 'Symbol and mechanism', 'Pattern and process'],
-  science: ['Circadian rhythm and intuition', 'Predictive processing meets pattern', 'Default mode and reflection', 'Hippocampal consolidation', 'Interoception as compass'],
-  everyday: ['Old wisdom, new evidence', 'Two ways of seeing today', 'Same sky, different telescopes', 'Find the language that fits', 'Whichever helps you most'],
-};
-
-interface Reach { label: string; body: string; colour: string; }
-const REACHES: Record<Lens, Reach> = {
-  everyday: {
-    label: 'Everyday, the view you receive',
-    body: 'The plain spoken synthesis, the naked eye view of the day. No jargon from either side. What today is good for, what to be careful about, and what to do next. This is the reading everyone receives.',
-    colour: '#F0E6CC',
-  },
-  tradition: {
-    label: 'Tradition, the ancient telescope',
-    body: 'The same day through the symbolic reach: Pythagorean numerology, Mayan calendrics, Western archetypes, lunar wisdom. There for when you want depth, image, and resonance.',
-    colour: '#C9A050',
-  },
-  science: {
-    label: 'Science, the modern telescope',
-    body: 'The same day through the mechanistic reach: circadian cognition, attachment, predictive processing, contemplative neuroscience. There for when you want what is happening in the brain and body.',
-    colour: '#81CDB6',
-  },
-};
-
-interface Framework {
-  tradName: string; tradLine: string;
-  sciName: string; sciLine: string;
-  authority: string;
+const STYLE_ID = 'cdp-about-v2-style';
+function ensureStyle(): void {
+  if (document.getElementById(STYLE_ID)) return;
+  const css = [
+    '.cdp-surface .ab2-view{position:fixed;inset:0;top:58px;z-index:62;background:var(--page,#031831);overflow-y:auto;padding:0 0 64px}',
+    '.cdp-surface .ab2-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;position:sticky;top:0;background:var(--page,#031831);z-index:2}',
+    '.cdp-surface .ab2-bar-title{font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',
+    '.cdp-surface .ab2-close{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-light,#F0E6CC);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%;flex:0 0 auto}',
+    '.cdp-surface .ab2-wrap{max-width:52rem;margin:0 auto;padding:0 18px}',
+    /* eyebrow + title */
+    '.cdp-surface .ab2-eyebrow{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold,#C9A050);text-align:center;margin-bottom:8px}',
+    '.cdp-surface .ab2-title{font-family:Cinzel,Georgia,serif;font-size:clamp(20px,4vw,30px);font-weight:500;letter-spacing:.06em;color:var(--text-light,#F0E6CC);text-align:center;margin:0 0 12px;line-height:1.2}',
+    '.cdp-surface .ab2-sub{font-family:"EB Garamond",Georgia,serif;font-size:17px;line-height:1.65;color:var(--text-dim,#D4C8AE);text-align:center;margin:0 0 28px}',
+    /* apex: star + You */
+    '.cdp-surface .ab2-apex{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:4px}',
+    '.cdp-surface .ab2-you{font-family:Cinzel,Georgia,serif;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2,#E8C878)}',
+    /* vee lines */
+    '.cdp-surface .ab2-vee{display:block;width:100%;max-width:560px;margin:0 auto 16px;height:44px}',
+    /* two-panel grid */
+    '.cdp-surface .ab2-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}',
+    '@media(max-width:600px){.cdp-surface .ab2-grid{grid-template-columns:1fr}}',
+    '.cdp-surface .ab2-card{background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:8px;padding:18px 16px}',
+    '.cdp-surface .ab2-ce{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:3px}',
+    '.cdp-surface .ab2-cs{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:15px;color:var(--text-dim,#D4C8AE);margin-bottom:12px}',
+    '.cdp-surface .ab2-card img{width:100%;border-radius:4px;margin-bottom:12px;display:block}',
+    '.cdp-surface .ab2-card p{font-family:"EB Garamond",Georgia,serif;font-size:15px;line-height:1.6;color:var(--text-light,#F0E6CC);margin:0 0 10px}',
+    '.cdp-surface .ab2-eg{font-family:"EB Garamond",Georgia,serif;font-size:14px;line-height:1.55;color:var(--text-dim,#D4C8AE);margin-top:8px}',
+    '.cdp-surface .ab2-eg b{color:var(--gold,#C9A050);margin-right:4px}',
+    /* voices strip */
+    '.cdp-surface .ab2-voices{display:flex;gap:8px;margin:10px 0}',
+    '.cdp-surface .ab2-voice{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;padding:5px 10px;border-radius:3px;border:1px solid}',
+    '.cdp-surface .ab2-voice.t{color:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
+    '.cdp-surface .ab2-voice.e{color:var(--text-dim,#D4C8AE);border-color:var(--gold-line,#3A3320)}',
+    '.cdp-surface .ab2-voice.s{color:var(--teal,#81CDB6);border-color:var(--teal,#81CDB6)}',
+    /* coda paragraphs */
+    '.cdp-surface .ab2-coda{font-family:"EB Garamond",Georgia,serif;font-size:16px;line-height:1.7;color:var(--text-dim,#D4C8AE);margin:0 0 14px}',
+    '.cdp-surface .ab2-belief{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.1em;color:var(--gold,#C9A050);margin:0 0 14px}',
+    '.cdp-surface .ab2-keel{font-family:"EB Garamond",Georgia,serif;font-size:16px;line-height:1.7;color:var(--text-dim,#D4C8AE);margin:0 0 28px}',
+    /* science rows section */
+    '.cdp-surface .ab2-sci-eyebrow{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold,#C9A050);text-align:center;margin-bottom:8px}',
+    '.cdp-surface .ab2-sci-title{font-family:Cinzel,Georgia,serif;font-size:clamp(18px,3.5vw,26px);font-weight:500;color:var(--text-light,#F0E6CC);text-align:center;margin:0 0 6px;line-height:1.25}',
+    '.cdp-surface .ab2-sci-title em{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-weight:400}',
+    '.cdp-surface .ab2-col-heads{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 4px;padding:0 4px}',
+    '@media(max-width:600px){.cdp-surface .ab2-col-heads{display:none}}',
+    '.cdp-surface .ab2-ch{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:6px 0}',
+    '.cdp-surface .ab2-ch.spirit{color:var(--gold,#C9A050);border-bottom:1px solid rgba(201,160,80,.3)}',
+    '.cdp-surface .ab2-ch.science{color:var(--teal,#81CDB6);border-bottom:1px solid rgba(129,205,182,.3)}',
+    /* fw rows */
+    '.cdp-surface .ab2-fw-row{border:1px solid var(--gold-line,#3A3320);border-radius:8px;margin-bottom:10px;overflow:hidden}',
+    '.cdp-surface .ab2-fw-main{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;padding:14px 16px;cursor:pointer}',
+    '@media(max-width:600px){.cdp-surface .ab2-fw-main{grid-template-columns:1fr;gap:8px}}',
+    '.cdp-surface .ab2-fw-name{font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:4px}',
+    '.cdp-surface .ab2-fw-spirit{font-family:"EB Garamond",Georgia,serif;font-size:15px;line-height:1.55;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .ab2-fw-sci-name{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal,#81CDB6);margin-bottom:4px}',
+    '.cdp-surface .ab2-fw-sci-body{font-family:"EB Garamond",Georgia,serif;font-size:15px;line-height:1.55;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .ab2-fw-ref{font-family:"EB Garamond",Georgia,serif;font-size:13px;color:var(--text-dim,#D4C8AE);margin-top:4px}',
+    '.cdp-surface .ab2-fw-toggle{font-family:Cinzel,Georgia,serif;font-size:11px;color:var(--text-dim,#D4C8AE);white-space:nowrap;align-self:center;padding:0 4px}',
+    '.cdp-surface .ab2-fw-expand{display:none;padding:0 16px 16px;border-top:1px solid var(--gold-line,#3A3320)}',
+    '.cdp-surface .ab2-fw-row.open .ab2-fw-expand{display:block}',
+    '.cdp-surface .ab2-exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-top:14px}',
+    '@media(max-width:600px){.cdp-surface .ab2-exp-grid{grid-template-columns:1fr}}',
+    '.cdp-surface .ab2-exp-head{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid}',
+    '.cdp-surface .ab2-exp-head.spirit{color:var(--gold,#C9A050);border-color:rgba(201,160,80,.3)}',
+    '.cdp-surface .ab2-exp-head.science{color:var(--teal,#81CDB6);border-color:rgba(129,205,182,.3)}',
+    '.cdp-surface .ab2-exp-body{font-family:"EB Garamond",Georgia,serif;font-size:15px;line-height:1.65;color:var(--text-light,#F0E6CC);margin-bottom:12px}',
+    '.cdp-surface .ab2-exp-ref{font-family:"EB Garamond",Georgia,serif;font-size:13px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin-bottom:4px}',
+    '.cdp-surface .ab2-exp-ref em{font-style:italic}',
+    /* epigraph */
+    '.cdp-surface .ab2-epi{margin:28px 0 20px;padding:18px 20px;border-left:2px solid var(--gold,#C9A050);background:rgba(201,160,80,.04)}',
+    '.cdp-surface .ab2-epi-q{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:18px;line-height:1.5;color:var(--text-light,#F0E6CC);margin-bottom:6px}',
+    '.cdp-surface .ab2-epi-a{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim,#D4C8AE)}',
+    /* cta */
+    '.cdp-surface .ab2-cta{font-family:Cinzel,Georgia,serif;font-size:12px;letter-spacing:.16em;background:transparent;color:var(--gold,#C9A050);border:1px solid var(--gold,#C9A050);padding:13px 16px;border-radius:8px;cursor:pointer;width:100%;margin-top:20px}',
+    '.cdp-surface .ab2-cta:hover{background:rgba(201,160,80,.08)}',
+    '.cdp-surface .ab2-cta-note{font-family:"EB Garamond",Georgia,serif;font-size:14px;color:var(--text-dim,#D4C8AE);text-align:center;margin-top:8px}',
+  ].join('');
+  const tag = el('style', { id: STYLE_ID });
+  tag.textContent = css;
+  document.head.appendChild(tag);
 }
-const FRAMEWORKS: Framework[] = [
+
+const STAR_SVG = `<svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="#E8C878" stroke-linecap="round"><line x1="20" y1="1" x2="20" y2="39" stroke-width="1.1"/><line x1="1" y1="20" x2="39" y2="20" stroke-width="1.1"/><line x1="8" y1="8" x2="32" y2="32" stroke-width="0.6"/><line x1="32" y1="8" x2="8" y2="32" stroke-width="0.6"/></g><circle cx="20" cy="20" r="2.3" fill="#E8C878"/></svg>`;
+
+const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><line x1="280" y1="0" x2="80" y2="44" stroke="#6f5d34" stroke-width="1"/><line x1="280" y1="0" x2="480" y2="44" stroke="#6f5d34" stroke-width="1"/></svg>`;
+
+// Compass image: the large canonical compass from index.html (North star + orbit ring)
+// We import it from the existing about-hero module to avoid duplication
+import { ABOUT_HERO as COMPASS_IMG } from './about-hero';
+
+const FRAMEWORKS = [
   {
-    tradName: 'Numerology',
-    tradLine: 'Pythagorean numerology gives the day a numerical signature, an archetypal quality to attune to rather than a fortune to receive.',
+    name: 'Numerology',
+    spirit: 'The day carries a frequency. Attend to it before the world sets your agenda for you.',
     sciName: 'Cognitive priming',
-    sciLine: 'A frame held at the start of the day biases the salience network toward what it names, a measurable effect on attention and choice for hours after.',
-    authority: 'Broadbent 1958, Perception and Communication; Dijksterhuis and Aarts 2010, Annual Review of Psychology; Oettingen and Sevincer 2023, Journal of Personality and Social Psychology.',
+    sciBody: 'A held morning frame shifts the brain\'s salience filter for the whole day.',
+    sciRef: 'Oettingen and Sevincer, 2023',
+    tradExpand: 'Pythagorean numerology assigns each day a numerical signature derived from the date\'s digits, reduced to a single resonance. Each number carries an archetypal quality: 1 initiation, 7 introspection, 9 completion, master numbers 11 22 33 44 amplified. The day\'s number is read as a frequency to attune to, not a fortune to receive. Practitioners have used this structure for daily orientation since Pythagoras at Croton in the sixth century BCE.',
+    sciExpand: 'A conceptual frame held at the start of a day biases the brain\'s salience network toward stimuli that confirm the frame. Mental contrasting (Oettingen) and goal priming (Dijksterhuis and Aarts) show measurable effects on attention, motivation and decision-making for hours after the priming event. The mechanism is not magical; it is selective attention plus predictive processing.',
+    refs: ['Broadbent (1958) Perception and Communication. Oxford.', 'Dijksterhuis and Aarts (2010) Goals, attention, consciousness. Annual Review of Psychology.', 'Oettingen and Sevincer (2023) Mental contrasting, fMRI RCT. Journal of Personality and Social Psychology.'],
   },
   {
-    tradName: 'Lunar astronomy',
-    tradLine: 'Lunar phase is the oldest calendar we keep. The two days before the new moon ask for stripping back, the two days after for new commitment.',
+    name: 'Lunar astronomy',
+    spirit: 'The moon governs energetic tides. The two days before the new moon ask for stillness, not initiation.',
     sciName: 'Circadian rhythms',
-    sciLine: 'Cortisol, melatonin, and prefrontal cognition follow circadian rhythms that shape which work lands cleanly when.',
-    authority: 'Mehrhof and Nord 2025, eLife; Walker 2017, Why We Sleep; Cajochen et al 2013, Current Biology.',
+    sciBody: 'Biological phase modulates decision quality, effort and self-belief formation measurably.',
+    sciRef: 'Mehrhof and Nord, eLife 2025',
+    tradExpand: 'Lunar phase is the oldest calendar humans have kept. The waxing moon supports building, the waning moon supports release. The two days before a new moon (the Black Moon window) are read across many traditions as a time of stripping back, not of initiation. The two days after (the Shiva Moon window) are read as the most fertile point for new commitment. CDP marks both on every reading.',
+    sciExpand: 'Cortisol, melatonin, and prefrontal cognition follow circadian and ultradian rhythms that shape decision quality across the day. Mehrhof and Nord (2025) demonstrate measurable circadian modulation of self-belief formation. Walker (2017) on hippocampal consolidation in late-lunar phase. Circadian timing affects which kinds of cognitive work land cleanly when.',
+    refs: ['Mehrhof and Nord (2025) Circadian modulation of self-belief. eLife.', 'Walker (2017) Why We Sleep. Scribner.', 'Cajochen et al. (2013) Lunar cycle influences human sleep. Current Biology.'],
   },
   {
-    tradName: 'Western astrology',
-    tradLine: 'Psychological astrology reads transits as developmental archetypes. The natal chart is a map of recurring themes, not a prediction.',
+    name: 'Western astrology',
+    spirit: 'Saturn returns ask you to grow up. Jupiter transits open doors. Transits name what is asking of you, now.',
     sciName: 'Predictive frameworks',
-    sciLine: 'The brain constructs experience from prior models, so a frame that names what is coming durably shapes how it lands.',
-    authority: 'Clark 2016, Surfing Uncertainty; Tarnas 2006, Cosmos and Psyche; Greene 1976, Saturn.',
+    sciBody: 'The brain is a prediction machine. A frame that names what is coming changes how it lands.',
+    sciRef: 'Friston, Nature Reviews Neuroscience',
+    tradExpand: 'Western psychological astrology (Greene, Tarnas, Hand) reads planetary transits as developmental archetypes. Saturn returns at 28-30 and 56-60 are read as periods of structural reckoning. Jupiter transits as periods of expansion and meaning-making. The natal chart is not a prediction; it is a map of recurring developmental themes calibrated to your birth moment via Swiss Ephemeris (NASA JPL DE431).',
+    sciExpand: 'Predictive processing (Clark, Friston) frames the brain as actively constructing experience from prior models. A frame that names what is coming, however arrived at, alters perception, attention and emotional response. The mechanism is not whether stars cause events; it is that named developmental themes durably shape how the brain organises lived experience.',
+    refs: ['Friston (2010) The free-energy principle. Nature Reviews Neuroscience.', 'Clark (2016) Surfing Uncertainty. Oxford.', 'Tarnas (2006) Cosmos and Psyche. Viking.', 'Greene (1976) Saturn: A New Look at an Old Devil. Samuel Weiser.'],
   },
   {
-    tradName: 'Dreamspell',
-    tradLine: 'A 260-day cycle of 20 seals and 13 tones. Each day a Kin, with 52 Galactic Activation Portal days when synchronicity is read as amplified. Arguelles 1987, distinct from the daykeeper count.',
+    name: 'Dreamspell',
+    spirit: 'A 260-day cycle of 20 solar seals and 13 galactic tones. Each day a Kin, each Kin a quality.',
     sciName: 'Neuroplasticity',
-    sciLine: 'Repeated daily attention to a stable anchor strengthens its representation in self-referential networks. Neurons that fire together wire together.',
-    authority: 'Raichle 2015, Annual Review of Neuroscience; Hebb 1949, The Organization of Behavior; Arguelles 1987, The Mayan Factor.',
+    sciBody: 'Repeated daily attention to a stable identity anchor strengthens its representation in the default mode network.',
+    sciRef: 'Raichle, Annual Review of Neuroscience',
+    tradExpand: 'Dreamspell is a modern 20th-century framework articulated by Jose Arguelles in 1987, building on the ancient Maya tzolkin (260-day count) but using a different correlation. CDP labels Dreamspell explicitly as Arguelles 1987, distinct from the living K\'iche\' count maintained by Maya daykeepers. Each day carries one of 260 Kin, with 52 of them flagged as Galactic Activation Portal days where synchronicities are read as amplified.',
+    sciExpand: 'Hebbian plasticity and Raichle\'s work on the default mode network show that repeated daily attention to a stable identity anchor measurably strengthens its representation in self-referential brain networks. The Kin is not magical; it is a stable focal point that becomes meaningful through repeated attention.',
+    refs: ['Raichle (2015) The brain\'s default mode network. Annual Review of Neuroscience.', 'Hebb (1949) The Organization of Behavior. Wiley.', 'Arguelles (1987) The Mayan Factor. Bear and Company.'],
   },
   {
-    tradName: 'Relationships',
-    tradLine: 'Synastry reads two charts together to surface recurring dynamics, naming both the gifts and the friction without flattening them to a score.',
+    name: 'Relationships',
+    spirit: 'Compatibility readings name the dynamics two people bring to each other, the gifts and the friction.',
     sciName: 'Interpersonal neurobiology',
-    sciLine: 'Co-regulation between two nervous systems is measurable, and recurring relational patterns durably shape both partners.',
-    authority: 'Siegel 2020, The Developing Mind; Porges 2011, The Polyvagal Theory; Bowlby 1969, Attachment and Loss.',
+    sciBody: 'Co-regulation between two nervous systems is real, measurable, and shapes both partners over time.',
+    sciRef: 'Siegel, Interpersonal Neurobiology',
+    tradExpand: 'Synastry and composite chart traditions in Western astrology read two natal charts together to surface recurring dynamics: where one person\'s Saturn meets another\'s Sun, where Venus meets Mars. CDP\'s compatibility layer brings this forward, naming both gifts and friction without flattening them into compatibility scores.',
+    sciExpand: 'Interpersonal neurobiology (Siegel) and polyvagal theory (Porges) describe co-regulation between two nervous systems as a measurable process. Attachment theory (Bowlby, Ainsworth) demonstrates how recurring relational patterns durably shape both partners. The frame a couple holds about their dynamic shapes how the dynamic plays out.',
+    refs: ['Siegel (2020) The Developing Mind. Guilford, 3rd ed.', 'Porges (2011) The Polyvagal Theory. Norton.', 'Bowlby (1969) Attachment and Loss, Vol 1. Basic.'],
   },
   {
-    tradName: 'Hormonal cycle',
-    tradLine: 'The menstrual cycle read as an inner moon. Follicular for building, ovulation for expression, luteal for discernment, menstruation for release. Recognition, not prescription.',
+    name: 'Hormonal cycle',
+    spirit: 'For women, the inner moon. Follicular, ovulatory, luteal, menstrual. Each phase asks for different work, different rest, different attention.',
     sciName: 'Endocrine rhythms',
-    sciLine: 'Estrogen and progesterone modulate hippocampal plasticity, prefrontal connectivity, and sleep across the cycle, so cognitive strengths shift with phase rather than degrade.',
-    authority: 'Sundstrom-Poromaa et al 2023, Neuropsychopharmacology; Pletzer 2017, Frontiers in Neuroscience; Pope and Wurlitzer 2017, Wild Power.',
+    sciBody: 'Estrogen and progesterone shape cognition, mood, sleep and energy across roughly 28 days. The reading reads with that, not against it.',
+    sciRef: 'Sundstrom-Poromaa et al., Neuropsychopharmacology 2023',
+    tradExpand: 'The menstrual cycle has been read across traditions as an inner lunar rhythm: a small moon nested inside the larger one. Many lineages map the four phases to seasons (inner spring, summer, autumn, winter). The luteal phase is read as the phase of discernment and editing; the follicular as the phase of new building; ovulation as outward expression; menstruation as release and reset. The point is not prescription; it is recognition that the body is already keeping a rhythm the calendar cannot see.',
+    sciExpand: 'Estrogen and progesterone modulate hippocampal plasticity, prefrontal connectivity, dopaminergic tone and sleep architecture across the cycle (Sundstrom-Poromaa et al. 2023; Pletzer 2017). Cognitive strengths shift with phase rather than degrade. Reading the day with phase as one input means a reading that knows why a Tuesday in the luteal phase will not feel like a Tuesday in the follicular phase, even when transits are identical.',
+    refs: ['Sundstrom-Poromaa et al. (2023) Sex steroid hormones and the brain. Neuropsychopharmacology.', 'Pletzer (2017) Sex hormones and the brain. Frontiers in Neuroscience.', 'Pope and Wurlitzer (2017) Wild Power. Hay House.'],
   },
 ];
-function ensureAboutStyle(): void {
-  if (document.getElementById('cdp-about-styles')) return;
-  const css = [
-    '.ab-view{position:absolute;inset:0;z-index:60;overflow-y:auto;background:var(--bg,#031831);color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif}',
-    '.ab-bar{position:sticky;top:0;display:flex;justify-content:flex-end;padding:12px 16px;background:linear-gradient(180deg,var(--bg,#031831),rgba(3,24,49,0))}',
-    '.ab-close{background:transparent;border:0;color:var(--text-muted,#D4C8AE);font-size:24px;line-height:1;cursor:pointer;padding:4px 8px}',
-    '.ab-wrap{max-width:560px;margin:0 auto;padding:0 22px 40px}',
-    '.ab-hero{position:relative;width:100%;aspect-ratio:1288/952;background-size:contain;background-repeat:no-repeat;background-position:center;border-radius:12px;overflow:hidden}',
-    '.ab-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,24,49,0) 40%,rgba(3,24,49,0.82) 86%,var(--bg,#031831) 100%)}',
-    '.ab-herotext{position:absolute;left:0;right:0;bottom:14px;text-align:center;z-index:1}',
-    '.ab-title{font-family:\'Cinzel\',Georgia,serif;font-weight:500;font-size:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-soft,#E8C878);margin:6px 0 0;line-height:1.2}',
-    '.ab-sub{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:22px;color:var(--gold-soft,#E8C878);line-height:1.2;margin-top:2px}',
-    '.ab-premise{font-size:16.5px;line-height:1.7;color:var(--text-light,#F0E6CC);text-align:center;margin:18px 4px 6px}',
-    '.ab-cycle{text-align:center;margin:16px 0 4px;font-family:\'Cinzel\',Georgia,serif;font-size:13px;letter-spacing:.1em;color:var(--gold,#C9A050);transition:opacity .4s}',
-    '.ab-toggle{display:flex;gap:8px;justify-content:center;margin:16px 0}',
-    '.ab-vbtn{font-family:\'Cinzel\',Georgia,serif;font-size:12px;letter-spacing:.18em;background:transparent;border:.5px solid #3A3320;color:var(--text-dim,#9E9282);padding:9px 13px;border-radius:8px;cursor:pointer}',
-    '.ab-vbtn.on{border-color:currentColor}',
-    '.ab-reach{border-left:3px solid #3A3320;padding:13px 16px;border-radius:0 6px 6px 0;margin-bottom:11px;transition:background .2s,border-color .2s}',
-    '.ab-reach .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}',
-    '.ab-reach p{margin:0;font-size:14.5px;line-height:1.6;color:var(--text-light,#F0E6CC)}',
-    '.ab-meet{margin:18px 0 6px;padding:15px 18px;background:rgba(201,160,80,.04);border:1px dashed rgba(201,160,80,.3);border-radius:6px}',
-    '.ab-meet .eyebrow{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted,#D4C8AE)}',
-    '.ab-meet p{margin:0;font-size:14.5px;line-height:1.65;color:var(--text-light,#F0E6CC)}',
-    '.ab-precision{font-size:14.5px;line-height:1.65;color:var(--text-muted,#D4C8AE);margin:16px 4px 0}',
-    '.ab-sec{margin-top:26px;padding-top:18px;border-top:.5px solid #3A3320}',
-    '.ab-sci-eyebrow{font-family:\'Cinzel\',Georgia,serif;font-size:13px;letter-spacing:.14em;color:var(--gold,#C9A050);margin-bottom:8px}',
-    '.ab-lead{font-size:17px;line-height:1.6;color:var(--text-light,#F0E6CC);margin:0 0 12px}',
-    '.ab-bits{font-size:15px;line-height:1.65;color:var(--text-light,#F0E6CC);margin:0 0 10px}',
-    '.ab-bits.dim{color:var(--text-muted,#D4C8AE)}',
-    '.ab-sci-note{font-size:14px;line-height:1.6;color:var(--text-muted,#D4C8AE);margin:6px 0 14px}',
-    '.ab-fw{background:var(--navy,#0D1E33);border:.5px solid #3A3320;border-radius:10px;padding:14px 16px;margin-bottom:10px}',
-    '.ab-fw .pair{display:flex;gap:12px;flex-wrap:wrap}',
-    '.ab-fw .col{flex:1;min-width:200px}',
-    '.ab-fw .nm{font-family:\'Cinzel\',Georgia,serif;font-size:11px;letter-spacing:.1em;margin-bottom:4px}',
-    '.ab-fw .ln{font-size:14px;line-height:1.55;color:var(--text-light,#F0E6CC);margin:0}',
-    '.ab-fw .auth-btn{margin-top:10px;background:transparent;border:.5px solid #3A3320;color:var(--text-muted,#D4C8AE);font-family:\'EB Garamond\',Georgia,serif;font-size:13.5px;padding:7px 12px;border-radius:8px;cursor:pointer}',
-    '.ab-fw .auth{margin-top:8px;font-size:14px;line-height:1.55;color:var(--teal,#81CDB6)}',
-    '.ab-mine{margin-top:26px;padding-top:18px;border-top:.5px solid #3A3320}',
-    '.ab-mine .k{font-family:\'Cinzel\',Georgia,serif;font-size:12px;letter-spacing:.14em;color:var(--gold,#C9A050);margin-bottom:8px}',
-    '.ab-mine p{margin:0 0 8px;font-size:16px;line-height:1.6;color:var(--text-light,#F0E6CC)}',
-    '.ab-mine .small{font-size:14px;color:var(--text-muted,#D4C8AE)}',
-    '.ab-ghost{font-family:\'Cinzel\',Georgia,serif;font-size:12px;letter-spacing:.14em;background:transparent;color:var(--text-muted,#D4C8AE);border:.5px solid #3A3320;padding:11px 15px;border-radius:8px;cursor:pointer;width:100%;margin-top:6px}',
-    '.ab-cta{font-family:\'Cinzel\',Georgia,serif;font-size:12px;letter-spacing:.16em;background:transparent;color:var(--gold,#C9A050);border:.5px solid var(--gold,#C9A050);padding:13px 16px;border-radius:8px;cursor:pointer;width:100%;margin-top:18px}',
-    '.ab-cta-note{margin:8px 2px 0;text-align:center;font-size:13.5px;color:var(--text-muted,#D4C8AE)}',
-  ].join('');
-  const style = el('style', { id: 'cdp-about-styles' });
-  style.textContent = css;
-  document.head.appendChild(style);
-}
 
 export function openAbout(o: OpenAboutOptions): AboutHandle {
-  ensureAboutStyle();
-  let lens: Lens = o.getLens ? o.getLens() : 'everyday';
+  ensureStyle();
 
-  const view = el('div', { class: 'ab-view', role: 'dialog', 'aria-label': 'About Cosmic Daily Planner' });
+  const view = el('div', { class: 'ab2-view', role: 'dialog', 'aria-label': 'About Cosmic Daily Planner' });
 
-  const bar = el('div', { class: 'ab-bar' });
-  const closeBtn = el('button', { type: 'button', class: 'ab-close', 'aria-label': 'Close' }, '\u00d7');
+  // Bar
+  const bar = el('div', { class: 'ab2-bar' });
+  bar.appendChild(el('div', { class: 'ab2-bar-title' }, 'About'));
+  const closeBtn = el('button', { type: 'button', class: 'ab2-close', 'aria-label': 'Close' }, '\u00d7');
+  closeBtn.addEventListener('click', () => close());
   bar.appendChild(closeBtn);
   view.appendChild(bar);
 
-  const wrap = el('div', { class: 'ab-wrap' });
+  const wrap = el('div', { class: 'ab2-wrap' });
 
-  /* Hero, the painted two telescopes atmosphere, with the cipher and the titles. */
-  const hero = el('div', { class: 'ab-hero' });
-  hero.style.backgroundImage = 'url(' + ABOUT_HERO + ')';
-  const heroText = el('div', { class: 'ab-herotext' });
-  const cipher = el('div', { 'aria-hidden': 'true' });
-  cipher.innerHTML = CIPHER;
-  heroText.appendChild(cipher);
-  heroText.appendChild(el('div', { class: 'ab-title' }, 'Two telescopes.'));
-  heroText.appendChild(el('div', { class: 'ab-sub' }, 'Pointed at the same sky.'));
-  hero.appendChild(heroText);
-  wrap.appendChild(hero);
+  // Eyebrow + title
+  wrap.appendChild(el('div', { class: 'ab2-eyebrow' }, 'How your day is read'));
+  wrap.appendChild(el('h2', { class: 'ab2-title' }, 'Arriving at the same coordinates.'));
+  wrap.appendChild(el('p', { class: 'ab2-sub' }, 'Different lenses on the same moment in time, drawn from different sources, gathered together and translated in different languages, for you, for where you are, as you navigate your world.'));
 
-  wrap.appendChild(el('p', { class: 'ab-premise' }, 'Spiritual traditions and modern neuroscience are not competing explanations. They are written in different languages, built in different centuries, and arrive at the same coordinates. Cosmic Daily Planner is where they meet, daily, in one reading for you.'));
+  // Apex: star + You
+  const apex = el('div', { class: 'ab2-apex' });
+  const starEl = el('div', {});
+  starEl.innerHTML = STAR_SVG;
+  apex.appendChild(starEl);
+  apex.appendChild(el('div', { class: 'ab2-you' }, 'You'));
+  wrap.appendChild(apex);
 
-  /* The cycling line, rotating through the current voice framings of the two telescopes. */
-  const cycle = el('div', { class: 'ab-cycle', 'aria-hidden': 'true' });
-  wrap.appendChild(cycle);
-  let cycleIdx = 0;
-  function paintCycle(): void {
-    const set = CYCLING[lens] || CYCLING.everyday;
-    if (cycleIdx >= set.length) cycleIdx = 0;
-    cycle.textContent = set[cycleIdx];
-    cycle.style.color = REACHES[lens].colour;
-  }
-  paintCycle();
-  const cycleTimer = window.setInterval(() => {
-    cycle.style.opacity = '0';
-    window.setTimeout(() => {
-      const set = CYCLING[lens] || CYCLING.everyday;
-      cycleIdx = (cycleIdx + 1) % set.length;
-      paintCycle();
-      cycle.style.opacity = '1';
-    }, 420);
-  }, 4800);
+  // Vee lines
+  const veeEl = el('div', {});
+  veeEl.innerHTML = VEE_SVG;
+  wrap.appendChild(veeEl);
 
-  /* The voice toggle, which lights the reach it belongs to and, when wired, moves the vessel lens. */
-  const toggle = el('div', { class: 'ab-toggle' });
-  const order: Lens[] = ['everyday', 'tradition', 'science'];
-  const btns: Record<string, HTMLElement> = {};
-  for (const v of order) {
-    const b = el('button', { type: 'button', class: 'ab-vbtn', 'data-voice': v }, v.toUpperCase());
-    b.style.color = REACHES[v].colour;
-    b.addEventListener('click', () => setVoice(v));
-    btns[v] = b;
-    toggle.appendChild(b);
-  }
-  wrap.appendChild(toggle);
+  // Two-panel grid
+  const grid = el('div', { class: 'ab2-grid' });
 
-  const reachEls: Record<string, HTMLElement> = {};
-  for (const v of order) {
-    const card = el('div', { class: 'ab-reach', 'data-reach': v });
-    card.style.borderLeftColor = REACHES[v].colour;
-    const eyebrow = el('div', { class: 'eyebrow' }, REACHES[v].label);
-    eyebrow.style.color = REACHES[v].colour;
-    card.appendChild(eyebrow);
-    card.appendChild(el('p', {}, REACHES[v].body));
-    reachEls[v] = card;
-    wrap.appendChild(card);
-  }
+  // Compass card
+  const compassCard = el('div', { class: 'ab2-card' });
+  compassCard.appendChild(el('div', { class: 'ab2-ce' }, 'The compass'));
+  compassCard.appendChild(el('div', { class: 'ab2-cs' }, 'the naked eye, where they meet'));
+  const compassImg = el('img', { src: COMPASS_IMG, alt: 'An engraved brass compass beneath a North star, encircled by a faint orbit ring, on a deep blue field.' });
+  compassCard.appendChild(compassImg);
+  compassCard.appendChild(el('p', {}, 'The day in plain language, the synthesis everyone receives. What today is good for, what to hold lightly, what to orient toward, and one next step. No framework at the door, no jargon from either side.'));
+  const eg1 = el('div', { class: 'ab2-eg' });
+  eg1.innerHTML = '<b>For example</b>A reflective day. Good for naming the one thing you have been carrying, less good for forcing a fresh start.';
+  compassCard.appendChild(eg1);
+  const eg2 = el('div', { class: 'ab2-eg' });
+  eg2.innerHTML = '<b>Or</b>A day that favours beginnings, the bold move, the first conversation, the change you have been circling, with the wind behind you.';
+  compassCard.appendChild(eg2);
+  grid.appendChild(compassCard);
 
-  function setVoice(v: Lens): void {
-    lens = v;
-    for (const k of order) {
-      btns[k].classList.toggle('on', k === v);
-      const on = k === v;
-      reachEls[k].style.background = on ? 'rgba(201,160,80,.05)' : 'transparent';
-      reachEls[k].style.borderLeftColor = on ? REACHES[k].colour : '#3A3320';
-    }
-    cycleIdx = 0;
-    paintCycle();
-    if (o.setLens) o.setLens(v);
-  }
-  setVoice(lens);
+  // Reading card
+  const readingCard = el('div', { class: 'ab2-card' });
+  readingCard.appendChild(el('div', { class: 'ab2-ce' }, 'The reading'));
+  readingCard.appendChild(el('div', { class: 'ab2-cs' }, 'the room you enter for depth'));
+  readingCard.appendChild(el('p', {}, 'The same day read in full, through tradition and through science, each claim traced to its source and the sceptical voice kept beside the supportive one. Summoned when you want it, never pushed.'));
+  const voices = el('div', { class: 'ab2-voices' });
+  const vt = el('div', { class: 'ab2-voice t' }, 'Tradition');
+  const ve = el('div', { class: 'ab2-voice e' }, 'Everyday');
+  const vs = el('div', { class: 'ab2-voice s' }, 'Science');
+  voices.appendChild(vt); voices.appendChild(ve); voices.appendChild(vs);
+  readingCard.appendChild(voices);
+  readingCard.appendChild(el('p', {}, 'Everyday is the synthesis you receive by default. Tradition and Science are there on demand, to validate and cross-reference, in whichever language you want.'));
+  const eg3 = el('div', { class: 'ab2-eg' });
+  eg3.innerHTML = '<b>For example</b>Today\'s 7 of reflection meets a waning crescent, and the science of rest and consolidation points the same way, attend, and let things settle rather than push.';
+  readingCard.appendChild(eg3);
+  grid.appendChild(readingCard);
+  wrap.appendChild(grid);
 
-  /* Where they meet. */
-  const meet = el('div', { class: 'ab-meet' });
-  meet.appendChild(el('div', { class: 'eyebrow' }, 'Where they meet'));
-  meet.appendChild(el('p', {}, 'Lunar phase and memory consolidation. Numerology of completion and the predictive processing account of closure. Saturn transits and developmental individuation. The same observed patterns of human experience, named in two grammars.'));
-  wrap.appendChild(meet);
+  // Coda paragraphs
+  wrap.appendChild(el('p', { class: 'ab2-coda' }, 'For thousands of years our minds have searched for the lens that lands, the one that resonates for a given person in a given age, to interpret and translate what they already know. Your senses take in millions of signals each second, and only a handful reach awareness. What passes the filter is set by what you hold as important. A different framework changes what passes, which is why some things land and others do not, and that is trainable. Begin the day with a clear orienting frame and the brain\'s salience network calibrates to it, noticing the relevant and quieting the noise.'));
+  wrap.appendChild(el('p', { class: 'ab2-belief' }, 'No belief required. Just the architecture of your own mind.'));
+  wrap.appendChild(el('p', { class: 'ab2-keel' }, 'CDP is the keel, the part of a boat that holds steady against the weather, not the wind and not the destination, the steadiness underneath that lets you take a bearing and make the small, kind adjustments, in your body, your mind, your relationships, your work. It orients, it does not instruct. Quiet by default, bottomless on demand. You remain the authority on your own life.'));
 
-  /* The precision line, the honesty, in the positive register. */
-  wrap.appendChild(el('p', { class: 'ab-precision' }, 'We are precise about what each claim is. What the tradition holds, we name as symbol. What the science shows, we trace to its source. We do not say the planets steer your day, we offer the lens that helps you read it. That precision is what lets one reading speak to the believer and the sceptic at once.'));
+  // Science section
+  wrap.appendChild(el('div', { class: 'ab2-sci-eyebrow' }, 'The science'));
+  const sciTitle = el('h3', { class: 'ab2-sci-title' });
+  sciTitle.innerHTML = 'What spiritual practice has always known,<br><em>neuroscience is now describing.</em>';
+  wrap.appendChild(sciTitle);
 
-  /* The science, told beside the tradition, with named authorities. */
-  const sci = el('div', { class: 'ab-sec' });
-  sci.appendChild(el('div', { class: 'ab-sci-eyebrow' }, 'The science'));
-  sci.appendChild(el('div', { class: 'ab-lead' }, 'What spiritual practice has always known, neuroscience is now describing.'));
-  sci.appendChild(el('p', { class: 'ab-bits' }, 'Your brain processes 11 million bits of information every second. Your conscious mind handles around 50. What makes it through that filter is determined by what you hold as important, and that is trainable.'));
-  sci.appendChild(el('p', { class: 'ab-bits' }, 'When you begin your day with a clear orienting frame, your brain salience network calibrates accordingly, noticing the relevant and suppressing the noise. The cosmic framework is the instruction to the filter.'));
-  sci.appendChild(el('p', { class: 'ab-bits dim' }, 'No belief required. Just the architecture of your own mind.'));
-  sci.appendChild(el('div', { class: 'ab-sci-note' }, 'Every reading at every tier draws on six frameworks, refined across millennia and centuries respectively. Each row below is one framework, told in its tradition voice and its science voice. Open any row to see the named authorities behind the claims.'));
+  const colHeads = el('div', { class: 'ab2-col-heads' });
+  const chS = el('div', { class: 'ab2-ch spirit' }, 'What the tradition says');
+  const chN = el('div', { class: 'ab2-ch science' }, 'What the science says');
+  colHeads.appendChild(chS); colHeads.appendChild(chN);
+  wrap.appendChild(colHeads);
 
+  // Framework rows
   for (const fw of FRAMEWORKS) {
-    const card = el('div', { class: 'ab-fw' });
-    const pair = el('div', { class: 'pair' });
-    const tcol = el('div', { class: 'col' });
-    const tnm = el('div', { class: 'nm' }, fw.tradName); tnm.style.color = '#C9A050';
-    tcol.appendChild(tnm);
-    tcol.appendChild(el('p', { class: 'ln' }, fw.tradLine));
-    const scol = el('div', { class: 'col' });
-    const snm = el('div', { class: 'nm' }, fw.sciName); snm.style.color = '#81CDB6';
-    scol.appendChild(snm);
-    scol.appendChild(el('p', { class: 'ln' }, fw.sciLine));
-    pair.appendChild(tcol);
-    pair.appendChild(scol);
-    card.appendChild(pair);
-    const authBtn = el('button', { type: 'button', class: 'auth-btn' }, 'Show the authority');
-    const auth = el('div', { class: 'auth' }, fw.authority);
-    auth.style.display = 'none';
-    authBtn.addEventListener('click', () => {
-      const open = auth.style.display === 'none';
-      auth.style.display = open ? 'block' : 'none';
-      authBtn.textContent = open ? 'Hide the authority' : 'Show the authority';
+    const row = el('div', { class: 'ab2-fw-row' });
+
+    const main = el('div', { class: 'ab2-fw-main' });
+    main.addEventListener('click', () => {
+      row.classList.toggle('open');
     });
-    card.appendChild(authBtn);
-    card.appendChild(auth);
-    sci.appendChild(card);
+
+    const spiritSide = el('div', {});
+    spiritSide.appendChild(el('div', { class: 'ab2-fw-name' }, fw.name));
+    spiritSide.appendChild(el('div', { class: 'ab2-fw-spirit' }, fw.spirit));
+    main.appendChild(spiritSide);
+
+    const sciSide = el('div', {});
+    sciSide.appendChild(el('div', { class: 'ab2-fw-sci-name' }, fw.sciName));
+    sciSide.appendChild(el('div', { class: 'ab2-fw-sci-body' }, fw.sciBody));
+    sciSide.appendChild(el('div', { class: 'ab2-fw-ref' }, fw.sciRef));
+    main.appendChild(sciSide);
+
+    main.appendChild(el('div', { class: 'ab2-fw-toggle' }, 'More'));
+    row.appendChild(main);
+
+    const expand = el('div', { class: 'ab2-fw-expand' });
+    const expGrid = el('div', { class: 'ab2-exp-grid' });
+
+    const tradCol = el('div', {});
+    tradCol.appendChild(el('div', { class: 'ab2-exp-head spirit' }, 'The tradition'));
+    tradCol.appendChild(el('div', { class: 'ab2-exp-body' }, fw.tradExpand));
+    expGrid.appendChild(tradCol);
+
+    const sciCol = el('div', {});
+    sciCol.appendChild(el('div', { class: 'ab2-exp-head science' }, 'The neuroscience'));
+    sciCol.appendChild(el('div', { class: 'ab2-exp-body' }, fw.sciExpand));
+    for (const ref of fw.refs) {
+      sciCol.appendChild(el('div', { class: 'ab2-exp-ref' }, ref));
+    }
+    expGrid.appendChild(sciCol);
+
+    expand.appendChild(expGrid);
+    row.appendChild(expand);
+    wrap.appendChild(row);
   }
-  wrap.appendChild(sci);
 
-  /* Make it yours, the beta invitation, carried from the monolith. */
-  const mine = el('div', { class: 'ab-mine' });
-  mine.appendChild(el('div', { class: 'k' }, 'MAKE IT YOURS'));
-  mine.appendChild(el('p', {}, 'It becomes yours the moment you tell it about you. Add your birth date, and today is drawn around your own numerology rather than the world\u2019s alone.'));
-  mine.appendChild(el('p', { class: 'small' }, 'Two minutes, and every minute of every day thereafter is personal.'));
-  mine.appendChild(el('p', { class: 'small' }, 'Your birth time and place, for the full natal chart, arrive with the transits.'));
-  const mineBtn = el('button', { type: 'button', class: 'ab-ghost' }, 'Make it mine');
-  mineBtn.addEventListener('click', () => { if (o.onMakeMine) o.onMakeMine(); });
-  mine.appendChild(mineBtn);
-  wrap.appendChild(mine);
+  // Epigraph
+  const epi = el('div', { class: 'ab2-epi' });
+  epi.appendChild(el('div', { class: 'ab2-epi-q' }, 'Our life is what our thoughts make it.'));
+  epi.appendChild(el('div', { class: 'ab2-epi-a' }, 'Marcus Aurelius, Meditations'));
+  wrap.appendChild(epi);
 
-  /* The door into the reading, where the two telescopes meet on one screen. */
-  const cta = el('button', { type: 'button', class: 'ab-cta' }, 'Open today\u2019s reading');
-  cta.addEventListener('click', () => { if (o.onEnterReading) o.onEnterReading(); });
-  wrap.appendChild(cta);
-  wrap.appendChild(el('div', { class: 'ab-cta-note' }, 'where the two telescopes meet on one screen'));
+  // CTA: open reading
+  if (o.onEnterReading) {
+    const cta = el('button', { type: 'button', class: 'ab2-cta' }, 'Open today\u2019s reading');
+    cta.addEventListener('click', () => { if (o.onEnterReading) o.onEnterReading(); });
+    wrap.appendChild(cta);
+    wrap.appendChild(el('div', { class: 'ab2-cta-note' }, 'where the two telescopes meet on one screen'));
+  }
 
   view.appendChild(wrap);
   o.container.appendChild(view);
 
+  let closed = false;
   function close(): void {
-    window.clearInterval(cycleTimer);
+    if (closed) return;
+    closed = true;
     if (view.parentNode) view.parentNode.removeChild(view);
+    if (o.onClose) o.onClose();
   }
-  closeBtn.addEventListener('click', close);
-  return { close: close };
+
+  return { close };
 }
