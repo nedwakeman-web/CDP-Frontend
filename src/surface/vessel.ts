@@ -119,11 +119,12 @@ html, body { margin:0; background:#031831; }
 }
 
 .cdp-surface .emblem { display:flex; justify-content:center; color:var(--gold); opacity:.7; margin-bottom:6px; cursor:pointer; }
-.cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
+.cdp-surface .daystrip { position:relative; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:4px; }
 .cdp-surface .daystrip .date { font-family:'EB Garamond', Georgia, serif; font-size:13px; font-style:italic; letter-spacing:0.06em; color:rgba(245,228,196,0.7); }
-.cdp-surface .pill { position:relative; display:inline-flex; align-items:center; border:1px solid rgba(201,160,80,.3); border-radius:10px; background:transparent; cursor:pointer; padding:2px 6px; color:var(--gold); opacity:.8; transition:opacity .2s, transform .2s; }
+.cdp-surface .pill { position:relative; display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid rgba(201,160,80,.28); border-radius:12px; background:transparent; cursor:pointer; padding:4px 10px; color:var(--gold); opacity:.8; transition:opacity .2s, transform .2s; margin:6px auto 0; width:fit-content; }
 .cdp-surface .pill:hover, .cdp-surface .pill.open { opacity:1; transform:scale(1.08); }
 .cdp-surface .pillglyph { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; line-height:1; transform-origin:center; animation:cdpBreathe 3.8s ease-in-out infinite; }
+.cdp-surface .pill-label { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); opacity:.9; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
@@ -826,14 +827,14 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // a quiet date with the day in a glance, a readable pill set opening on a tap
   const daystrip = el('div', { class: 'daystrip' });
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
-  // the half-moon glyph is the doorway: a tap opens the compass surface in place,
-  // larger, with four coordinate cards that each go deeper without leaving home
+  home.appendChild(daystrip);
+
+  // the half-moon pill is the doorway to the compass glance: placed below the
+  // voice toggle so it has its own breathing room and reads as an invitation
   const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' });
   const pillIc = el('span', { class: 'pillglyph', 'aria-hidden': 'true' });
   pillIc.innerHTML = PILL_MOON_SVG;
   pill.appendChild(pillIc);
-  daystrip.appendChild(pill);
-  home.appendChild(daystrip);
 
   // the pop-out compass surface (a modal over home, never a navigation away)
   const glanceOverlay = el('div', { class: 'glance-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The compass: today in four coordinates' });
@@ -909,6 +910,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // the voice repertoire sits under the date, as on the compass surface:
   // emblem, date, the cycling line, then the toggle
   home.appendChild(voiceWrap);
+  home.appendChild(pill);
 
   // The compass no longer sits in the centre. The front is the greeting line
   // and the input only, with nothing competing for the middle. The left and
