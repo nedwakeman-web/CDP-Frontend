@@ -37,7 +37,7 @@ function ensureStyle(): void {
     '.cdp-surface .wc-actions{display:flex;gap:8px;flex-wrap:wrap}',
     '.cdp-surface .wc-btn{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:14px;letter-spacing:.04em;padding:8px 15px;border-radius:3px;cursor:pointer}',
     '.cdp-surface .wc-btn:hover{border-color:var(--gold,#C9A050)}',
-    '.cdp-surface .wc-dismiss{color:var(--text-dim,#D4C8AE)}',
+    '.cdp-surface .wc-dismiss{color:var(--text-muted,#D4C8AE)}',
   ].join('');
   const tag = el('style', { id: STYLE_ID });
   tag.textContent = css;
