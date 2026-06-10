@@ -1691,6 +1691,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     closeDrawer('right');
     if (tiersHandle) tiersHandle.close();
     tiersHandle = openTiers({
+      container: surface,
       current: getTier(),
       onSelect: (t) => { if (valEl) valEl.textContent = tierLabel(t); },
       onRead: (t) => {

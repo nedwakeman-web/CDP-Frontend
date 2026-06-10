@@ -17,6 +17,8 @@ export interface TiersHandle {
 }
 
 export interface OpenTiersOptions {
+  /** The surface element to mount into. */
+  container: HTMLElement;
   /** The tier currently selected, used to mark the panel on open. */
   current: TierId;
   /** Fired when a tier is chosen as the reading depth. */
@@ -125,7 +127,7 @@ export function openTiers(o: OpenTiersOptions): TiersHandle {
 
   refreshMarks();
   view.appendChild(shell);
-  document.body.appendChild(view);
+  o.container.appendChild(view);
 
   let closed = false;
   function close(): void {
