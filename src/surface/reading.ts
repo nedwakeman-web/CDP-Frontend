@@ -440,6 +440,10 @@ function ensureStyle(): void {
 .cdp-surface .rdg-ask { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--gold, #C9A050); font-family:'EB Garamond', Georgia, serif; font-size:12px; letter-spacing:.06em; padding:7px 13px; border-radius:2px; cursor:pointer; margin:2px 16px 14px; -webkit-appearance:none; appearance:none; }
 .cdp-surface .rdg-ask:hover { border-color:var(--gold, #C9A050); color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-cites { display:flex; flex-wrap:wrap; gap:6px; margin:4px 16px 14px; }
+.cdp-surface .rdg-cites-more { background:none; border:1px dashed var(--gold-line,#3A3320); color:var(--text-faint,#9E9282); font-family:Georgia,serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
+.cdp-surface .rdg-cites-more:hover { color:var(--text-dim,#D4C8AE); border-color:var(--gold,#C9A050); }
+.cdp-surface .rdg-preview { font-family:'EB Garamond',Georgia,serif; font-size:15px; line-height:1.6; color:var(--text-dim,#D4C8AE); margin:0 16px 10px; font-style:italic; }
+.cdp-surface .rdg-card.open .rdg-preview { display:none; }
 .cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-dim, #D4C8AE); font-family:Georgia, serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
 .cdp-surface .rdg-cite:hover { color:var(--gold-soft, #E8C878); border-color:var(--gold, #C9A050); }
 .cdp-surface .rdg-cite-detail { font-family:Georgia, serif; font-size:11px; line-height:1.6; color:var(--text-dim, #D4C8AE); margin:0 16px 14px; padding:9px 12px; border:1px solid var(--gold-line, #3A3320); border-radius:3px; background:rgba(0,0,0,.14); display:none; }
@@ -1292,37 +1296,41 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     return uniqueSorted(curated.concat([server]));
   }
 
+  const MAX_VISIBLE_CITES = 4;
+
+  function makeChip(c: NormCite, detail: HTMLElement, openRefHolder: { ref: string }): HTMLElement {
+    const label = c.display || [c.authors, c.year].filter(Boolean).join(' ') || 'Source';
+    const chip = el('button', { type: 'button', class: 'rdg-cite' + (c.counterweight ? ' counter' : '') }, label);
+    if (c.counterweight) chip.setAttribute('title', 'Sceptical counterweight');
+    chip.addEventListener('click', () => {
+      if (openRefHolder.ref === c.ref && detail.classList.contains('open')) { detail.classList.remove('open'); openRefHolder.ref = ''; return; }
+      openRefHolder.ref = c.ref;
+      clear(detail);
+      // Show only enough to confirm the source is real: author, year, register.
+      // Full bibliographic detail (title, DOI, publisher, lineage) stays in the
+      // CDP bibliography and is not surfaced in the reading output.
+      const tags = el('div', { class: 'rdg-cite-tags' });
+      const reg = REGISTER_LABEL[c.register] || c.register;
+      if (reg) tags.appendChild(el('span', { class: 'rdg-cite-tag' }, reg));
+      if (c.counterweight) tags.appendChild(el('span', { class: 'rdg-cite-tag counter' }, 'sceptical counterweight'));
+      if (tags.firstChild) detail.appendChild(tags);
+      if (c.authors || c.year) detail.appendChild(el('div', {}, [c.authors, c.year].filter(Boolean).join(', ')));
+      detail.classList.add('open');
+    });
+    return chip;
+  }
+
   function citationRow(cites: NormCite[]): HTMLElement | null {
     if (!Array.isArray(cites) || cites.length === 0) return null;
     const wrap = el('div');
     const row = el('div', { class: 'rdg-cites' });
     const detail = el('div', { class: 'rdg-cite-detail' });
-    let openRef = '';
-    for (const c of cites) {
-      const label = c.display
-        || [c.authors, c.year].filter(Boolean).join(' ')
-        || 'Source';
-      const chip = el('button', { type: 'button', class: 'rdg-cite' + (c.counterweight ? ' counter' : '') }, label);
-      if (c.counterweight) chip.setAttribute('title', 'Sceptical counterweight');
-      chip.addEventListener('click', () => {
-        if (openRef === c.ref && detail.classList.contains('open')) { detail.classList.remove('open'); openRef = ''; return; }
-        openRef = c.ref;
-        clear(detail);
-        const tags = el('div', { class: 'rdg-cite-tags' });
-        const reg = REGISTER_LABEL[c.register] || c.register;
-        if (reg) tags.appendChild(el('span', { class: 'rdg-cite-tag' }, reg));
-        if (c.counterweight) tags.appendChild(el('span', { class: 'rdg-cite-tag counter' }, 'sceptical counterweight'));
-        if (tags.firstChild) detail.appendChild(tags);
-        if (c.authors || c.year) detail.appendChild(el('div', {}, [c.authors, c.year].filter(Boolean).join(', ')));
-        if (c.title) detail.appendChild(el('div', { class: 'rdg-cite-title' }, c.title));
-        const venue = c.journal || c.publisher;
-        if (venue) detail.appendChild(el('div', {}, venue));
-        if (c.lineage) detail.appendChild(el('div', {}, 'Lineage, ' + c.lineage));
-        if (c.doi) detail.appendChild(el('div', {}, 'doi ' + c.doi));
-        detail.classList.add('open');
-      });
-      row.appendChild(chip);
-    }
+    const openRefHolder = { ref: '' };
+    const visible = cites.slice(0, MAX_VISIBLE_CITES);
+    const hidden = cites.slice(MAX_VISIBLE_CITES);
+    for (const c of visible) row.appendChild(makeChip(c, detail, openRefHolder));
+    // Hard cap: the overflow is intentionally not offered in the reading output.
+    // The full bibliography lives in the CDP platform, not in user-visible readings.
     if (!row.firstChild) return null;
     wrap.appendChild(row);
     wrap.appendChild(detail);
@@ -1386,6 +1394,13 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
     head.appendChild(el('span', { class: 'rdg-caret' }, '\u203a'));
     card.appendChild(head);
     if (spec.subhead) card.appendChild(el('div', { class: 'rdg-subhead' }, spec.subhead));
+    // Preview: first sentence of body text shown while collapsed, hidden when open
+    if (body && !spec.lead) {
+      const rawText = (body.dataset.plain || body.dataset.everyday || body.dataset.tradition || body.textContent || '').trim();
+      const sentEnd = rawText.search(/[.!?]\s/);
+      const preview = sentEnd > 0 ? rawText.slice(0, sentEnd + 1) : rawText.slice(0, 120);
+      if (preview && preview.length > 20) card.appendChild(el('div', { class: 'rdg-preview' }, preview));
+    }
     if (spec.hook) card.appendChild(spec.hook);
     if (spec.preBody) for (const n of spec.preBody) card.appendChild(n);
     if (body) card.appendChild(body);
@@ -1592,8 +1607,9 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
       aiZone.appendChild(c);
     }
 
-    const sources = sourcesBlock(r.citationUnion, asString(r.sources));
-    if (sources) aiZone.appendChild(sources);
+    // The full sources block is not rendered in the reading output.
+    // The CDP bibliography is platform IP; author+year on the chip is attribution,
+    // not a reconstructable reference list.
   }
 
   /* ---- the endpoint and polling seams, unchanged in contract -------------- */
