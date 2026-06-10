@@ -46,7 +46,7 @@ function ensureStyle(): void {
     '.cdp-surface .tr-title{font-family:Cinzel,Georgia,serif;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#C9A050)}',
     '.cdp-surface .tr-close{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-light,#F0E6CC);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%;flex:0 0 auto}',
     '.cdp-surface .tr-close:hover{border-color:var(--gold,#C9A050);color:var(--gold,#C9A050)}',
-    '.cdp-surface .tr-sub{font-family:\'EB Garamond\',Georgia,serif;font-size:16px;line-height:1.5;color:var(--text-dim,#D4C8AE);margin:6px 0 20px}',
+    '.cdp-surface .tr-sub{font-family:\'EB Garamond\',Georgia,serif;font-size:16px;line-height:1.5;color:var(--text-muted,#D4C8AE);margin:6px 0 20px}',
     '.cdp-surface .tr-card{border:1px solid var(--gold-line,#3A3320);border-radius:5px;background:var(--navy,#0D1E33);padding:15px 16px;margin-bottom:12px}',
     '.cdp-surface .tr-card.on{border-color:var(--gold,#C9A050);box-shadow:0 0 0 1px var(--gold,#C9A050) inset}',
     '.cdp-surface .tr-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}',
@@ -57,7 +57,7 @@ function ensureStyle(): void {
     '.cdp-surface .tr-btn{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:13px;letter-spacing:.06em;padding:7px 13px;border-radius:3px;cursor:pointer}',
     '.cdp-surface .tr-btn:hover{border-color:var(--gold,#C9A050)}',
     '.cdp-surface .tr-current{font-family:\'EB Garamond\',Georgia,serif;font-size:13px;color:var(--teal,#81CDB6)}',
-    '.cdp-surface .tr-note{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;line-height:1.55;color:var(--text-dim,#D4C8AE);margin-top:14px;padding-top:14px;border-top:1px solid var(--gold-line,#3A3320)}',
+    '.cdp-surface .tr-note{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;line-height:1.55;color:var(--text-muted,#D4C8AE);margin-top:14px;padding-top:14px;border-top:1px solid var(--gold-line,#3A3320)}',
   ].join('');
   const tag = el('style', { id: STYLE_ID });
   tag.textContent = css;

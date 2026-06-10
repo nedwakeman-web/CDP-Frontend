@@ -441,8 +441,8 @@ function ensureStyle(): void {
 .cdp-surface .rdg-ask:hover { border-color:var(--gold, #C9A050); color:var(--gold-soft, #E8C878); }
 .cdp-surface .rdg-cites { display:flex; flex-wrap:wrap; gap:6px; margin:4px 16px 14px; }
 .cdp-surface .rdg-cites-more { background:none; border:1px dashed var(--gold-line,#3A3320); color:var(--text-faint,#9E9282); font-family:Georgia,serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
-.cdp-surface .rdg-cites-more:hover { color:var(--text-dim,#D4C8AE); border-color:var(--gold,#C9A050); }
-.cdp-surface .rdg-preview { font-family:'EB Garamond',Georgia,serif; font-size:15px; line-height:1.6; color:var(--text-dim,#D4C8AE); margin:0 16px 10px; font-style:italic; }
+.cdp-surface .rdg-cites-more:hover { color:var(--text-muted,#D4C8AE); border-color:var(--gold,#C9A050); }
+.cdp-surface .rdg-preview { font-family:'EB Garamond',Georgia,serif; font-size:15px; line-height:1.6; color:var(--text-muted,#D4C8AE); margin:0 16px 10px; font-style:italic; }
 .cdp-surface .rdg-card.open .rdg-preview { display:none; }
 .cdp-surface .rdg-cite { background:none; border:1px solid var(--gold-line, #3A3320); color:var(--text-dim, #D4C8AE); font-family:Georgia, serif; font-size:10px; padding:3px 8px; border-radius:10px; cursor:pointer; }
 .cdp-surface .rdg-cite:hover { color:var(--gold-soft, #E8C878); border-color:var(--gold, #C9A050); }
