@@ -127,6 +127,13 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .pill-label { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); opacity:.9; }
 .cdp-surface .pill:hover .pillglyph, .cdp-surface .pill.open .pillglyph { animation:none; }
 @keyframes cdpBreathe { 0%, 100% { opacity:.6; transform:scale(1); } 50% { opacity:1; transform:scale(1.16); } }
+.cdp-surface .home-instruments { display:flex; gap:14px; justify-content:center; width:min(520px,92vw); margin:10px auto 6px; }
+.cdp-surface .inst-card { flex:1; background:var(--navy); border:1px solid rgba(201,160,80,.28); border-radius:8px; padding:10px 8px 8px; display:flex; flex-direction:column; align-items:center; cursor:pointer; transition:border-color .2s, background .2s; min-height:0; }
+.cdp-surface .inst-card:hover, .cdp-surface .inst-card.open { border-color:var(--gold); background:var(--raised); }
+.cdp-surface .inst-card-label { font-family:Cinzel,Georgia,serif; font-size:8px; letter-spacing:.2em; text-transform:uppercase; color:rgba(201,160,80,.6); margin-top:6px; }
+.cdp-surface .inst-card .compass-svg { width:100%; max-width:100%; height:auto; max-height:140px; display:block; border-radius:3px; }
+.cdp-surface .inst-card .compass-fallback { width:100%; max-width:100%; height:120px; display:block; }
+.cdp-surface .inst-card .inst-tel-svg { width:100%; height:140px; display:block; }
 .cdp-surface .coords { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); z-index:65; width:300px; max-width:86vw; background:var(--navy); border:1px solid var(--gold-line); border-radius:6px; padding:4px 16px 12px; display:none; box-shadow:0 16px 46px rgba(0,0,0,0.55); text-align:left; }
 .cdp-surface .coords.open { display:block; }
 .cdp-surface .coords .crow { display:flex; align-items:baseline; justify-content:space-between; gap:18px; padding:10px 0; border-bottom:1px solid var(--gold-line); }
@@ -829,12 +836,62 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   daystrip.appendChild(el('span', { class: 'date' }, longDate(dateStr)));
   home.appendChild(daystrip);
 
-  // the half-moon pill is the doorway to the compass glance: placed below the
-  // voice toggle so it has its own breathing room and reads as an invitation
-  const pill = el('button', { type: 'button', class: 'pill', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' });
-  const pillIc = el('span', { class: 'pillglyph', 'aria-hidden': 'true' });
-  pillIc.innerHTML = PILL_MOON_SVG;
-  pill.appendChild(pillIc);
+  // ---- instrument cards: compass (left) and telescope (right) ----
+  // These replace the pill. Compass opens the glance overlay; Telescope opens the reading.
+  const instrumentRow = el('div', { class: 'home-instruments' });
+
+  // --- compass card ---
+  const compassCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open the compass: today in four coordinates', 'aria-expanded': 'false' }) as HTMLButtonElement;
+  // mount the live COMPASS_SVG (same DOMParser path used in the glance)
+  let compassCardMounted = false;
+  try {
+    const parsedC = new DOMParser().parseFromString(COMPASS_SVG, 'image/svg+xml');
+    const svgElC = parsedC.documentElement;
+    if (svgElC && svgElC.nodeName.toLowerCase() === 'svg' && !parsedC.querySelector('parsererror')) {
+      document.importNode(svgElC, true);
+      compassCard.appendChild(document.importNode(svgElC, true));
+      compassCardMounted = true;
+    }
+  } catch (_e) { /* fall through */ }
+  if (!compassCardMounted) {
+    const fallback = el('div', {});
+    fallback.innerHTML = COMPASS_FALLBACK;
+    compassCard.appendChild(fallback);
+  }
+  compassCard.appendChild(el('span', { class: 'inst-card-label' }, 'Compass'));
+  instrumentRow.appendChild(compassCard);
+
+  // --- telescope card ---
+  const telescopeCard = el('button', { type: 'button', class: 'inst-card', 'aria-label': 'Open today\'s reading' }) as HTMLButtonElement;
+  const telSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  telSvg.setAttribute('viewBox', '0 0 120 140');
+  telSvg.setAttribute('class', 'inst-tel-svg');
+  telSvg.setAttribute('aria-hidden', 'true');
+  telSvg.innerHTML = `
+    <defs>
+      <radialGradient id="tsg" cx="50%" cy="30%" r="45%">
+        <stop offset="0%" stop-color="#F0C879" stop-opacity=".55"/>
+        <stop offset="100%" stop-color="#BA8B48" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="tsr" cx="50%" cy="50%" r="55%">
+        <stop offset="0%" stop-color="#F0C879"/>
+        <stop offset="55%" stop-color="#D6A560"/>
+        <stop offset="100%" stop-color="#BA8B48"/>
+      </radialGradient>
+    </defs>
+    <circle cx="60" cy="18" r="18" fill="url(#tsg)"/>
+    <path d="M60 6 L61.6 14.8 L65.2 11.2 L62.6 16.4 L72 17 L62.6 17.6 L65.2 22.8 L61.6 19.2 L60 28 L58.4 19.2 L54.8 22.8 L57.4 17.6 L48 17 L57.4 16.4 L54.8 11.2 L58.4 14.8 Z" fill="url(#tsr)"/>
+    <circle cx="60" cy="17" r="2" fill="#F6D88C"/>
+    <path d="M60 30 L36 112 L60 102 L84 112 Z" stroke="#C9A050" stroke-width="1.4" fill="rgba(201,160,80,.07)" stroke-linejoin="round"/>
+    <path d="M36 112 L22 122" stroke="#C9A050" stroke-width="1.2"/>
+    <path d="M84 112 L98 122" stroke="#C9A050" stroke-width="1.2"/>
+    <line x1="22" y1="122" x2="12" y2="122" stroke="#C9A050" stroke-width="2"/>
+    <line x1="98" y1="122" x2="108" y2="122" stroke="#C9A050" stroke-width="2"/>
+    <circle cx="60" cy="30" r="5" fill="rgba(201,160,80,.12)" stroke="#C9A050" stroke-width=".9"/>
+  `;
+  telescopeCard.appendChild(telSvg);
+  telescopeCard.appendChild(el('span', { class: 'inst-card-label' }, 'Reading'));
+  instrumentRow.appendChild(telescopeCard);
 
   // the pop-out compass surface (a modal over home, never a navigation away)
   const glanceOverlay = el('div', { class: 'glance-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The compass: today in four coordinates' });
@@ -897,10 +954,11 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   surface.appendChild(glanceOverlay);
 
   function closeChipDrawer(): void { currentChip = null; glanceDrawer.classList.remove('open'); }
-  function openGlance(): void { glanceOpen = true; paintGlance(); glanceOverlay.classList.add('open'); pill.classList.add('open'); pill.setAttribute('aria-expanded', 'true'); }
-  function closeGlance(): void { glanceOpen = false; closeChipDrawer(); glanceOverlay.classList.remove('open'); pill.classList.remove('open'); pill.setAttribute('aria-expanded', 'false'); }
+  function openGlance(): void { glanceOpen = true; paintGlance(); glanceOverlay.classList.add('open'); compassCard.classList.add('open'); compassCard.setAttribute('aria-expanded', 'true'); }
+  function closeGlance(): void { glanceOpen = false; closeChipDrawer(); glanceOverlay.classList.remove('open'); compassCard.classList.remove('open'); compassCard.setAttribute('aria-expanded', 'false'); }
 
-  pill.addEventListener('click', (e: Event) => { e.stopPropagation(); if (glanceOpen) closeGlance(); else openGlance(); });
+  compassCard.addEventListener('click', (e: Event) => { e.stopPropagation(); if (glanceOpen) closeGlance(); else openGlance(); });
+  telescopeCard.addEventListener('click', () => { openReadingFor(profile ?? null, 'Today\u2019s reading'); });
   glanceCloseBtn.addEventListener('click', () => closeGlance());
   glanceDrawerBack.addEventListener('click', () => closeChipDrawer());
   glancePanel.addEventListener('click', (e: Event) => { e.stopPropagation(); });
@@ -910,7 +968,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   // the voice repertoire sits under the date, as on the compass surface:
   // emblem, date, the cycling line, then the toggle
   home.appendChild(voiceWrap);
-  home.appendChild(pill);
+  home.appendChild(instrumentRow);
 
   // The compass no longer sits in the centre. The front is the greeting line
   // and the input only, with nothing competing for the middle. The left and
@@ -1892,10 +1950,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const rowAboutMenu = mkRow(ICON_STAR, 'About', 'Two telescopes, one sky');
   rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
   secDepth.appendChild(rowAboutMenu);
-
-  const rowGuideMenu = mkRow(ICON_BOOK, 'Guide', 'How to read your reading');
-  rowGuideMenu.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
-  secDepth.appendChild(rowGuideMenu);
 
   menuBody.appendChild(secDepth);
   menuBody.appendChild(el('div', { class: 'menu-divider' }));
