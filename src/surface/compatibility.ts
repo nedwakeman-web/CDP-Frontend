@@ -610,7 +610,31 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       renderComposed(data, pa.name, pb.name);
       if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is read.');
     } catch (_e) {
-      status.textContent = 'The synthesis could not be reached just now. The signatures above are computed and correct; please try the reading again in a moment.';
+      if (o.composeAsk) {
+        status.textContent = 'The direct endpoint could not be reached; composing through the Oracle instead.';
+        try {
+          const fallbackText = await o.composeAsk(
+            'Read the connection between ' + pa.name + ' and ' + pb.name + ' as two lives, not only two charts. ' +
+            'Consider what each brings, the gifts and the friction, what their pairing asks of them, and one question worth sitting with together.'
+          );
+          if (fallbackText) {
+            const card = el('div', { class: 'cm-card' });
+            card.appendChild(el('div', { class: 'cm-title' }, 'The connection'));
+            for (const para of fallbackText.split(/\n+/).filter((s: string) => s.trim())) {
+              card.appendChild(el('p', { class: 'cm-p' }, para.trim()));
+            }
+            content.appendChild(card);
+            status.textContent = '';
+            ensureShareBar('Compatibility, ' + pa.name + ' and ' + pb.name);
+          } else {
+            status.textContent = 'The synthesis could not be reached just now. The signatures above are correct; please try again in a moment.';
+          }
+        } catch (_e2) {
+          status.textContent = 'The synthesis could not be reached just now. The signatures above are correct; please try again in a moment.';
+        }
+      } else {
+        status.textContent = 'The synthesis could not be reached just now. The signatures above are computed and correct; please try the reading again in a moment.';
+      }
     } finally {
       goBtn.removeAttribute('disabled');
     }

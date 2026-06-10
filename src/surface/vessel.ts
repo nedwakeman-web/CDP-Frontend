@@ -411,12 +411,27 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .col-item { font-size:13px; color:var(--text-light); padding:8px 0 8px 10px; border-left:2px solid var(--text-dim); margin-bottom:9px; }
 .cdp-surface .col-item.held { border-left-color:var(--teal); }
 
-.cdp-surface .menu { position:fixed; top:58px; right:0; width:min(18rem, 86vw); max-height:calc(100vh - 58px); overflow-y:auto; background:var(--navy); border-left:1px solid var(--gold-line); box-shadow:0 0 40px rgba(0,0,0,0.45); z-index:75; transform:translateX(100%); transition:transform .24s; padding:14px 14px 24px; }
+.cdp-surface .menu { position:fixed; top:0; right:0; width:min(20rem, 90vw); height:100vh; overflow-y:auto; background:var(--page,#031831); border-left:1px solid rgba(201,160,80,.18); box-shadow:-12px 0 60px rgba(0,0,0,.55); z-index:90; transform:translateX(100%); transition:transform .28s cubic-bezier(.2,.8,.4,1); display:flex; flex-direction:column; }
 .cdp-surface .menu.open { transform:none; }
-.cdp-surface .menu-row { display:flex; width:100%; justify-content:space-between; align-items:center; gap:10px; text-align:left; background:transparent; border:none; border-bottom:1px solid var(--gold-line); color:var(--text-light); font-family:Georgia, serif; font-size:14px; padding:11px 2px; cursor:pointer; }
-.cdp-surface .menu-row:hover { color:var(--gold); }
-.cdp-surface .menu-val { font-size:12.5px; color:var(--text-muted); }
-.cdp-surface .menu-note { font-size:13px; color:var(--text-light); margin-top:8px; }
+.cdp-surface .menu-head { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 14px; border-bottom:1px solid rgba(201,160,80,.14); flex:0 0 auto; }
+.cdp-surface .menu-brand { font-family:Cinzel,Georgia,serif; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold,#C9A050); }
+.cdp-surface .menu-close { background:none; border:1px solid rgba(201,160,80,.25); color:var(--text-dim,#D4C8AE); font-size:18px; line-height:1; cursor:pointer; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.cdp-surface .menu-close:hover { border-color:var(--gold,#C9A050); color:var(--gold,#C9A050); }
+.cdp-surface .menu-body { flex:1; padding:10px 0 20px; overflow-y:auto; }
+.cdp-surface .menu-section { padding:8px 0 4px; }
+.cdp-surface .menu-section-label { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--text-faint,#9E9282); padding:10px 18px 5px; display:block; }
+.cdp-surface .menu-row { display:flex; width:100%; align-items:center; gap:13px; text-align:left; background:transparent; border:none; color:var(--text-light,#F0E6CC); font-family:"EB Garamond",Georgia,serif; font-size:16px; padding:11px 18px; cursor:pointer; transition:background .15s; position:relative; }
+.cdp-surface .menu-row:hover { background:rgba(201,160,80,.06); }
+.cdp-surface .menu-row:active { background:rgba(201,160,80,.12); }
+.cdp-surface .menu-icon { width:22px; height:22px; flex:0 0 22px; display:flex; align-items:center; justify-content:center; opacity:.6; }
+.cdp-surface .menu-row:hover .menu-icon { opacity:1; }
+.cdp-surface .menu-row-text { flex:1; line-height:1.2; }
+.cdp-surface .menu-row-sub { font-size:12px; color:var(--text-dim,#D4C8AE); display:block; margin-top:1px; font-family:"EB Garamond",Georgia,serif; font-style:italic; }
+.cdp-surface .menu-val { font-family:Cinzel,Georgia,serif; font-size:10px; letter-spacing:.1em; color:var(--gold,#C9A050); border:1px solid rgba(201,160,80,.3); padding:3px 7px; border-radius:2px; white-space:nowrap; }
+.cdp-surface .menu-divider { height:1px; background:rgba(201,160,80,.1); margin:6px 18px; }
+.cdp-surface .menu-note { font-family:"EB Garamond",Georgia,serif; font-size:13.5px; font-style:italic; color:var(--text-dim,#D4C8AE); padding:10px 18px; line-height:1.55; border-top:1px solid rgba(201,160,80,.1); margin-top:6px; }
+.cdp-surface .menu-foot { padding:14px 18px; border-top:1px solid rgba(201,160,80,.1); flex:0 0 auto; }
+.cdp-surface .menu-foot-line { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-faint,#9E9282); text-align:center; }
 
 .cdp-surface .home-openers { display:none; gap:10px; justify-content:center; margin:18px auto 0; flex-wrap:wrap; }
 .cdp-surface .home-opener { background:transparent; border:none; color:var(--text-muted); font-family:Cinzel, Georgia, serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:9px 12px; cursor:pointer; transition:color .2s; }
@@ -1295,7 +1310,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const list = el('div', { class: 'rdg-list' });
     const dests: Array<[string, string]> = [
       ['Daily card', 'scard'], ['Full reading', 'sr'], ['My year', 'sctx'],
-      ['Compatibility', 'scompat'], ['Profiles', 'sp']
+      ['Compatibility', 'scompat'], ['Profiles and people', 'sp']
     ];
     for (const d of dests) {
       if (d[1] === 'scard' || d[1] === 'sr') {
@@ -1802,59 +1817,125 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   notNowBtn.addEventListener('click', () => signin.classList.remove('open'));
 
   const menu = el('div', { class: 'menu', role: 'dialog', 'aria-label': 'Menu' });
+
+  // header
+  const menuHead = el('div', { class: 'menu-head' });
+  menuHead.appendChild(el('span', { class: 'menu-brand' }, 'Cosmic Daily Planner'));
+  const menuCloseBtn = el('button', { type: 'button', class: 'menu-close', 'aria-label': 'Close menu' }, '\u00d7');
+  menuCloseBtn.addEventListener('click', () => menu.classList.remove('open'));
+  menuHead.appendChild(menuCloseBtn);
+  menu.appendChild(menuHead);
+
+  const menuBody = el('div', { class: 'menu-body' });
   const menuNote = el('div', { class: 'menu-note' });
-  // The first door in the Account menu: the full profile and the people you keep,
-  // the rich surface (signature, what your numbers mean, life context, the cycle,
-  // and the saved-people library), distinct from the quick capture panel below.
-  const menuProfileRow = el('button', { type: 'button', class: 'menu-row' });
-  menuProfileRow.appendChild(el('span', {}, 'Profile and people'));
-  menuProfileRow.addEventListener('click', () => { menu.classList.remove('open'); openProfilesView(); });
-  menu.appendChild(menuProfileRow);
-  for (const label of MENU_ITEMS) {
-    const row = el('button', { type: 'button', class: 'menu-row' });
-    row.appendChild(el('span', {}, label));
-    if (label === 'Toggle theme') {
-      const val = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
-      row.appendChild(val);
-      row.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); val.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
-    } else if (label === 'About') {
-      row.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
-    } else if (label === 'Guide') {
-      row.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
-    } else if (label === 'Streak') {
-      const sk = streakOf(repo.listReadings().map((r) => r.date));
-      if (sk.days > 0) row.appendChild(el('span', { class: 'menu-val' }, sk.days + (sk.days === 1 ? ' day' : ' days')));
-      row.addEventListener('click', () => {
-        clear(menuNote);
-        const s2 = streakOf(repo.listReadings().map((r) => r.date));
-        menuNote.textContent = s2.days === 0
-          ? 'Your days are counted here as you return, gently, never as pressure.'
-          : 'You have shown up ' + s2.days + (s2.days === 1 ? ' day' : ' days') + (s2.run > 1 ? ', ' + s2.run + ' of them in a row most recently' : '') + '. Return when it serves you.';
-      });
-    } else if (label === 'Tiers') {
-      const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
-      row.appendChild(tval);
-      row.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
-    } else if (label === 'Join the Beta cohort') {
-      row.addEventListener('click', () => { window.location.href = '/apply.html'; });
-    } else {
-      row.addEventListener('click', () => { clear(menuNote); menuNote.textContent = label + ' arrives as its stage lands.'; });
-    }
-    menu.appendChild(row);
+
+  function mkSection(label: string): HTMLElement {
+    const sec = el('div', { class: 'menu-section' });
+    sec.appendChild(el('span', { class: 'menu-section-label' }, label));
+    return sec;
   }
-  const menuAccountRow = el('button', { type: 'button', class: 'menu-row' });
-  const menuAccountLabel = el('span', {}, 'Sign in');
-  menuAccountRow.appendChild(menuAccountLabel);
+
+  function mkRow(iconSvg: string, label: string, sub?: string): HTMLElement {
+    const row = el('button', { type: 'button', class: 'menu-row' });
+    const icon = el('span', { class: 'menu-icon', 'aria-hidden': 'true' });
+    icon.innerHTML = iconSvg;
+    row.appendChild(icon);
+    const textWrap = el('span', { class: 'menu-row-text' });
+    textWrap.appendChild(document.createTextNode(label));
+    if (sub) textWrap.appendChild(el('span', { class: 'menu-row-sub' }, sub));
+    row.appendChild(textWrap);
+    return row;
+  }
+
+  // SVG icons (inline, single-colour, 20px viewBox)
+  const ICON_PERSON = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="6.5" r="3.5"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>';
+  const ICON_STAR   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#C9A050" stroke-width="1.4" stroke-linecap="round"><line x1="10" y1="2" x2="10" y2="18"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="4.5" y1="4.5" x2="15.5" y2="15.5" stroke-width=".8"/><line x1="15.5" y1="4.5" x2="4.5" y2="15.5" stroke-width=".8"/><circle cx="10" cy="10" r="1.6" fill="#C9A050" stroke="none"/></svg>';
+  const ICON_BOOK   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="2" width="14" height="16" rx="1"/><line x1="7" y1="6" x2="13" y2="6"/><line x1="7" y1="9.5" x2="13" y2="9.5"/><line x1="7" y1="13" x2="11" y2="13"/></svg>';
+  const ICON_TIERS  = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l2.4 5.3L18 8l-4 3.8.9 5.2L10 14.5 5.1 17l.9-5.2L2 8l5.6-.7z"/></svg>';
+  const ICON_FLAME  = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 17c-3 0-5.5-2.5-5.5-5.5 0-2.5 1.5-4.5 3-6 .5 1.5 1.5 2.5 2.5 3 0-2 1-4 3-5.5.5 2.5 2 4 2 6.5 0 3-2.5 7-5 7z"/></svg>';
+  const ICON_CHAT   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M17 3H3a1 1 0 00-1 1v9a1 1 0 001 1h3l4 3 4-3h3a1 1 0 001-1V4a1 1 0 00-1-1z"/></svg>';
+  const ICON_JOIN   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#81CDB6" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="14"/><line x1="6" y1="10" x2="14" y2="10"/></svg>';
+  const ICON_MOON   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M16 12a7 7 0 01-8-8 7 7 0 108 8z"/></svg>';
+  const ICON_LENS   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 4v12M4 10h12" stroke-width=".8"/></svg>';
+
+  // ── YOUR SPACE ──────────────────────────────────────────────────────────
+  const secYou = mkSection('Your space');
+
+  const rowProfile = mkRow(ICON_PERSON, 'Profile and people', 'Birth chart, life numbers, the people you keep');
+  rowProfile.addEventListener('click', () => { menu.classList.remove('open'); openProfilesView(); });
+  secYou.appendChild(rowProfile);
+
+  const sk = streakOf(repo.listReadings().map((r) => r.date));
+  const rowStreak = mkRow(ICON_FLAME, 'Streak', sk.days > 0 ? (sk.days + (sk.days === 1 ? ' day' : ' days') + (sk.run > 1 ? ', ' + sk.run + ' in a row' : '')) : 'Your days, counted gently');
+  rowStreak.addEventListener('click', () => {
+    const s2 = streakOf(repo.listReadings().map((r) => r.date));
+    clear(menuNote);
+    menuNote.textContent = s2.days === 0
+      ? 'Your days are counted here as you return, gently, never as pressure.'
+      : 'You have shown up ' + s2.days + (s2.days === 1 ? ' day' : ' days') + (s2.run > 1 ? ', ' + s2.run + ' of them in a row most recently' : '') + '. Return when it serves you.';
+    menuNote.style.display = 'block';
+  });
+  secYou.appendChild(rowStreak);
+
+  menuBody.appendChild(secYou);
+  menuBody.appendChild(el('div', { class: 'menu-divider' }));
+
+  // ── DEPTH ────────────────────────────────────────────────────────────────
+  const secDepth = mkSection('Reading depth');
+
+  const rowTiers = mkRow(ICON_TIERS, 'Tiers', 'Choose your depth, beta open');
+  const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
+  rowTiers.appendChild(tval);
+  rowTiers.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
+  secDepth.appendChild(rowTiers);
+
+  menuBody.appendChild(secDepth);
+  menuBody.appendChild(el('div', { class: 'menu-divider' }));
+
+  // ── COMMUNITY ────────────────────────────────────────────────────────────
+  const secCom = mkSection('Community');
+
+  const rowBeta = mkRow(ICON_JOIN, 'Join the Beta cohort', 'Shape what gets built');
+  rowBeta.addEventListener('click', () => { window.location.href = '/apply.html'; });
+  secCom.appendChild(rowBeta);
+
+  const rowFeedback = mkRow(ICON_CHAT, 'Feedback', 'Tell us what landed');
+  rowFeedback.addEventListener('click', () => { clear(menuNote); menuNote.textContent = 'Feedback arrives as its stage lands.'; menuNote.style.display = 'block'; });
+  secCom.appendChild(rowFeedback);
+
+  menuBody.appendChild(secCom);
+  menuBody.appendChild(el('div', { class: 'menu-divider' }));
+
+  // ── SETTINGS ─────────────────────────────────────────────────────────────
+  const secSet = mkSection('Settings');
+
+  const rowTheme = mkRow(ICON_MOON, 'Toggle theme');
+  const themeVal = el('span', { class: 'menu-val' }, theme === 'dark' ? 'Dark' : 'Light');
+  rowTheme.appendChild(themeVal);
+  rowTheme.addEventListener('click', () => { setTheme(theme === 'dark' ? 'light' : 'dark'); themeVal.textContent = theme === 'dark' ? 'Dark' : 'Light'; });
+  secSet.appendChild(rowTheme);
+
+  menuBody.appendChild(secSet);
+  menuBody.appendChild(menuNote);
+  menuNote.style.display = 'none';
+  menu.appendChild(menuBody);
+
+  // footer: account
+  const menuFoot = el('div', { class: 'menu-foot' });
+  const menuAccountRow = mkRow(ICON_LENS, 'Sign in');
+  const menuAccountLabel = menuAccountRow.querySelector('.menu-row-text') as HTMLElement;
   menuAccountRow.addEventListener('click', () => { menu.classList.remove('open'); signin.classList.add('open'); });
-  menu.appendChild(menuAccountRow);
-  menu.appendChild(menuNote);
+  menuFoot.appendChild(menuAccountRow);
+  menuFoot.appendChild(el('div', { class: 'menu-foot-line' }, 'cosmicdailyplanner.com'));
+  menu.appendChild(menuFoot);
+
   surface.appendChild(menu);
   function refreshAuthLabels(): void {
     if (!isSupabaseConfigured()) return;
     void currentUserId().then((uid) => {
       const label = uid ? 'Account' : 'Sign in';
       signinLink.textContent = label;
-      menuAccountLabel.textContent = label;
+      if (menuAccountLabel) menuAccountLabel.textContent = label;
     });
   }
   refreshAuthLabels();
