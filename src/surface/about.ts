@@ -52,7 +52,7 @@ function ensureStyle(): void {
     '.cdp-surface .ab2-apex{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:4px}',
     '.cdp-surface .ab2-you{font-family:Cinzel,Georgia,serif;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2,#E8C878)}',
     /* vee lines */
-    '.cdp-surface .ab2-vee{display:block;width:100%;max-width:560px;margin:0 auto 16px;height:56px}',
+    '.cdp-surface .ab2-vee{display:block;width:100%;max-width:560px;margin:0 auto 16px;height:72px}',
     /* two-panel grid */
     '.cdp-surface .ab2-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}',
     '@media(max-width:600px){.cdp-surface .ab2-grid{grid-template-columns:1fr}}',
@@ -135,7 +135,7 @@ const STAR_SVG = `<svg width="52" height="52" viewBox="0 0 60 60" aria-hidden="t
   <circle cx="30" cy="30" r="1.8" fill="#E8C878"/>
 </svg>`;
 
-const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 56" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M280 0 Q180 38 72 56" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round"/><path d="M280 0 Q380 38 488 56" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round"/></svg>`;
+const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 72" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M280 2 Q220 28 80 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/><path d="M280 2 Q340 28 480 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/></svg>`;
 
 // Compass image: the large canonical compass from index.html (North star + orbit ring)
 // We import it from the existing about-hero module to avoid duplication

@@ -236,8 +236,6 @@ export function openGuide(o: OpenGuideOptions): GuideHandle {
   const cover = el('header', { class: 'gd-cover' });
   const coverImg = el('img', { src: GUIDE_COVER, alt: 'Two engraved brass telescopes on tripods, both pointed at a single bright star.' });
   cover.appendChild(coverImg);
-  cover.appendChild(el('div', { class: 'gd-ks' }, 'The guide'));
-  cover.appendChild(el('div', { class: 'gd-cover-h1' }, 'Cosmic Daily Planner'));
   cover.appendChild(el('div', { class: 'gd-tag' }, 'Two telescopes, pointed at the same sky.'));
   cover.appendChild(el('p', { class: 'gd-frame' }, 'A keel for your days, and a bridge to your own higher intelligence. One line in, a clearer frame out. The reading orients; the living stays yours.'));
   cover.appendChild(el('p', { class: 'gd-fn' }, 'A short tour of how it works, what to tap, and how to get more from it. Print it, save it as a PDF, or pass it to someone.'));
