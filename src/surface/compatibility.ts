@@ -757,11 +757,55 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       const reading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
       console.log('[compatibility] server returned fields:', reading && typeof reading === 'object' ? Object.keys(reading).join(', ') : 'non-object');
       clearInterval(progTimer);
-      progressBar.style.width = '100%';
-      setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
-      status.textContent = '';
+      // Phase 1 landed. Show it immediately.
       renderComposed(reading, pa.name, pb.name);
-      if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is read.');
+      const p1Sections = data && typeof data.sectionsReady === 'number' ? data.sectionsReady : 0;
+      const jobKey = data && data.jobKey ? data.jobKey : null;
+      if (jobKey) {
+        // Poll for phase 2
+        progressBar.style.width = '50%';
+        status.textContent = p1Sections + ' sections ready. The deeper sections are composing.';
+        let elapsed = 0;
+        const pollPhase2 = async (): Promise<void> => {
+          try {
+            const r2 = await fetch('/api/compatibility/depth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jobKey }),
+            });
+            const d2 = await r2.json();
+            elapsed = d2.elapsed || elapsed;
+            if (d2.status === 'complete') {
+              const fullReading = (d2.reading && typeof d2.reading === 'object') ? d2.reading : reading;
+              progressBar.style.width = '100%';
+              status.textContent = '';
+              setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+              renderComposed(fullReading, pa.name, pb.name);
+              if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is ready in full.');
+              return;
+            }
+            if (d2.status === 'error') {
+              progressWrap.style.display = 'none';
+              status.textContent = '';
+              return;
+            }
+            // Still pending - update counter and poll again
+            const ready = typeof d2.sectionsReady === 'number' ? d2.sectionsReady : p1Sections;
+            const pct = Math.min(92, 50 + ready * 4);
+            progressBar.style.width = pct + '%';
+            status.textContent = ready + ' sections ready, ' + elapsed + 's in. The deeper sections are composing.';
+            setTimeout(() => { void pollPhase2(); }, 2500);
+          } catch (_e2) {
+            progressWrap.style.display = 'none';
+          }
+        };
+        setTimeout(() => { void pollPhase2(); }, 3000);
+      } else {
+        progressBar.style.width = '100%';
+        setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+        status.textContent = '';
+        if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is read.');
+      }
     } catch (_e) {
       clearInterval(progTimer);
       progressWrap.style.display = 'none';
