@@ -838,23 +838,17 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
-      // The server wraps the reading object inside data.reading alongside
-      // pre-computed framework arrays. Unwrap it so renderComposed receives
-      // the flat JSON the Oracle wrote.
-      const reading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
-      console.log('[compatibility] server returned fields:', reading && typeof reading === 'object' ? Object.keys(reading).join(', ') : 'non-object');
+      console.log('[compatibility] server response, jobKey:', data.jobKey ? 'present' : 'absent', 'status:', data.status);
       clearInterval(progTimer);
-      // Phase 1 landed. Show it immediately.
-      renderComposed(reading, pa.name, pb.name);
-      const p1Sections = data && typeof data.sectionsReady === 'number' ? data.sectionsReady : 0;
       const jobKey = data && data.jobKey ? data.jobKey : null;
       if (jobKey) {
-        // Poll for phase 2
-        progressBar.style.width = '50%';
-        status.textContent = p1Sections + ' sections ready. The deeper sections are composing.';
+        // Job-first: server responded immediately with jobKey, all Oracle calls running async.
+        progressBar.style.width = '8%';
+        status.textContent = 'The connection is composing. The frameworks are being read.';
         let elapsed = 0;
-        // Track which section names we have already rendered to avoid re-renders
-        const renderedSections = new Set(Object.keys(reading));
+        // Track rendered sections to merge incrementally
+        const renderedSections = new Set<string>();
+        let accumulatedReading: Record<string, unknown> = {};
 
         const pollPhase2 = async (): Promise<void> => {
           try {
@@ -865,21 +859,20 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
             });
             const d2 = await r2.json();
             elapsed = d2.elapsed || elapsed;
-            const ready = typeof d2.sectionsReady === 'number' ? d2.sectionsReady : p1Sections;
-            const pct = Math.min(95, 20 + ready * 7);
+            const ready = typeof d2.sectionsReady === 'number' ? d2.sectionsReady : 0;
+            const pct = Math.min(95, 8 + ready * 9);
             progressBar.style.width = pct + '%';
 
             // Merge any new sections that have arrived since last poll
             if (d2.reading && typeof d2.reading === 'object') {
-              const newSections = Object.keys(d2.reading).filter(k => !renderedSections.has(k) && d2.reading[k]);
+              const newSections = Object.keys(d2.reading).filter(k => !renderedSections.has(k) && (d2.reading as Record<string, unknown>)[k]);
               if (newSections.length > 0) {
-                // Re-render the full reading with the newly merged sections
-                const merged = Object.assign({}, reading, d2.reading);
-                renderComposed(merged, pa.name, pb.name);
+                accumulatedReading = Object.assign({}, accumulatedReading, d2.reading);
+                renderComposed(accumulatedReading, pa.name, pb.name);
                 newSections.forEach(k => renderedSections.add(k));
                 status.textContent = ready + ' sections ready, ' + elapsed + 's in.';
               } else {
-                status.textContent = ready + ' sections ready, ' + elapsed + 's in. Composing the deeper sections.';
+                status.textContent = ready + ' sections ready, ' + elapsed + 's in. Composing.';
               }
             }
 
@@ -903,6 +896,8 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         };
         setTimeout(() => { void pollPhase2(); }, 3000);
       } else {
+        const directReading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
+        if (directReading && typeof directReading === 'object' && directReading.synthesis) renderComposed(directReading, pa.name, pb.name);
         progressBar.style.width = '100%';
         setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
         status.textContent = '';
