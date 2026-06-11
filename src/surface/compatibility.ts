@@ -160,12 +160,17 @@ function toPayload(p: PickPerson): PersonPayload {
   return out;
 }
 
-const TOPICS: Array<{ label: string; value: string }> = [
-  { label: 'In general', value: 'their connection in general' },
-  { label: 'Romantic', value: 'a romantic relationship' },
-  { label: 'Friendship', value: 'a friendship' },
-  { label: 'Family', value: 'a family relationship' },
-  { label: 'Working together', value: 'working together' },
+const TOPICS: Array<{ label: string; value: string; note: string }> = [
+  { label: 'In general', value: 'their connection in general', note: 'The full picture across all six frameworks' },
+  { label: 'Romantic', value: 'a romantic relationship', note: 'Attraction, intimacy, long-term potential' },
+  { label: 'Friendship', value: 'a friendship', note: 'The bond, what sustains it, what deepens it' },
+  { label: 'Family', value: 'a family relationship', note: 'The dynamics two family members bring' },
+  { label: 'Parenting', value: 'parenting together as a team', note: 'Where they align, diverge, and how to be consistent' },
+  { label: 'Working together', value: 'working together as collaborators', note: 'Complementary strengths and blind spots' },
+  { label: 'Conflict', value: 'how they handle conflict and what it is trying to build', note: 'Where they clash, why, and what grows from it' },
+  { label: 'Communication', value: 'how they think, speak, listen and understand each other', note: 'The language of this connection' },
+  { label: 'Understanding a child', value: 'understanding this child and how to connect with them', note: 'How to reach, motivate and support them' },
+  { label: 'This year', value: 'what this year specifically asks of this connection', note: 'The arc of ' + new Date().getFullYear() + ' for this relationship' },
 ];
 
 /* ---- the quiet sources line, drawn from the bibliography ------------------- */
@@ -244,6 +249,15 @@ function ensureStyle(): void {
     '.cdp-surface .cm-progress-track{height:3px;background:rgba(201,160,80,.12);border-radius:2px;overflow:hidden}',
     '.cdp-surface .cm-progress-bar{height:100%;background:var(--gold,#C9A050);border-radius:2px;width:0%;transition:width 1.8s ease}',
     '.cdp-surface .cm-status{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-muted,#D4C8AE);padding:8px 4px 0;text-align:center;line-height:1.6}',
+    '.cdp-surface .cm-topic-label{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:18px 0 8px}',
+    '.cdp-surface .cm-topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px}',
+    '.cdp-surface .cm-topic-card{border:1px solid var(--gold-line,rgba(201,160,80,.18));border-radius:4px;padding:10px 12px;cursor:pointer;transition:.2s;background:transparent}',
+    '.cdp-surface .cm-topic-card:hover{background:var(--raised,#122440);border-color:rgba(201,160,80,.35)}',
+    '.cdp-surface .cm-topic-card.active{background:var(--raised,#122440);border-color:var(--gold,#C9A050);border-left:2px solid var(--gold,#C9A050)}',
+    '.cdp-surface .cm-topic-name{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:4px}',
+    '.cdp-surface .cm-topic-note{font-size:12px;font-style:italic;color:var(--text-faint,#9E9282);line-height:1.4}',
+    '.cdp-surface .cm-topic-card.active .cm-topic-note{color:var(--text-muted,#D4C8AE)}',
+    '@media(max-width:520px){.cdp-surface .cm-topic-grid{grid-template-columns:1fr 1fr}}',
     '.cdp-surface .cm-voice-row{display:flex;gap:8px;justify-content:center;margin:16px 0 8px}',
     '.cdp-surface .cm-voice-btn{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:7px 16px;border:1px solid var(--gold-line,#3A3320);border-radius:3px;background:transparent;color:var(--text-muted,#D4C8AE);cursor:pointer;transition:.2s}',
     '.cdp-surface .cm-voice-btn:hover,.cdp-surface .cm-voice-btn.active{background:var(--gold,#C9A050);color:#1A1208;border-color:var(--gold,#C9A050)}',
@@ -311,19 +325,36 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   const pickers = el('div', { class: 'cm-pickers' });
   const a = makeSelect('First person', 0);
   const b = makeSelect('Second person', people.length > 1 ? 1 : 0);
-  const topicWrap = el('div', { class: 'cm-pick' });
-  topicWrap.appendChild(el('label', {}, 'The relationship'));
-  const topicSelect = el('select', { class: 'cm-select' }) as HTMLSelectElement;
-  TOPICS.forEach((t, i) => {
-    const opt = el('option', { value: t.value }, t.label) as HTMLOptionElement;
-    if (i === 0) opt.selected = true;
-    topicSelect.appendChild(opt);
-  });
-  topicWrap.appendChild(topicSelect);
   pickers.appendChild(a.wrap);
   pickers.appendChild(b.wrap);
-  pickers.appendChild(topicWrap);
   shell.appendChild(pickers);
+
+  // Topic card picker - replaces the dropdown
+  shell.appendChild(el('div', { class: 'cm-topic-label' }, 'What to read'));
+  const topicGrid = el('div', { class: 'cm-topic-grid' });
+  let selectedTopic = TOPICS[0].value;
+  const topicCards: HTMLElement[] = [];
+  TOPICS.forEach((t, i) => {
+    const card = el('div', { class: 'cm-topic-card' + (i === 0 ? ' active' : ''), role: 'button', tabindex: '0' });
+    card.appendChild(el('div', { class: 'cm-topic-name' }, t.label));
+    card.appendChild(el('div', { class: 'cm-topic-note' }, t.note));
+    card.addEventListener('click', () => {
+      topicCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedTopic = t.value;
+    });
+    topicCards.push(card);
+    topicGrid.appendChild(card);
+  });
+  shell.appendChild(topicGrid);
+
+  // Keep a hidden select for backwards compat with goBtn handler
+  const topicSelect = el('select', { style: 'display:none' }) as HTMLSelectElement;
+  TOPICS.forEach(t => {
+    const opt = el('option', { value: t.value }) as HTMLOptionElement;
+    topicSelect.appendChild(opt);
+  });
+  shell.appendChild(topicSelect);
 
   const goBtn = el('button', { type: 'button', class: 'cm-go' }, 'See the connection');
   shell.appendChild(goBtn);
@@ -747,7 +778,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       const res = await fetch('/api/compatibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personA: toPayload(pa), personB: toPayload(pb), topic: topicSelect.value, lens: o.getLens() }),
+        body: JSON.stringify({ personA: toPayload(pa), personB: toPayload(pb), topic: selectedTopic, lens: o.getLens() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
@@ -766,6 +797,9 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         progressBar.style.width = '50%';
         status.textContent = p1Sections + ' sections ready. The deeper sections are composing.';
         let elapsed = 0;
+        // Track which section names we have already rendered to avoid re-renders
+        const renderedSections = new Set(Object.keys(reading));
+
         const pollPhase2 = async (): Promise<void> => {
           try {
             const r2 = await fetch('/api/compatibility/depth', {
@@ -775,13 +809,29 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
             });
             const d2 = await r2.json();
             elapsed = d2.elapsed || elapsed;
+            const ready = typeof d2.sectionsReady === 'number' ? d2.sectionsReady : p1Sections;
+            const pct = Math.min(95, 20 + ready * 7);
+            progressBar.style.width = pct + '%';
+
+            // Merge any new sections that have arrived since last poll
+            if (d2.reading && typeof d2.reading === 'object') {
+              const newSections = Object.keys(d2.reading).filter(k => !renderedSections.has(k) && d2.reading[k]);
+              if (newSections.length > 0) {
+                // Re-render the full reading with the newly merged sections
+                const merged = Object.assign({}, reading, d2.reading);
+                renderComposed(merged, pa.name, pb.name);
+                newSections.forEach(k => renderedSections.add(k));
+                status.textContent = ready + ' sections ready, ' + elapsed + 's in.';
+              } else {
+                status.textContent = ready + ' sections ready, ' + elapsed + 's in. Composing the deeper sections.';
+              }
+            }
+
             if (d2.status === 'complete') {
-              const fullReading = (d2.reading && typeof d2.reading === 'object') ? d2.reading : reading;
               progressBar.style.width = '100%';
               status.textContent = '';
               setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
-              renderComposed(fullReading, pa.name, pb.name);
-              if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is ready in full.');
+              if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is complete.');
               return;
             }
             if (d2.status === 'error') {
@@ -789,11 +839,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
               status.textContent = '';
               return;
             }
-            // Still pending - update counter and poll again
-            const ready = typeof d2.sectionsReady === 'number' ? d2.sectionsReady : p1Sections;
-            const pct = Math.min(92, 50 + ready * 4);
-            progressBar.style.width = pct + '%';
-            status.textContent = ready + ' sections ready, ' + elapsed + 's in. The deeper sections are composing.';
+            // Still composing - poll again
             setTimeout(() => { void pollPhase2(); }, 2500);
           } catch (_e2) {
             progressWrap.style.display = 'none';
