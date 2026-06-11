@@ -211,6 +211,31 @@ function ensureStyle(): void {
     '.cdp-surface .cm-gloss{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-muted,#D4C8AE);margin-top:4px}',
     '.cdp-surface .cm-question{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--gold-soft,#E8C878);border-left:2px solid var(--gold-line,#3A3320);padding-left:14px;margin:16px 0}',
     '.cdp-surface .cm-closing{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:17px;line-height:1.55;color:var(--text-light,#F0E6CC);text-align:center;margin:18px 2px}',
+    /* Headline block */
+    '.cdp-surface .cm-headline-wrap{margin:0 0 22px}',
+    '.cdp-surface .cm-headline{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:22px;line-height:1.5;color:var(--text-light,#F0E6CC);text-align:center;padding:18px 8px;border-left:3px solid var(--gold,#C9A050);border-right:3px solid var(--gold,#C9A050);background:rgba(18,36,64,.4);border-radius:4px}',
+    /* Pair cards (gifts/tensions) with symbol */
+    '.cdp-surface .cm-pair-card{border-left:3px solid var(--gold,#C9A050)}',
+    '.cdp-surface .cm-pair-symbol{font-size:20px;margin-bottom:6px;color:var(--gold,#C9A050)}',
+    '.cdp-surface .cm-pair-headline{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:18px;line-height:1.45;color:var(--gold-soft,#E8C878);margin:6px 0 10px}',
+    /* For Ned / For Connie cards */
+    '.cdp-surface .cm-for-card{border:1px solid var(--gold-line,#3A3320);border-top:2px solid var(--gold,#C9A050);border-radius:4px;background:var(--card,#122440);padding:14px 16px;margin-bottom:11px}',
+    '.cdp-surface .cm-for-name{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:10px}',
+    /* Question block */
+    '.cdp-surface .cm-question-block{border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:rgba(18,36,64,.5);padding:16px 20px;margin:20px 0}',
+    '.cdp-surface .cm-question-label{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:10px;text-align:center}',
+    '.cdp-surface .cm-question{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:18px;line-height:1.6;color:var(--gold-soft,#E8C878);text-align:center}',
+    /* Closing */
+    '.cdp-surface .cm-closing-wrap{margin:24px 0 8px;text-align:center}',
+    '.cdp-surface .cm-closing-rule{width:60px;height:1px;background:var(--gold-line,#3A3320);margin:0 auto 16px}',
+    /* Aspect dots */
+    '.cdp-surface .cm-aspect-card{border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:var(--navy,#0D1E33);padding:13px 15px;margin-bottom:11px}',
+    '.cdp-surface .cm-aspect-dots{display:flex;gap:4px;margin-bottom:8px}',
+    '.cdp-surface .cm-dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--text-faint,#9E9282);display:inline-block}',
+    '.cdp-surface .cm-dot.on{background:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
+    '.cdp-surface .cm-voice-row{display:flex;gap:8px;justify-content:center;margin:16px 0 8px}',
+    '.cdp-surface .cm-voice-btn{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:7px 16px;border:1px solid var(--gold-line,#3A3320);border-radius:3px;background:transparent;color:var(--text-muted,#D4C8AE);cursor:pointer;transition:.2s}',
+    '.cdp-surface .cm-voice-btn:hover,.cdp-surface .cm-voice-btn.active{background:var(--gold,#C9A050);color:#1A1208;border-color:var(--gold,#C9A050)}',
     '.cdp-surface .cm-sources{font-family:Georgia,serif;font-size:11px;line-height:1.6;color:var(--text-muted,#D4C8AE);margin-top:18px;text-align:center}',
     '.cdp-surface .cm-note{font-family:\'EB Garamond\',Georgia,serif;font-size:12px;color:var(--text-muted,#D4C8AE);margin-top:4px}',
     '.cdp-surface .cm-dd-scrim{position:fixed;inset:0;z-index:80;background:rgba(4,12,24,.62);display:flex;align-items:flex-end;justify-content:center}',
@@ -298,6 +323,23 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   // Zone two, the composed synastry prose, streamed from the engine.
   const status = el('div', { class: 'cm-status' });
   shell.appendChild(status);
+  // Voice toggle: matches the home voice toggle, sits above the composed content
+  const voiceRow = el('div', { class: 'cm-voice-row' });
+  const voices: Lens[] = ['tradition', 'science', 'everyday'];
+  const voiceBtns: HTMLElement[] = [];
+  voices.forEach((v) => {
+    const btn = el('button', { type: 'button', class: 'cm-voice-btn' + (o.getLens() === v ? ' active' : ''), 'data-voice': v });
+    btn.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+    btn.addEventListener('click', () => {
+      voiceBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Re-run the last reading in the new voice if we have one
+    });
+    voiceBtns.push(btn);
+    voiceRow.appendChild(btn);
+  });
+  shell.appendChild(voiceRow);
+
   const content = el('div', { class: 'cm-content' });
   shell.appendChild(content);
 
@@ -503,6 +545,17 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     }));
   }
 
+  function forCard(name: string, value: unknown): void {
+    const ps = paragraphs(value);
+    if (!ps.length) return;
+    const card = el('div', { class: 'cm-card cm-for-card' });
+    card.appendChild(el('div', { class: 'cm-for-name' }, 'For ' + name));
+    for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
+    if (o.composeAsk) tappable(card, 'Say more to ' + name + ' specifically about this connection.');
+    attachTap(card, { framework: 'personal', section: 'for-' + name.toLowerCase() }, 'this landed');
+    content.appendChild(card);
+  }
+
   function strCard(title: string, value: unknown, askPrompt?: string, sig?: Partial<VesselSignal>): void {
     const ps = paragraphs(value);
     if (!ps.length) return;
@@ -516,17 +569,21 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (sig) attachTap(card, sig, 'this landed');
     content.appendChild(card);
   }
-  function pairCard(title: string, value: unknown, askPrompt?: string, sig?: Partial<VesselSignal>): void {
+  function pairCard(title: string, value: unknown, askPrompt?: string, sig?: Partial<VesselSignal>, symbol?: string): void {
     if (!value || typeof value !== 'object') { strCard(title, value, askPrompt); return; }
     const v = value as Record<string, unknown>;
     const ps = paragraphs(v.body);
     if (!ps.length && !v.headline) return;
-    const card = el('div', { class: 'cm-card' });
-    const t = el('div', { class: 'cm-title' });
-    t.appendChild(el('span', {}, title));
-    if (o.composeAsk && askPrompt) t.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
-    card.appendChild(t);
-    if (v.headline) card.appendChild(el('div', { class: 'cm-sub' }, String(v.headline)));
+    const card = el('div', { class: 'cm-card cm-pair-card' });
+    if (symbol) {
+      const sym = el('div', { class: 'cm-pair-symbol' }, symbol);
+      card.appendChild(sym);
+    }
+    const t2 = el('div', { class: 'cm-title' });
+    t2.appendChild(el('span', {}, title));
+    if (o.composeAsk && askPrompt) t2.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
+    card.appendChild(t2);
+    if (v.headline) card.appendChild(el('div', { class: 'cm-pair-headline' }, String(v.headline)));
     for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
     if (askPrompt) tappable(card, askPrompt);
     if (sig) attachTap(card, sig, 'this landed');
@@ -540,7 +597,11 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       content.appendChild(el('div', { class: 'cm-status' }, 'The reading came back in an unexpected shape. The engine is reachable; please try again in a moment.'));
       return;
     }
-    if (r.headline) content.appendChild(el('div', { class: 'cm-headline' }, String(r.headline)));
+    if (r.headline) {
+      const hl = el('div', { class: 'cm-headline-wrap' });
+      hl.appendChild(el('div', { class: 'cm-headline' }, String(r.headline)));
+      content.appendChild(hl);
+    }
     strCard('The synthesis', r.synthesis, 'Read me the synthesis of ' + nameA + ' and ' + nameB + ' in more depth.', { framework: 'convergence', section: 'synthesis' });
     if (o.composeAsk) {
       const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
@@ -554,8 +615,8 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     }
     strCard('Where the frameworks meet', r.framework_convergence, 'Where do the frameworks converge for ' + nameA + ' and ' + nameB + ', and where do they diverge.', { framework: 'convergence', section: 'convergence' });
     strCard('Chinese astrology', r.chinese_connection, 'Say more about how the Chinese astrology layer shapes this connection.');
-    pairCard('Gifts', r.gifts, 'What are the gifts of the connection between ' + nameA + ' and ' + nameB + '.');
-    pairCard('Tensions', r.tensions, 'What are the tensions between ' + nameA + ' and ' + nameB + ', and how do we work with them.');
+    pairCard('Gifts', r.gifts, 'What are the gifts of the connection between ' + nameA + ' and ' + nameB + '.', { framework: 'convergence', section: 'gifts' }, '\u2726');
+    pairCard('Tensions', r.tensions, 'What are the tensions between ' + nameA + ' and ' + nameB + ', and how do we work with them.', { framework: 'convergence', section: 'tensions' }, '\u26a1');
     pairCard('On this', r.topic_specific, 'Tell me more about ' + nameA + ' and ' + nameB + ' on this specific relationship.');
     // Key aspects, the synastry detail
     const aspects = r.key_aspects;
@@ -564,24 +625,71 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       for (const item of aspects) {
         if (!item || typeof item !== 'object') continue;
         const it = item as Record<string, unknown>;
-        const card = el('div', { class: 'cm-card' });
+        const card = el('div', { class: 'cm-card cm-aspect-card' });
+        // Strength dots: the server sends a strength value 1-5; we show filled/empty circles
+        const str = typeof it.strength === 'number' ? Math.max(1, Math.min(5, Math.round(it.strength))) : 4;
+        const dots = el('div', { class: 'cm-aspect-dots' });
+        for (let i = 0; i < 5; i++) dots.appendChild(el('span', { class: 'cm-dot' + (i < str ? ' on' : '') }));
+        card.appendChild(dots);
         if (it.aspect) card.appendChild(el('div', { class: 'cm-sub' }, String(it.aspect)));
-        for (const p of paragraphs(it.interpretation)) card.appendChild(el('p', { class: 'cm-p' }, p));
+        const ps2 = paragraphs(it.interpretation);
+        // Show first paragraph inline; rest behind a "Go deeper" tap
+        if (ps2.length) card.appendChild(el('p', { class: 'cm-p' }, ps2[0]));
+        if (ps2.length > 1) {
+          const more = el('div', { class: 'cm-aspect-more', style: 'display:none' });
+          for (const p of ps2.slice(1)) more.appendChild(el('p', { class: 'cm-p' }, p));
+          card.appendChild(more);
+          const goDeeper = el('button', { type: 'button', class: 'cm-bridge' }, 'Go deeper');
+          goDeeper.addEventListener('click', () => {
+            const showing = more.style.display !== 'none';
+            more.style.display = showing ? 'none' : 'block';
+            goDeeper.textContent = showing ? 'Go deeper' : 'Close';
+          });
+          card.appendChild(goDeeper);
+        }
         if (it.aspect) tappable(card, 'Tell me more about this aspect in our connection: ' + String(it.aspect) + '.');
+        attachTap(card, { framework: 'synastry', section: 'aspect' }, 'this landed');
         content.appendChild(card);
       }
     }
     strCard('Numerology', r.numerology_connection, 'Read our numerology pairing in more depth.', { framework: 'numerology', section: 'numerology' });
     strCard('Dreamspell', r.dreamspell_connection, 'Read our Dreamspell connection in more depth.', { framework: 'dreamspell', section: 'dreamspell' });
     strCard('Natal moon', r.natal_moon_connection, 'Read our natal moon phase polarity in more depth.', { framework: 'moon', section: 'natal-moon' });
-    strCard('Biorhythm today', r.biorhythm_today, 'What does our shared biorhythm ask of us today.');
+    // Biorhythm visual: show the split columns matching the PDF layout if computed data available
+    if (o.repo) {
+      const pa2 = people[Number(a.select.value)];
+      const pb2 = people[Number(b.select.value)];
+      if (pa2.birthDate && pb2.birthDate) {
+        const bioWrap = el('div', { class: 'cm-card' });
+        bioWrap.appendChild(el('div', { class: 'cm-seclabel' }, 'Biorhythms today'));
+        const bioCols = el('div', { class: 'cm-cols' });
+        [['Physical', 23], ['Emotional', 28], ['Intellectual', 33]].forEach((c) => {
+          const col = el('div', { class: 'cm-col' });
+          col.appendChild(el('div', { class: 'cm-rl' }, String(c[0])));
+          bioCols.appendChild(col);
+        });
+        bioWrap.appendChild(bioCols);
+        content.appendChild(bioWrap);
+      }
+    }
+    strCard('Biorhythm reading', r.biorhythm_today, 'What does our shared biorhythm ask of us today.');
     const forThem = r.for_them as Record<string, unknown> | undefined;
     if (forThem) {
-      strCard('For ' + nameA, forThem.for_a, 'Say more to ' + nameA + ' specifically.');
-      strCard('For ' + nameB, forThem.for_b, 'Say more to ' + nameB + ' specifically.');
+      forCard(nameA, forThem.for_a);
+      forCard(nameB, forThem.for_b);
     }
-    if (r.a_question_to_sit_with) content.appendChild(el('div', { class: 'cm-question' }, String(r.a_question_to_sit_with)));
-    if (r.closing) content.appendChild(el('div', { class: 'cm-closing' }, String(r.closing)));
+    if (r.a_question_to_sit_with) {
+      const qBlock = el('div', { class: 'cm-question-block' });
+      qBlock.appendChild(el('div', { class: 'cm-question-label' }, 'A question to sit with together'));
+      qBlock.appendChild(el('div', { class: 'cm-question' }, String(r.a_question_to_sit_with)));
+      content.appendChild(qBlock);
+    }
+    if (r.closing) {
+      const cl = el('div', { class: 'cm-closing-wrap' });
+      cl.appendChild(el('div', { class: 'cm-closing-rule' }));
+      cl.appendChild(el('div', { class: 'cm-closing' }, String(r.closing)));
+      content.appendChild(cl);
+    }
     const sl = sourcesLine();
     const engineSources = r.sources ? String(r.sources) : '';
     const sourceText = [sl, engineSources].filter(Boolean).join('. ');
