@@ -616,11 +616,12 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   progressWrap.appendChild(progressTrack);
   const status = el('div', { class: 'rdg-status' }, 'The Oracle is composing the full depth of your reading.');
   progressWrap.appendChild(status);
-  shell.insertBefore(progressWrap, computed);
-
   // The computed zone, rendered now, from the verified core. Never blank.
   const computed = el('div', { class: 'rdg-computed' });
   shell.appendChild(computed);
+
+  // Progress bar inserted before the computed zone so it appears at the top.
+  shell.insertBefore(progressWrap, computed);
 
   // A rule between the computed reading and the composed depth.
   const rule = el('hr', { class: 'rdg-rule' });
