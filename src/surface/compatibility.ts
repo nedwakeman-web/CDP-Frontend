@@ -188,7 +188,7 @@ function ensureStyle(): void {
     '.cdp-surface .cm-pick label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:4px}',
     '.cdp-surface .cm-select{width:100%;box-sizing:border-box;background:var(--navy,#0D1E33);border:1px solid var(--gold-line,#3A3320);border-radius:3px;color:var(--text-light,#F0E6CC);font-family:\'EB Garamond\',Georgia,serif;font-size:15px;padding:9px 11px}',
     '.cdp-surface .cm-go{background:var(--gold,#C9A050);color:#1A1208;border:none;border-radius:3px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;cursor:pointer;margin-top:4px}',
-    '.cdp-surface .cm-status{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--text-muted,#D4C8AE);padding:18px 4px;text-align:center;line-height:1.6}',
+
     '.cdp-surface .cm-headline{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;line-height:1.45;color:var(--text-light,#F0E6CC);margin:18px 0}',
     '.cdp-surface .cm-seclabel{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:22px 0 10px;text-align:center}',
     '.cdp-surface .cm-cols{display:flex;gap:12px;flex-wrap:wrap}',
@@ -233,6 +233,10 @@ function ensureStyle(): void {
     '.cdp-surface .cm-aspect-dots{display:flex;gap:4px;margin-bottom:8px}',
     '.cdp-surface .cm-dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--text-faint,#9E9282);display:inline-block}',
     '.cdp-surface .cm-dot.on{background:var(--gold,#C9A050);border-color:var(--gold,#C9A050)}',
+    '.cdp-surface .cm-progress-wrap{display:none;position:sticky;top:0;z-index:4;background:var(--bg,#031831);padding:8px 16px 10px;border-bottom:1px solid var(--gold-line,rgba(201,160,80,.12));margin-bottom:4px}',
+    '.cdp-surface .cm-progress-track{height:3px;background:rgba(201,160,80,.12);border-radius:2px;overflow:hidden}',
+    '.cdp-surface .cm-progress-bar{height:100%;background:var(--gold,#C9A050);border-radius:2px;width:0%;transition:width 1.8s ease}',
+    '.cdp-surface .cm-status{font-family:\'EB Garamond\',Georgia,serif;font-size:14px;color:var(--text-muted,#D4C8AE);padding:8px 4px 0;text-align:center;line-height:1.6}',
     '.cdp-surface .cm-voice-row{display:flex;gap:8px;justify-content:center;margin:16px 0 8px}',
     '.cdp-surface .cm-voice-btn{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:7px 16px;border:1px solid var(--gold-line,#3A3320);border-radius:3px;background:transparent;color:var(--text-muted,#D4C8AE);cursor:pointer;transition:.2s}',
     '.cdp-surface .cm-voice-btn:hover,.cdp-surface .cm-voice-btn.active{background:var(--gold,#C9A050);color:#1A1208;border-color:var(--gold,#C9A050)}',
@@ -317,12 +321,19 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   const goBtn = el('button', { type: 'button', class: 'cm-go' }, 'See the connection');
   shell.appendChild(goBtn);
 
+  // Progress bar: sticky at top, matches reading.ts treatment
+  const progressWrap = el('div', { class: 'cm-progress-wrap' });
+  const progressTrack = el('div', { class: 'cm-progress-track' });
+  const progressBar = el('div', { class: 'cm-progress-bar', style: 'width:0%' });
+  progressTrack.appendChild(progressBar);
+  progressWrap.appendChild(progressTrack);
+  const status = el('div', { class: 'cm-status' });
+  progressWrap.appendChild(status);
+  shell.insertBefore(progressWrap, shell.firstChild);
+
   // Zone one, the computed scaffold, rendered the instant the pair is chosen.
   const computed = el('div', { class: 'cm-computed' });
   shell.appendChild(computed);
-  // Zone two, the composed synastry prose, streamed from the engine.
-  const status = el('div', { class: 'cm-status' });
-  shell.appendChild(status);
   // Voice toggle: matches the home voice toggle, sits above the composed content
   const voiceRow = el('div', { class: 'cm-voice-row' });
   const voices: Lens[] = ['tradition', 'science', 'everyday'];
@@ -707,7 +718,15 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     // Zone one renders immediately, so the surface is never blank while the engine composes.
     renderComputed(pa, pb);
     goBtn.setAttribute('disabled', 'true');
-    status.textContent = 'Reading the connection between ' + pa.name + ' and ' + pb.name + '. The signatures above are ready; the synthesis is composing.';
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '8%';
+    status.textContent = 'Reading the connection between ' + pa.name + ' and ' + pb.name + '. The signatures are ready; the synthesis is composing.';
+    // Animate progress while waiting
+    let pct = 8;
+    const progTimer = setInterval(() => {
+      pct = Math.min(88, pct + (90 - pct) * 0.04);
+      progressBar.style.width = pct + '%';
+    }, 1200);
     try {
       const res = await fetch('/api/compatibility', {
         method: 'POST',
@@ -720,10 +739,15 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       // pre-computed framework arrays. Unwrap it so renderComposed receives
       // the flat JSON the Oracle wrote.
       const reading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
+      clearInterval(progTimer);
+      progressBar.style.width = '100%';
+      setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
       status.textContent = '';
       renderComposed(reading, pa.name, pb.name);
       if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is read.');
     } catch (_e) {
+      clearInterval(progTimer);
+      progressWrap.style.display = 'none';
       if (o.composeAsk) {
         status.textContent = 'The direct endpoint could not be reached; composing through the Oracle instead.';
         try {
