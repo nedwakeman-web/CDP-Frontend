@@ -137,7 +137,7 @@ const STAR_SVG = `<svg width="52" height="52" viewBox="0 0 60 60" aria-hidden="t
 
 const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 72" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M280 2 Q220 28 80 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/><path d="M280 2 Q340 28 480 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/></svg>`;
 
-// Compass image: canonical compass from guide-images (North star + orbit ring)
+// Compass image: canonical compass from guide-images (North star + orbit ring, confirmed present on alpha)
 import { GUIDE_HERO as COMPASS_IMG } from './guide-images';
 
 const FRAMEWORKS = [
