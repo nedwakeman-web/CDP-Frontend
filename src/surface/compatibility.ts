@@ -628,9 +628,10 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   function ensureShareBar(label: string): void {
     if (shareInserted) return;
     shareInserted = true;
+    // Capture the whole shell so the export includes computed scaffold + all composed sections
     shell.appendChild(artefactControlsFromNode({
       title: label,
-      node: () => content,
+      node: () => shell,
       voice: 'Compatibility',
       noun: 'reading',
     }));
@@ -769,20 +770,33 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     strCard('Numerology', r.numerology_connection, 'Read our numerology pairing in more depth.', { framework: 'numerology', section: 'numerology' });
     strCard('Dreamspell', r.dreamspell_connection, 'Read our Dreamspell connection in more depth.', { framework: 'dreamspell', section: 'dreamspell' });
     strCard('Natal moon', r.natal_moon_connection, 'Read our natal moon phase polarity in more depth.', { framework: 'moon', section: 'natal-moon' });
-    // Biorhythm visual: show the split columns matching the PDF layout if computed data available
-    if (o.repo) {
+    // Biorhythm computed visual with actual values
+    {
       const pa2 = people[Number(a.select.value)];
       const pb2 = people[Number(b.select.value)];
       if (pa2.birthDate && pb2.birthDate) {
+        const bioA2 = biorhythmsToday(pa2.birthDate);
+        const bioB2 = biorhythmsToday(pb2.birthDate);
         const bioWrap = el('div', { class: 'cm-card' });
         bioWrap.appendChild(el('div', { class: 'cm-seclabel' }, 'Biorhythms today'));
         const bioCols = el('div', { class: 'cm-cols' });
-        [['Physical', 23], ['Emotional', 28], ['Intellectual', 33]].forEach((c) => {
+        [[pa2.name, bioA2], [pb2.name, bioB2]].forEach((set) => {
+          const pName = set[0] as string;
+          const bioVals = set[1] as Array<{ label: string; pct: number }>;
           const col = el('div', { class: 'cm-col' });
-          col.appendChild(el('div', { class: 'cm-rl' }, String(c[0])));
+          col.appendChild(el('div', { class: 'cm-name' }, pName));
+          bioVals.forEach((v) => {
+            const r2 = el('div', { class: 'cm-row' });
+            r2.appendChild(el('div', { class: 'cm-rl' }, v.label));
+            const valEl = el('div', { class: 'cm-rv' + (Math.abs(v.pct) > 70 ? ' master' : '') });
+            valEl.textContent = (v.pct >= 0 ? '+' : '') + v.pct + '%';
+            r2.appendChild(valEl);
+            col.appendChild(r2);
+          });
           bioCols.appendChild(col);
         });
         bioWrap.appendChild(bioCols);
+        bioWrap.appendChild(el('div', { class: 'cm-note' }, 'Classical three cycle theory (Teltscher, Fliess, Swoboda), shown as a symbolic rhythm.'));
         content.appendChild(bioWrap);
       }
     }
@@ -808,7 +822,6 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     const engineSources = r.sources ? String(r.sources) : '';
     const sourceText = [sl, engineSources].filter(Boolean).join('. ');
     if (sourceText) content.appendChild(el('div', { class: 'cm-sources' }, sourceText));
-    ensureShareBar('Compatibility, ' + nameA + ' and ' + nameB);
   }
 
   async function run(): Promise<void> {
@@ -880,6 +893,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
               progressBar.style.width = '100%';
               status.textContent = '';
               setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+              ensureShareBar('Compatibility, ' + pa.name + ' and ' + pb.name);
               if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is complete.');
               return;
             }
