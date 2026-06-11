@@ -119,7 +119,7 @@ function sleep(ms: number): Promise<void> { return new Promise((r) => window.set
  * sentence into readable paragraphs. Presentation only; no word is added or lost.
  */
 function paragraphs(text: string): string[] {
-  const raw = String(text == null ? '' : text);
+  const raw = String(text == null ? '' : text).replace(/\*\*([^*]+)\*\*/g, '$1');
   const trimmed = raw.trim();
   if (!trimmed) return [];
   if (/\n{2,}/.test(trimmed)) {
@@ -350,9 +350,11 @@ function ensureStyle(): void {
 .cdp-surface .rdg-close:hover { color:var(--gold); }
 .cdp-surface .rdg-status { font-family:'EB Garamond', Georgia, serif; font-style:italic; font-size:15px; color:var(--text-dim); padding:18px 6px; text-align:center; line-height:1.6; }
 .cdp-surface .rdg-progress-wrap { padding:0 6px 14px; }
+.cdp-surface .rdg-progress-top { position:sticky; top:0; z-index:2; background:var(--bg,#031831); padding:8px 16px 10px; border-bottom:1px solid var(--gold-line,rgba(201,160,80,0.12)); margin-bottom:4px; }
 .cdp-surface .rdg-progress-track { height:3px; background:var(--gold-line,#3A3320); border-radius:2px; overflow:hidden; }
 .cdp-surface .rdg-progress-bar { height:100%; background:var(--gold,#C9A050); border-radius:2px; width:4%; transition:width 2s ease; }
 .cdp-surface .rdg-note { font-family:Georgia, serif; font-size:13px; color:var(--gold-soft); margin:0 0 18px; }
+.cdp-surface .rdg-p strong, .cdp-surface .rdg-p b { font-weight:400; }
 
 /* computed zone: telescopes, date, decision tiles, coordinate cards, signal, biorhythms, numerology */
 .cdp-surface .rdg-tele { text-align:center; margin:0 0 6px; }
@@ -606,6 +608,16 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   bar.appendChild(closeBtn);
   shell.appendChild(bar);
 
+  // Progress bar sits at the top, just below the header, visible from the first moment.
+  const progressWrap = el('div', { class: 'rdg-progress-wrap rdg-progress-top' });
+  const progressTrack = el('div', { class: 'rdg-progress-track' });
+  const progressBar = el('div', { class: 'rdg-progress-bar' });
+  progressTrack.appendChild(progressBar);
+  progressWrap.appendChild(progressTrack);
+  const status = el('div', { class: 'rdg-status' }, 'The Oracle is composing the full depth of your reading.');
+  progressWrap.appendChild(status);
+  shell.insertBefore(progressWrap, computed);
+
   // The computed zone, rendered now, from the verified core. Never blank.
   const computed = el('div', { class: 'rdg-computed' });
   shell.appendChild(computed);
@@ -617,14 +629,6 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   // The composed zone, where the Oracle prose streams in.
   const aiZone = el('div', { class: 'rdg-ai' });
   shell.appendChild(aiZone);
-  const status = el('div', { class: 'rdg-status' }, 'The Oracle is composing the full depth of your reading.');
-  aiZone.appendChild(status);
-  const progressWrap = el('div', { class: 'rdg-progress-wrap' });
-  const progressTrack = el('div', { class: 'rdg-progress-track' });
-  const progressBar = el('div', { class: 'rdg-progress-bar' });
-  progressTrack.appendChild(progressBar);
-  progressWrap.appendChild(progressTrack);
-  aiZone.appendChild(progressWrap);
   function setProgress(pct: number): void {
     progressBar.style.width = Math.max(4, Math.min(96, pct)) + '%';
   }
@@ -649,7 +653,6 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   closeBtn.addEventListener('click', close);
 
   function setStatus(text: string): void {
-    if (!status.parentNode) aiZone.insertBefore(status, aiZone.firstChild);
     status.textContent = text;
   }
 
@@ -1655,19 +1658,16 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
         if (st.status === 'pending' || st.status === 'phase1_complete') {
           const secs = Math.round((Date.now() - t0) / 1000);
           const ready = typeof st.sectionsReady === 'number' ? st.sectionsReady : 0;
-          // progress: 4-60% during compose, steps up with sections ready
-          const estSecs = ({ free: 20, seeker: 40, initiate: 80, mystic: 120, oracle: 180 } as Record<string,number>)[tier] || 100;
-          const timePct = Math.min(55, (secs / estSecs) * 55);
-          const readyPct = ready > 0 ? Math.min(35, ready * 7) : 0;
-          setProgress(4 + timePct + readyPct);
+          const readyPct = ready > 0 ? Math.min(55, ready * 9) : Math.min(40, secs * 0.4);
+          setProgress(4 + readyPct);
           if (shownPhase1) {
             setStatus(ready > 0
-              ? 'The core is here. The fuller sections are composing, ' + ready + ' ready, ' + secs + ' seconds in.'
-              : 'The core is here. The fuller sections are composing, ' + secs + ' seconds in.');
+              ? 'The core is here. The fuller sections are composing, ' + ready + ' ready, ' + secs + 's in.'
+              : 'The core is here. The fuller sections are composing, ' + secs + 's in.');
           } else {
             setStatus(ready > 0
-              ? 'The Oracle is composing your reading, ' + ready + ' sections ready, ' + secs + ' seconds in.'
-              : 'The Oracle is composing the full depth of your reading, ' + secs + ' seconds in.');
+              ? 'Composing your reading, ' + ready + ' sections ready, ' + secs + 's in.'
+              : 'Composing your reading, ' + secs + 's in.');
           }
         }
       } catch (e) {
