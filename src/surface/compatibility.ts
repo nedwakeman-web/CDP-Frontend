@@ -553,6 +553,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       content.appendChild(bridge);
     }
     strCard('Where the frameworks meet', r.framework_convergence, 'Where do the frameworks converge for ' + nameA + ' and ' + nameB + ', and where do they diverge.', { framework: 'convergence', section: 'convergence' });
+    strCard('Chinese astrology', r.chinese_connection, 'Say more about how the Chinese astrology layer shapes this connection.');
     pairCard('Gifts', r.gifts, 'What are the gifts of the connection between ' + nameA + ' and ' + nameB + '.');
     pairCard('Tensions', r.tensions, 'What are the tensions between ' + nameA + ' and ' + nameB + ', and how do we work with them.');
     pairCard('On this', r.topic_specific, 'Tell me more about ' + nameA + ' and ' + nameB + ' on this specific relationship.');
@@ -606,8 +607,13 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         body: JSON.stringify({ personA: toPayload(pa), personB: toPayload(pb), topic: topicSelect.value, lens: o.getLens() }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
+      // The server wraps the reading object inside data.reading alongside
+      // pre-computed framework arrays. Unwrap it so renderComposed receives
+      // the flat JSON the Oracle wrote.
+      const reading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
       status.textContent = '';
-      renderComposed(data, pa.name, pb.name);
+      renderComposed(reading, pa.name, pb.name);
       if (o.reflect) o.reflect('The connection between ' + pa.name + ' and ' + pb.name + ' is read.');
     } catch (_e) {
       if (o.composeAsk) {
