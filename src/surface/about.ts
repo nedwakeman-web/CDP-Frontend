@@ -45,14 +45,13 @@ function ensureStyle(): void {
     '.cdp-surface .ab2-close{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-light,#F0E6CC);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%;flex:0 0 auto}',
     '.cdp-surface .ab2-wrap{max-width:52rem;margin:0 auto;padding:0 18px}',
     /* eyebrow + title */
-    '.cdp-surface .ab2-hero-wrap{position:relative;width:100%;margin-bottom:28px;container-type:inline-size}',
+    '.cdp-surface .ab2-hero-wrap{position:relative;width:100%;margin-bottom:28px;container-type:inline-size;container-name:ab2heroart;line-height:0;border-radius:6px}',
     '.cdp-surface .ab2-hero-img{width:100%;height:auto;display:block;border-radius:6px}',
-    '.cdp-surface .ab2-hero-overlay{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:38% 30% 0;text-align:center;pointer-events:none;border-radius:6px}',
-    '.cdp-surface .ab2-hero-cipher{width:clamp(28px,5.5cqw,58px);height:auto;margin-bottom:clamp(4px,1cqw,12px)}',
-    '.cdp-surface .ab2-hero-eyebrow{font-family:Cinzel,Georgia,serif;font-size:clamp(7px,1cqw,12px);letter-spacing:.32em;text-transform:uppercase;color:#A58459;margin-bottom:clamp(3px,.7cqw,8px)}',
-    '.cdp-surface .ab2-hero-title{font-family:Cinzel,Georgia,serif;font-weight:500;font-size:clamp(14px,3.4cqw,46px);letter-spacing:.1em;text-transform:uppercase;color:#C9A050;line-height:1.15;margin:0}',
-    '.cdp-surface .ab2-hero-subtitle{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:clamp(12px,2.6cqw,36px);color:#D9C087;line-height:1.25;margin-top:.3cqw}',
-    '@media(max-width:480px){.cdp-surface .ab2-hero-overlay{padding:44% 22% 0}}',
+    '.cdp-surface .ab2-hero-overlay{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32%;pointer-events:none;text-align:center}',
+    '.cdp-surface .ab2-hero-cipher{width:6.2cqw;min-width:38px;max-width:80px;height:auto;display:block;margin-bottom:1.4cqw}',
+    '.cdp-surface .ab2-hero-eyebrow{font-family:Cinzel,Georgia,serif;font-weight:400;font-size:clamp(8px,1.05cqw,14px);letter-spacing:.32em;text-transform:uppercase;color:#A58459;margin-bottom:1.4cqw;line-height:1.4}',
+    '.cdp-surface .ab2-hero-title{font-family:Cinzel,Georgia,serif;font-weight:500;font-size:clamp(17px,3.6cqw,52px);letter-spacing:.1em;text-transform:uppercase;color:#C9A050;line-height:1.15;margin:0}',
+    '.cdp-surface .ab2-hero-subtitle{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(14px,2.8cqw,40px);color:#D9C087;line-height:1.25;margin:.4cqw 0 0}',
     '.cdp-surface .ab2-eyebrow{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold,#C9A050);text-align:center;margin-bottom:8px}',
     '.cdp-surface .ab2-title{font-family:Cinzel,Georgia,serif;font-size:clamp(20px,4vw,30px);font-weight:500;letter-spacing:.06em;color:var(--text-light,#F0E6CC);text-align:center;margin:0 0 12px;line-height:1.2}',
     '.cdp-surface .ab2-sub{font-family:"EB Garamond",Georgia,serif;font-size:17px;line-height:1.65;color:var(--text-dim,#D4C8AE);text-align:center;margin:0 0 28px}',
@@ -236,13 +235,24 @@ export function openAbout(o: OpenAboutOptions): AboutHandle {
   heroWrap.appendChild(heroImg);
   const heroOverlay = el('div', { class: 'ab2-hero-overlay' });
   heroOverlay.innerHTML = [
-    '<svg class="ab2-hero-cipher" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
-    '<circle cx="22" cy="18" r="13" fill="none" stroke="#C9A050" stroke-width="1.4"/>',
-    '<circle cx="38" cy="18" r="13" fill="none" stroke="#C9A050" stroke-width="1.4"/>',
+    '<svg class="ab2-hero-cipher" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid meet">',
+    '<circle cx="22" cy="18" r="13" fill="none" stroke="#C9A050" stroke-width="1.4" stroke-linecap="round"/>',
+    '<circle cx="38" cy="18" r="13" fill="none" stroke="#C9A050" stroke-width="1.4" stroke-linecap="round"/>',
     '</svg>',
     '<div class="ab2-hero-eyebrow">Your Personal Higher Intelligence</div>',
     '<div class="ab2-hero-title">Two Telescopes.</div>',
     '<div class="ab2-hero-subtitle">Pointed at the same sky.</div>',
+    '<svg class="ab2-hero-ornament" viewBox="0 0 320 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="none" style="width:75%;max-width:340px;height:auto;display:block;margin:1.6cqw auto .6cqw">',
+    '<line x1="6" y1="6" x2="118" y2="6" stroke="#C9A050" stroke-width="0.8"/>',
+    '<circle cx="124" cy="6" r="1" fill="#C9A050"/>',
+    '<polygon points="135,3 140,6 135,9 130,6" fill="none" stroke="#C9A050" stroke-width="0.8"/>',
+    '<polygon points="158,1 168,6 158,11 148,6" fill="none" stroke="#C9A050" stroke-width="0.9"/>',
+    '<polygon points="161,4 165,6 161,8 157,6" fill="#C9A050"/>',
+    '<polygon points="185,3 190,6 185,9 180,6" fill="none" stroke="#C9A050" stroke-width="0.8"/>',
+    '<circle cx="196" cy="6" r="1" fill="#C9A050"/>',
+    '<line x1="202" y1="6" x2="314" y2="6" stroke="#C9A050" stroke-width="0.8"/>',
+    '</svg>',
+    '<div class="ab2-hero-hint" style="font-family:Cinzel,Georgia,serif;font-size:clamp(7px,.85cqw,11px);letter-spacing:.32em;text-transform:uppercase;color:rgba(165,132,89,0.7);margin-top:.4cqw">Tap to learn how they meet</div>',
   ].join('');
   heroWrap.appendChild(heroOverlay);
   wrap.appendChild(heroWrap);
