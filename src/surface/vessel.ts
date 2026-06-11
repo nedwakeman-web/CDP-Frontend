@@ -230,7 +230,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .meet-sub { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
 .cdp-surface .compass-svg { width:auto; max-width:clamp(380px, 54vw, 640px); max-height:78vh; aspect-ratio:1232 / 1536; height:auto; display:block; margin:2px auto 4px; }
 .cdp-surface .compass-fallback { width:min(46vmin, 320px); height:min(46vmin, 320px); margin:6px auto 16px; }
-.cdp-surface .ask { width:min(82vw, 430px); margin:16px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:10px; padding:2px 6px 2px 12px; transition:border-color .2s; }
+.cdp-surface .ask { width:min(740px,90vw); margin:16px auto 0; background:var(--raised); border:1px solid var(--gold-line); border-radius:10px; padding:2px 6px 2px 12px; transition:border-color .2s; }
 .cdp-surface .ask:focus-within { border-color:var(--gold); }
 .cdp-surface .ask-input { width:100%; box-sizing:border-box; padding:6px 4px 2px; min-height:22px; max-height:200px; overflow-y:auto; resize:none; background:transparent; border:none; color:var(--text-light); font-family:Georgia, serif; font-size:14px; line-height:1.5; outline:none; display:block; }
 .cdp-surface .ask-input::placeholder { color:var(--text-dim); }
@@ -462,13 +462,11 @@ html, body { margin:0; background:#031831; }
   .cdp-surface .brand { font-size:12px; letter-spacing:1px; line-height:1.15; }
   .cdp-surface .compass-svg { width:100%; max-width:100%; max-height:80vh; margin:2px auto 8px; }
   .cdp-surface .meet-line { font-size:16px; max-width:90vw; }
-  .cdp-surface .ask { width:min(90vw, 430px); }
+  .cdp-surface .ask { width:min(740px,94vw); }
   .cdp-surface .ask-input { font-size:14px; }
   .cdp-surface .voice-toggle { max-width:92vw; }
   /* phone: the two framed engravings sit in the top corners, landscape and small */
-  .cdp-surface .handle { display:block; width:96px; height:72px; padding:0; top:58px; box-shadow:0 5px 14px rgba(0,0,0,0.50); }
-  .cdp-surface .handle-left { left:8px; width:72px; }
-  .cdp-surface .handle-right { right:8px; }
+  .cdp-surface .handle { display:none !important; }
   .cdp-surface .home-openers { display:none; }
   /* keep the cycling line clear of the corner doorways by wrapping it into the centre */
   .cdp-surface .voice-cycle { white-space:normal; letter-spacing:0.14em; font-size:9px; line-height:1.3; min-height:auto; padding:0 104px; }
