@@ -9,21 +9,38 @@
  * it, and falls back to text where it does not. Save as image renders a branded
  * card. Save as PDF prints the cleaned content through a hidden frame.
  *
- * This version brings the vessel to parity with the monolith Track A and adds
- * the Track B hook:
- *   1. File-based native share. navigator.share now receives the rendered PNG as
- *      a file where canShare with files is supported, not text alone.
- *   2. Three formats: square 1080, portrait 1080 by 1350, story 1080 by 1920.
- *   3. Canonical palette throughout the card.
- *   4. Optional Track B link. When a target carries a type, the share path first
- *      asks the server for a per-reading link with its own Open Graph image, so
- *      the post unfurls the card. Until a link exists, the homepage stands.
+ * Changes in this version:
+ *   1. ShareTarget gains an optional `cardBody` field. Callers supply a curated
+ *      excerpt (kicker, synthesis paragraph, chips) for the rendered card.
+ *      When absent the card falls back to the first paragraph of bodyTextOf(),
+ *      which is better than the previous whole-DOM dump.
+ *   2. renderCardSVG is redesigned: gold top rule, kicker label, title headline,
+ *      synthesis body capped at a readable number of lines, chips row, footer.
+ *      The card is a teaser, not a transcript.
+ *   3. The PDF print stylesheet is rewritten to strip flex/grid layout from the
+ *      reading node so pages break cleanly without white gaps.
+ *   4. Copy now uses bodyTextOf on a cleanClone, which already strips chrome.
+ *      For best results callers should supply t.text() returning a curated
+ *      plain-text version (same pattern as cardBody for the card).
  *
  * House style holds in code, comments, and visible strings: no em dashes, no en
  * dashes, no exclamation marks, no spaced hyphen patterns.
  */
 
 export type ShareFormat = 'square' | 'portrait' | 'story';
+
+/** Structured content for the rendered share card. Supply this for best results.
+ *  All fields are optional; the renderer degrades gracefully when they are absent. */
+export interface CardBody {
+  /** Short date or context line, e.g. "Thursday, 11 June 2026". */
+  kicker?: string;
+  /** Primary synthesis paragraph. Keep to 3 to 5 sentences max. */
+  synthesis: string;
+  /** Short descriptor chips, e.g. ["Universal Day 9", "Waning Crescent", "Kin 184"]. */
+  chips?: string[];
+  /** Voice label shown as a small pill: "Tradition", "Science", or "Everyday". */
+  voice?: string;
+}
 
 export interface ShareTarget {
   /** A short title for the share sheet, the image, and the printed page. */
@@ -32,22 +49,25 @@ export interface ShareTarget {
   text: () => string;
   /** The element to share, read at the moment of action so it is current. */
   node: () => HTMLElement | null;
+  /** Curated card content. When supplied, the rendered image shows this instead
+   *  of a DOM text extraction. Strongly recommended for reading surfaces. */
+  cardBody?: CardBody;
   /** Optional. When set, the share path can mint a Track B link of this type so
    *  the post unfurls a per-reading card. One of daily, year, compatibility,
    *  response. */
   type?: 'daily' | 'year' | 'compatibility' | 'response';
-  /** Optional one-line description for the unfurl card. */
+  /** Optional one-line description for the Track B unfurl card. */
   description?: string;
-  /** Optional voice tag carried on the link. */
+  /** Optional voice tag carried on the Track B link record. */
   voice?: string;
 }
 
 const HOMEPAGE = 'https://cosmicdailyplanner.com';
 
 const FORMATS: Record<ShareFormat, { w: number; h: number }> = {
-  square: { w: 1080, h: 1080 },
-  portrait: { w: 1080, h: 1350 },
-  story: { w: 1080, h: 1920 },
+  square:   { w: 1080, h: 1080  },
+  portrait: { w: 1080, h: 1350  },
+  story:    { w: 1080, h: 1920  },
 };
 
 type Attrs = Record<string, string>;
@@ -120,37 +140,60 @@ function bodyTextOf(t: ShareTarget): string {
   return clone ? domToText(clone) : t.text();
 }
 
+/** First paragraph of the full body text. Used as card fallback when cardBody
+ *  is not supplied. Stops at the first double newline. */
+function firstParagraphOf(t: ShareTarget): string {
+  const full = bodyTextOf(t);
+  const cut = full.indexOf('\n\n');
+  return cut > 0 ? full.slice(0, cut).trim() : full.slice(0, 400).trim();
+}
+
 function cleanText(t: ShareTarget): string {
-  return t.title + '\n\n' + bodyTextOf(t);
+  /* For Copy, prefer the cardBody synthesis if available, falling back to the
+   * first paragraph. This gives a focused, shareable excerpt rather than the
+   * entire reading transcript. */
+  if (t.cardBody) {
+    const parts: string[] = [t.title];
+    if (t.cardBody.kicker) parts.push(t.cardBody.kicker);
+    parts.push(t.cardBody.synthesis);
+    if (t.cardBody.chips && t.cardBody.chips.length) {
+      parts.push(t.cardBody.chips.join('   .   '));
+    }
+    parts.push(HOMEPAGE);
+    return parts.join('\n\n');
+  }
+  return t.title + '\n\n' + firstParagraphOf(t) + '\n\n' + HOMEPAGE;
 }
 
-const STYLE_ID = 'cdp-share-style';
-function ensureStyle(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const css = [
-    '.cdp-surface .share-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}',
-    '.cdp-surface .share-btn{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:7px 13px;border-radius:2px;cursor:pointer}',
-    '.cdp-surface .share-btn:hover{border-color:var(--gold,#C9A050)}',
-    '.cdp-surface .share-fmt{display:flex;gap:6px;margin-left:auto}',
-    '.cdp-surface .share-fmt button{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-dim,#D4C8AE);font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.06em;padding:6px 10px;border-radius:2px;cursor:pointer}',
-    '.cdp-surface .share-fmt button.on{border-color:var(--gold,#C9A050);color:var(--gold,#C9A050)}',
-  ].join('');
-  const style = el('style', { id: STYLE_ID });
-  style.textContent = css;
-  document.head.appendChild(style);
-}
-
-/* Branded print stylesheet, paper friendly, the cleaned content only. */
+/* --------------------------------------------------------------------------
+ * PDF print stylesheet.
+ * Strips flex/grid from the reading so sections stack vertically without the
+ * white-gap problem caused by fixed heights in the app stylesheet. Georgia
+ * body, Helvetica headings, neutral palette suitable for printing.
+ * -------------------------------------------------------------------------- */
 const PRINT_CSS = [
-  '*{box-sizing:border-box}',
-  'body{font-family:Georgia,\'Times New Roman\',serif;color:#1A1A1A;margin:30px;line-height:1.7;max-width:720px}',
-  'h1{font-family:Georgia,serif;color:#2C3E5A;font-size:26px;border-bottom:2px solid #B8942A;padding-bottom:10px;margin:0 0 20px}',
-  'h2,h3{font-family:Georgia,serif;color:#2C3E5A}',
-  '.cal-det-date,.rdg-headline,.cv-bd-head,.yr-mv-title{font-size:19px;color:#2C3E5A;margin:0 0 12px}',
-  '.cal-det-label,.rdg-title,.yr-section,.pf-section{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8A6D2A}',
-  '.cal-det-row{padding:6px 0;border-top:1px solid #E2DAC8}',
-  'p,.rdg-p,.cal-det-val,.yr-desc{font-size:13px;margin:0 0 10px}',
-].join('');
+  '*, *::before, *::after { box-sizing: border-box; }',
+  'body { font-family: Georgia, "Times New Roman", serif; color: #1A1A1A; margin: 28px 32px; line-height: 1.65; max-width: 680px; }',
+  'h1 { font-family: Helvetica, Arial, sans-serif; color: #2C3E5A; font-size: 22px; border-bottom: 2px solid #B8942A; padding-bottom: 8px; margin: 0 0 18px; }',
+  'h2, h3 { font-family: Helvetica, Arial, sans-serif; color: #2C3E5A; margin: 20px 0 6px; }',
+  /* Strip flex and grid from every container so sections flow normally. */
+  'div, section, article, aside, header, footer, main, nav { display: block !important; float: none !important; }',
+  /* Remove fixed and absolute heights that cause white gaps. */
+  '* { height: auto !important; min-height: 0 !important; max-height: none !important; }',
+  /* Remove fixed widths so text reflows. */
+  '* { width: auto !important; min-width: 0 !important; max-width: 100% !important; }',
+  /* Collapse position. */
+  '* { position: static !important; }',
+  'p { margin: 0 0 10px; font-size: 12px; }',
+  '.rdg-headline, .cv-bd-head, .yr-mv-title, .rdg-title, .yr-section, .pf-section, [class*="-head"], [class*="-title"] { font-family: Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #2C3E5A; margin: 18px 0 4px; }',
+  '[class*="-label"], [class*="-l "], [class*="label"] { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #8A6D2A; }',
+  '[class*="cite"], [class*="ref"], [class*="source"] { font-size: 10px; color: #666; font-style: italic; }',
+  'a { color: inherit; text-decoration: none; }',
+  /* Hide interactive chrome that has no meaning on paper. */
+  'button, input, select, textarea, [class*="cue"], [class*="bridge"], [class*="-tap"], [class*="-ask"], [class*="tapdot"], [class*="taplabel"], [class*="share"], [class*="nav"], [class*="toggle"] { display: none !important; }',
+  /* Avoid page breaks inside reading sections. */
+  '[class*="-section"], [class*="-row"], [class*="-block"] { page-break-inside: avoid; break-inside: avoid; padding: 6px 0; border-top: 1px solid #E2DAC8; }',
+].join('\n');
 
 function printNode(node: HTMLElement, title: string): void {
   const frame = document.createElement('iframe');
@@ -180,7 +223,7 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function wrap(line: string, max: number): string[] {
+function wrapSVG(line: string, max: number): string[] {
   if (line.length <= max) return [line];
   const words = line.split(' ');
   const out: string[] = [];
@@ -193,59 +236,122 @@ function wrap(line: string, max: number): string[] {
   return out;
 }
 
-/*
- * The branded card, dark ground and gold, rendered to PNG at one of the three
- * social formats with no library. The body is wrapped and laid out from a top
- * offset; if it overflows the fixed height it is clipped to the lines that fit
- * and the last line gets an ellipsis, since a share card is a teaser, not the
- * whole reading. The palette is canonical.
- */
-function renderCardSVG(title: string, body: string, format: ShareFormat): string {
+/* --------------------------------------------------------------------------
+ * renderCardSVG
+ *
+ * Renders a branded share card. When cardBody is provided it uses a structured
+ * layout: voice pill, kicker, title headline, synthesis body, chips row, footer.
+ * When cardBody is absent it falls back to the first paragraph of body text.
+ *
+ * Canonical palette: background #031831, gold #C9A050, goldSoft #E8C878,
+ * textLight #F0E6CC, textDim #D4C8AE, teal #81CDB6.
+ * -------------------------------------------------------------------------- */
+function renderCardSVG(title: string, body: string, format: ShareFormat, cb?: CardBody): string {
   const dim = FORMATS[format];
   const W = dim.w;
   const H = dim.h;
-  const padX = 84;
-  const titleSize = 52;
-  const bodySize = 32;
-  const bodyLead = 46;
-  const charsPerLine = Math.floor((W - padX * 2) / (bodySize * 0.5));
+  const padX = 80;
+  const maxW = W - padX * 2;
 
-  const titleLines = wrap(title, Math.floor((W - padX * 2) / (titleSize * 0.52)));
+  /* Font sizes scaled slightly per format to maximise use of space. */
+  const isStory = format === 'story';
+  const kickerSize = isStory ? 22 : 20;
+  const titleSize  = isStory ? 58 : 52;
+  const bodySize   = isStory ? 34 : 31;
+  const bodyLead   = Math.round(bodySize * 1.52);
+  const charsPerLine = Math.floor(maxW / (bodySize * 0.53));
+
   const rows: string[] = [];
-  let y = 150;
-  for (const tl of titleLines) {
-    rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia, serif" font-size="' + titleSize + '" fill="#E8C878">' + xmlEscape(tl) + '</text>');
-    y += titleSize + 10;
-  }
-  y += 24;
 
-  const footerY = H - 90;
-  const maxY = footerY - bodyLead;
-  const bodyLines: string[] = [];
-  for (const raw of body.split('\n')) {
-    const ln = raw.trim();
-    if (!ln) { bodyLines.push(''); continue; }
-    for (const w of wrap(ln, charsPerLine)) bodyLines.push(w);
+  /* --- background --- */
+  rows.push('<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0A1C38"/><stop offset="100%" stop-color="#06101F"/></linearGradient></defs>');
+  rows.push('<rect width="' + W + '" height="' + H + '" fill="url(#bg)"/>');
+
+  /* --- top gold rule --- */
+  rows.push('<rect x="' + padX + '" y="56" width="64" height="3" fill="#C9A050"/>');
+
+  let y = 110;
+
+  /* --- voice pill (if cardBody supplies it) --- */
+  const voiceLabel = cb ? (cb.voice || '') : '';
+  if (voiceLabel) {
+    const pillText = voiceLabel.toUpperCase();
+    /* Approximate pill width: each char ~8px at size 16 + 24px padding */
+    const pillW = pillText.length * 8 + 28;
+    rows.push('<rect x="' + padX + '" y="' + y + '" width="' + pillW + '" height="26" rx="13" fill="rgba(201,160,80,0.14)"/>');
+    rows.push('<text x="' + (padX + 14) + '" y="' + (y + 18) + '" font-family="Helvetica,Arial,sans-serif" font-size="15" letter-spacing="1.8" fill="#C9A050">' + xmlEscape(pillText) + '</text>');
+    y += 52;
+  } else {
+    y += 16;
   }
-  for (let i = 0; i < bodyLines.length; i++) {
-    const l = bodyLines[i];
-    if (l === '') { y += Math.round(bodyLead * 0.5); continue; }
-    if (y > maxY) {
-      const last = rows.length ? rows[rows.length - 1] : '';
-      void last;
-      rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia, serif" font-size="' + bodySize + '" fill="#F0E6CC">' + xmlEscape(wrap(l, charsPerLine - 1)[0] + '\u2026') + '</text>');
+
+  /* --- kicker --- */
+  const kickerText = cb ? (cb.kicker || '') : '';
+  if (kickerText) {
+    rows.push('<text x="' + padX + '" y="' + y + '" font-family="Helvetica,Arial,sans-serif" font-size="' + kickerSize + '" letter-spacing="2.5" fill="rgba(201,160,80,0.75)">' + xmlEscape(kickerText.toUpperCase()) + '</text>');
+    y += kickerSize + 22;
+  }
+
+  /* --- title --- */
+  const titleLines = wrapSVG(title, Math.floor(maxW / (titleSize * 0.52)));
+  for (let i = 0; i < Math.min(titleLines.length, 3); i++) {
+    rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia,serif" font-size="' + titleSize + '" fill="#E8C878">' + xmlEscape(titleLines[i]) + '</text>');
+    y += Math.round(titleSize * 1.12);
+  }
+  y += 28;
+
+  /* --- thin separator rule under title --- */
+  rows.push('<rect x="' + padX + '" y="' + y + '" width="' + maxW + '" height="1" fill="rgba(201,160,80,0.22)"/>');
+  y += 28;
+
+  /* --- body synthesis --- */
+  const synth = cb ? cb.synthesis : body;
+  const footerReserve = 120;
+  const maxBodyY = H - footerReserve;
+
+  const rawLines: string[] = [];
+  for (const raw of synth.split('\n')) {
+    const ln = raw.trim();
+    if (!ln) continue;
+    for (const w of wrapSVG(ln, charsPerLine)) rawLines.push(w);
+  }
+
+  for (let i = 0; i < rawLines.length; i++) {
+    if (y + bodyLead > maxBodyY) {
+      /* Truncate at sentence boundary if possible, then append ellipsis. */
+      const prev = rawLines[i - 1] || '';
+      const lastStop = Math.max(prev.lastIndexOf('. '), prev.lastIndexOf('? '), prev.lastIndexOf('; '));
+      if (lastStop > 0) {
+        /* Replace the last row with the truncated version. */
+        rows[rows.length - 1] = '<text x="' + padX + '" y="' + (y - bodyLead) + '" font-family="Georgia,serif" font-size="' + bodySize + '" fill="#F0E6CC">' + xmlEscape(prev.slice(0, lastStop + 1)) + '</text>';
+      } else {
+        rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia,serif" font-size="' + bodySize + '" fill="#D4C8AE">' + xmlEscape(rawLines[i].slice(0, charsPerLine - 2) + '\u2026') + '</text>');
+      }
       break;
     }
-    rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia, serif" font-size="' + bodySize + '" fill="#F0E6CC">' + xmlEscape(l) + '</text>');
+    rows.push('<text x="' + padX + '" y="' + y + '" font-family="Georgia,serif" font-size="' + bodySize + '" fill="#F0E6CC">' + xmlEscape(rawLines[i]) + '</text>');
     y += bodyLead;
   }
 
+  /* --- chips row --- */
+  const chips = cb && cb.chips ? cb.chips : [];
+  if (chips.length) {
+    const chipsY = H - 96;
+    const chipText = chips.join('   \u00B7   ');
+    rows.push('<text x="' + padX + '" y="' + chipsY + '" font-family="Helvetica,Arial,sans-serif" font-size="19" fill="#D4C8AE">' + xmlEscape(chipText) + '</text>');
+  }
+
+  /* --- footer rule --- */
+  const ruleY = H - 72;
+  rows.push('<rect x="' + padX + '" y="' + ruleY + '" width="64" height="2" fill="rgba(201,160,80,0.55)"/>');
+
+  /* --- wordmark and tagline --- */
+  const footerY = H - 46;
+  rows.push('<text x="' + padX + '" y="' + footerY + '" font-family="Helvetica,Arial,sans-serif" font-size="20" letter-spacing="2.8" fill="#9E8A55">COSMIC DAILY PLANNER</text>');
+  rows.push('<text x="' + padX + '" y="' + (footerY + 28) + '" font-family="Georgia,serif" font-size="18" fill="#81CDB6">Two telescopes, one sky.</text>');
+
   return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
-    + '<rect width="' + W + '" height="' + H + '" fill="#031831"/>'
-    + '<rect width="' + W + '" height="6" fill="#C9A050"/>'
     + rows.join('')
-    + '<text x="' + padX + '" y="' + footerY + '" font-family="Georgia, serif" font-size="22" letter-spacing="3" fill="#9E8A55">COSMIC DAILY PLANNER</text>'
-    + '<text x="' + padX + '" y="' + (footerY + 34) + '" font-family="Georgia, serif" font-size="20" fill="#81CDB6">Two telescopes, one sky.</text>'
     + '</svg>';
 }
 
@@ -253,10 +359,9 @@ function svgToPngBlob(svg: string, w: number, h: number): Promise<Blob | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const scale = 1;
       const canvas = document.createElement('canvas');
-      canvas.width = w * scale;
-      canvas.height = h * scale;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(null); return; }
       ctx.drawImage(img, 0, 0);
@@ -270,7 +375,8 @@ function svgToPngBlob(svg: string, w: number, h: number): Promise<Blob | null> {
 /** Render the branded card to a PNG blob at the chosen format. */
 export function renderToBlob(t: ShareTarget, format: ShareFormat = 'portrait'): Promise<Blob | null> {
   const dim = FORMATS[format];
-  const svg = renderCardSVG(t.title, bodyTextOf(t), format);
+  /* Pass cardBody through so the renderer can use the structured layout. */
+  const svg = renderCardSVG(t.title, firstParagraphOf(t), format, t.cardBody);
   return svgToPngBlob(svg, dim.w, dim.h);
 }
 
@@ -369,7 +475,21 @@ async function shareTarget(t: ShareTarget, format: ShareFormat): Promise<void> {
 
 /** Build the share control bar for a target. Returns a row to drop into a surface. */
 export function shareControls(t: ShareTarget): HTMLElement {
-  ensureStyle();
+  const STYLE_ID = 'cdp-share-style';
+  if (!document.getElementById(STYLE_ID)) {
+    const css = [
+      '.cdp-surface .share-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}',
+      '.cdp-surface .share-btn{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--gold,#C9A050);font-family:\'EB Garamond\',Georgia,serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:7px 13px;border-radius:2px;cursor:pointer}',
+      '.cdp-surface .share-btn:hover{border-color:var(--gold,#C9A050)}',
+      '.cdp-surface .share-fmt{display:flex;gap:6px;margin-left:auto}',
+      '.cdp-surface .share-fmt button{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-dim,#D4C8AE);font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.06em;padding:6px 10px;border-radius:2px;cursor:pointer}',
+      '.cdp-surface .share-fmt button.on{border-color:var(--gold,#C9A050);color:var(--gold,#C9A050)}',
+    ].join('');
+    const style = el('style', { id: STYLE_ID });
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
   const bar = el('div', { class: 'share-bar' });
   let format: ShareFormat = 'portrait';
 
