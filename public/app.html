@@ -27,8 +27,30 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Plausible analytics -->
-<script defer data-domain="cosmicdailyplanner.com" src="https://plausible.io/js/script.js"></script>
-<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+<!-- Privacy-friendly analytics by Plausible (environment-aware) -->
+<script>
+  (function() {
+    var scripts = {
+      'cosmicdailyplanner.com':       'pa-bCriuHr3E0OPvkbVvX3XP.js',
+      'alpha.cosmicdailyplanner.com': 'pa-vNdB8VDbEeDu16hSisFnM.js',
+      'beta.cosmicdailyplanner.com':  'pa--sAFwXLoQymHenGgMIHlw.js'
+    };
+    var id = scripts[window.location.hostname];
+    if (id) {
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://plausible.io/js/' + id;
+      document.head.appendChild(s);
+    }
+    window.plausible = window.plausible || function() {
+      (window.plausible.q = window.plausible.q || []).push(arguments);
+    };
+    window.plausible.init = window.plausible.init || function(i) {
+      window.plausible.o = i || {};
+    };
+    window.plausible.init();
+  })();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
