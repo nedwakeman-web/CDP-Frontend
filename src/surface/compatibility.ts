@@ -410,7 +410,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
   /* ---- the in place Compass drawer, opened over the surface --------------- */
   let ddOpen = false;
   function openAsk(prompt: string): void {
-    if (ddOpen || !o.composeAsk) return;
+    if (ddOpen || typeof o.composeAsk !== 'function') return;
     ddOpen = true;
     const scrim = el('div', { class: 'cm-dd-scrim' });
     const panel = el('div', { class: 'cm-dd', role: 'dialog', 'aria-label': 'Ask the Oracle' });
@@ -434,7 +434,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     }).catch(() => { ans.textContent = 'The Oracle could not be reached just now. Please try again in a moment.'; });
   }
   function tappable(node: HTMLElement, prompt: string): void {
-    if (!o.composeAsk) return;
+    if (typeof o.composeAsk !== 'function') return;
     node.classList.add('cm-tap');
     node.addEventListener('click', () => { openAsk(prompt); });
   }
@@ -502,7 +502,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     const lpCard = el('div', { class: 'cm-card' });
     const lpTitle = el('div', { class: 'cm-title' });
     lpTitle.appendChild(el('span', {}, 'Life Path cross analysis'));
-    if (o.composeAsk) lpTitle.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
+    if (typeof o.composeAsk === 'function') lpTitle.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
     lpCard.appendChild(lpTitle);
     lpCard.appendChild(el('div', { class: 'cm-big' + (freq.isMaster ? ' master' : '') }, lpA.value + ' and ' + lpB.value + ' meet at ' + freq.value));
     lpCard.appendChild(el('div', { class: 'cm-gloss' }, 'The combined frequency is ' + freq.value + ', ' + numName(freq.value) + '. This is the symbolic Pythagorean signature of the pair, master numbers preserved.'));
@@ -515,7 +515,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     const dsCard = el('div', { class: 'cm-card' });
     const dsTitle = el('div', { class: 'cm-title' });
     dsTitle.appendChild(el('span', {}, 'Dreamspell combined Kin'));
-    if (o.composeAsk) dsTitle.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
+    if (typeof o.composeAsk === 'function') dsTitle.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
     dsCard.appendChild(dsTitle);
     dsCard.appendChild(el('div', { class: 'cm-sub' }, kinFull(ck)));
     const colourA = kinDescriptor(pa.birthDate as string).colour;
@@ -591,14 +591,14 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         dcols.appendChild(col);
       });
       computed.appendChild(dcols);
-      if (o.composeAsk) {
+      if (typeof o.composeAsk === 'function') {
         // Free-text context field: add anything specific about this moment or this question
         const addCtxWrap = el('div', { class: 'cm-addctx-wrap' });
         addCtxWrap.appendChild(el('div', { class: 'cm-addctx-label' }, 'Add context or explore something specific'));
         const addCtxInput = el('textarea', { class: 'cm-addctx-input', rows: '2',
           placeholder: 'What are you curious about in this connection right now? Add anything specific to this moment, or leave blank.' }) as HTMLTextAreaElement;
         addCtxWrap.appendChild(addCtxInput);
-        if (o.composeAsk) {
+        if (typeof o.composeAsk === 'function') {
           const exploreBtn = el('button', { type: 'button', class: 'cm-bridge cm-explore-btn' }, 'Explore this now');
           exploreBtn.addEventListener('click', () => {
             const extra = addCtxInput.value.trim();
@@ -646,7 +646,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       pe.innerHTML = inlineMarkdown(p);
       card.appendChild(pe);
     }
-    if (o.composeAsk) tappable(card, 'Say more to ' + name + ' specifically about this connection.');
+    if (typeof o.composeAsk === 'function') tappable(card, 'Say more to ' + name + ' specifically about this connection.');
     attachTap(card, { framework: 'personal', section: 'for-' + name.toLowerCase() }, 'this landed');
     content.appendChild(card);
   }
@@ -715,7 +715,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       content.appendChild(hl);
     }
     strCard('The synthesis', r.synthesis, 'Read me the synthesis of ' + nameA + ' and ' + nameB + ' in more depth.', { framework: 'convergence', section: 'synthesis' });
-    if (o.composeAsk) {
+    if (typeof o.composeAsk === 'function') {
       const otherLens: Lens = o.getLens() === 'science' ? 'tradition' : 'science';
       const otherWord = otherLens === 'science' ? 'science' : 'symbolic';
       const bridge = el('button', { type: 'button', class: 'cm-bridge' }, 'Through the other lens');
@@ -912,7 +912,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       clearInterval(progTimer);
       progressWrap.style.display = 'none';
       console.error('[compatibility] /api/compatibility failed, falling back to composeAsk. Error:', _e);
-      if (o.composeAsk) {
+      if (typeof o.composeAsk === 'function') {
         status.textContent = 'The direct endpoint could not be reached; composing through the Oracle instead.';
         try {
           const fallbackText = await o.composeAsk(
