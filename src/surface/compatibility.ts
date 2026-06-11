@@ -51,6 +51,14 @@ function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
   return node;
 }
 function clear(node: HTMLElement): void { while (node.firstChild) node.removeChild(node.firstChild); }
+/** Convert inline markdown to safe HTML. No block elements, no user-supplied tags. */
+function inlineMarkdown(s: string): string {
+  return s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*([^*<>]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*<>]+)\*/g, '<em>$1</em>');
+}
+
 function paragraphs(text: unknown): string[] {
   const raw = String(text == null ? '' : text)
     .replace(/^#{1,3}\s+/gm, '')          // strip ## headings
@@ -202,22 +210,24 @@ function ensureStyle(): void {
     '.cdp-surface .cm-go{background:var(--gold,#C9A050);color:#1A1208;border:none;border-radius:3px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;cursor:pointer;margin-top:4px}',
 
     '.cdp-surface .cm-headline{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;line-height:1.45;color:var(--text-light,#F0E6CC);margin:18px 0}',
-    '.cdp-surface .cm-seclabel{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:22px 0 10px;text-align:center}',
+    '.cdp-surface .cm-seclabel{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin:28px 0 14px;text-align:center;display:flex;align-items:center;gap:12px}.cdp-surface .cm-seclabel::before,.cdp-surface .cm-seclabel::after{content:\'\';flex:1;height:1px;background:rgba(201,160,80,.12)}',
     '.cdp-surface .cm-cols{display:flex;gap:12px;flex-wrap:wrap}',
     '.cdp-surface .cm-col{flex:1;min-width:200px;border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:var(--navy,#0D1E33);padding:14px 16px}',
-    '.cdp-surface .cm-name{font-family:\'EB Garamond\',Georgia,serif;font-size:18px;color:var(--gold,#C9A050);margin-bottom:8px}',
+    '.cdp-surface .cm-name{font-family:\'EB Garamond\',Georgia,serif;font-size:20px;color:var(--gold,#C9A050);margin-bottom:12px;font-style:italic}',
     '.cdp-surface .cm-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(191,163,99,.1)}',
     '.cdp-surface .cm-row:last-child{border-bottom:none}',
-    '.cdp-surface .cm-rl{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint,#9E9282);align-self:center}',
-    '.cdp-surface .cm-rv{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--text-light,#F0E6CC);text-align:right}',
+    '.cdp-surface .cm-rl{font-family:Cinzel,Georgia,serif;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint,#9E9282);align-self:center}',
+    '.cdp-surface .cm-rv{font-family:\'EB Garamond\',Georgia,serif;font-size:15.5px;color:var(--text-light,#F0E6CC);text-align:right}',
     '.cdp-surface .cm-rv.master{color:var(--master,#C8A0FF)}',
-    '.cdp-surface .cm-card{border:1px solid var(--gold-line,#3A3320);border-radius:4px;background:var(--navy,#0D1E33);padding:13px 15px;margin-bottom:11px}',
+    '.cdp-surface .cm-card{border:1px solid var(--gold-line,rgba(201,160,80,.15));border-radius:4px;background:var(--navy,#0D1E33);padding:18px 20px;margin-bottom:14px}',
     '.cdp-surface .cm-tap{cursor:pointer}',
-    '.cdp-surface .cm-title{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}',
+    '.cdp-surface .cm-title{font-family:Cinzel,Georgia,serif;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold,#C9A050);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(201,160,80,.12)}',
     '.cdp-surface .cm-ask{font-family:\'EB Garamond\',Georgia,serif;font-size:12px;color:var(--teal,#81CDB6)}',
-    '.cdp-surface .cm-sub{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--gold-soft,#E8C878);margin-bottom:6px}',
-    '.cdp-surface .cm-p{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC);margin:0 0 10px}',
+    '.cdp-surface .cm-sub{font-family:\'EB Garamond\',Georgia,serif;font-style:italic;font-size:18px;line-height:1.4;color:var(--gold-soft,#E8C878);margin-bottom:12px}',
+    '.cdp-surface .cm-p{font-family:"EB Garamond",Georgia,serif;font-size:16px;line-height:1.8;color:var(--text-light,#F0E6CC);margin:0 0 14px}',
     '.cdp-surface .cm-p:last-child{margin-bottom:0}',
+    '.cdp-surface .cm-p em{color:var(--gold-soft,#E8C878);font-style:italic}',
+    '.cdp-surface .cm-p strong{color:var(--text-light,#F0E6CC);font-weight:500}',
     '.cdp-surface .cm-big{font-family:\'EB Garamond\',Georgia,serif;font-size:22px;color:var(--gold,#C9A050)}',
     '.cdp-surface .cm-big.master{color:var(--master,#C8A0FF)}',
     '.cdp-surface .cm-gloss{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:var(--text-muted,#D4C8AE);margin-top:4px}',
@@ -270,6 +280,11 @@ function ensureStyle(): void {
     '.cdp-surface .cm-dd-x{background:none;border:none;color:var(--text-muted,#D4C8AE);font-size:20px;cursor:pointer}',
     '.cdp-surface .cm-dd-q{font-family:\'EB Garamond\',Georgia,serif;font-size:15px;color:var(--gold-soft,#E8C878);margin:0 0 8px}',
     '.cdp-surface .cm-dd-a{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:var(--text-light,#F0E6CC)}',
+    '.cdp-surface .cm-addctx-wrap{margin:14px 0 10px;padding:14px 16px;border:1px solid rgba(201,160,80,.12);border-radius:4px;background:rgba(18,36,64,.4)}',
+    '.cdp-surface .cm-addctx-label{font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint,#9E9282);margin-bottom:8px}',
+    '.cdp-surface .cm-addctx-input{width:100%;box-sizing:border-box;background:transparent;border:none;border-bottom:1px solid rgba(201,160,80,.18);outline:none;font-family:"EB Garamond",Georgia,serif;font-size:15px;color:var(--text-light,#F0E6CC);resize:none;padding:6px 0;line-height:1.5}',
+    '.cdp-surface .cm-addctx-input::placeholder{color:var(--text-faint,#9E9282);font-style:italic}',
+    '.cdp-surface .cm-explore-btn{margin-top:10px;display:inline-block}',
     '.cdp-surface .cm-tapmark{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px}',
     '.cdp-surface .cm-tapdot{width:12px;height:12px;border-radius:50%;border:1.2px solid var(--text-muted,#D4C8AE);display:inline-block}',
     '.cdp-surface .cm-tapmark.on .cm-tapdot{background:var(--teal,#81CDB6);border-color:var(--teal,#81CDB6)}',
@@ -568,15 +583,42 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
           if (!val) continue;
           any = true;
           col.appendChild(el('div', { class: 'cm-brl' }, r[0]));
-          col.appendChild(el('div', { class: 'cm-brv' }, val));
+          const brvEl = el('div', { class: 'cm-brv' });
+          brvEl.innerHTML = inlineMarkdown(val);
+          col.appendChild(brvEl);
         }
         if (!any) col.appendChild(el('div', { class: 'cm-brv' }, 'Nothing captured for ' + person.name + ' yet. Add depth in Profiles to compare more than the chart.'));
         dcols.appendChild(col);
       });
       computed.appendChild(dcols);
       if (o.composeAsk) {
+        // Free-text context field: add anything specific about this moment or this question
+        const addCtxWrap = el('div', { class: 'cm-addctx-wrap' });
+        addCtxWrap.appendChild(el('div', { class: 'cm-addctx-label' }, 'Add context or explore something specific'));
+        const addCtxInput = el('textarea', { class: 'cm-addctx-input', rows: '2',
+          placeholder: 'What are you curious about in this connection right now? Add anything specific to this moment, or leave blank.' }) as HTMLTextAreaElement;
+        addCtxWrap.appendChild(addCtxInput);
+        if (o.composeAsk) {
+          const exploreBtn = el('button', { type: 'button', class: 'cm-bridge cm-explore-btn' }, 'Explore this now');
+          exploreBtn.addEventListener('click', () => {
+            const extra = addCtxInput.value.trim();
+            const prompt = extra
+              ? 'About ' + pa.name + ' and ' + pb.name + ': ' + extra + '. Consider their roles, what is live for each, their current intentions, and the people around them.'
+              : 'Compare ' + pa.name + ' and ' + pb.name + ' as two lives, not only two charts. Consider what each brings, the gifts and the friction, and what their pairing asks of them right now.';
+            openAsk(prompt);
+          });
+          addCtxWrap.appendChild(exploreBtn);
+        }
+        computed.appendChild(addCtxWrap);
+
         const askBrings = el('button', { type: 'button', class: 'cm-bridge' }, 'Read these two lives together');
-        askBrings.addEventListener('click', () => { openAsk('Compare ' + pa.name + ' and ' + pb.name + ' as two lives, not only two charts. Consider their roles, what is live for each, their current intentions, and the people around them, and say what their pairing asks of them.'); });
+        askBrings.addEventListener('click', () => {
+          const extra = addCtxInput.value.trim();
+          const prompt = extra
+            ? 'Compare ' + pa.name + ' and ' + pb.name + ' as two lives. Context for this reading: ' + extra + '. Consider their roles, what is live for each, their current intentions, and the people around them.'
+            : 'Compare ' + pa.name + ' and ' + pb.name + ' as two lives, not only two charts. Consider their roles, what is live for each, their current intentions, and the people around them, and say what their pairing asks of them.';
+          openAsk(prompt);
+        });
         computed.appendChild(askBrings);
       }
     }
@@ -599,7 +641,11 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (!ps.length) return;
     const card = el('div', { class: 'cm-card cm-for-card' });
     card.appendChild(el('div', { class: 'cm-for-name' }, 'For ' + name));
-    for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
+    for (const p of ps) {
+      const pe = el('p', { class: 'cm-p' });
+      pe.innerHTML = inlineMarkdown(p);
+      card.appendChild(pe);
+    }
     if (o.composeAsk) tappable(card, 'Say more to ' + name + ' specifically about this connection.');
     attachTap(card, { framework: 'personal', section: 'for-' + name.toLowerCase() }, 'this landed');
     content.appendChild(card);
@@ -613,7 +659,11 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     t.appendChild(el('span', {}, title));
     if (o.composeAsk && askPrompt) t.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
     card.appendChild(t);
-    for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
+    for (const p of ps) {
+      const pe = el('p', { class: 'cm-p' });
+      pe.innerHTML = inlineMarkdown(p);
+      card.appendChild(pe);
+    }
     if (askPrompt) tappable(card, askPrompt);
     if (sig) attachTap(card, sig, 'this landed');
     content.appendChild(card);
@@ -633,7 +683,11 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (o.composeAsk && askPrompt) t2.appendChild(el('span', { class: 'cm-ask' }, 'Ask'));
     card.appendChild(t2);
     if (v.headline) card.appendChild(el('div', { class: 'cm-pair-headline' }, String(v.headline)));
-    for (const p of ps) card.appendChild(el('p', { class: 'cm-p' }, p));
+    for (const p of ps) {
+      const pe = el('p', { class: 'cm-p' });
+      pe.innerHTML = inlineMarkdown(p);
+      card.appendChild(pe);
+    }
     if (askPrompt) tappable(card, askPrompt);
     if (sig) attachTap(card, sig, 'this landed');
     content.appendChild(card);
@@ -692,10 +746,12 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         if (it.aspect) card.appendChild(el('div', { class: 'cm-sub' }, String(it.aspect)));
         const ps2 = paragraphs(it.interpretation);
         // Show first paragraph inline; rest behind a "Go deeper" tap
-        if (ps2.length) card.appendChild(el('p', { class: 'cm-p' }, ps2[0]));
+        if (ps2.length) {
+          const pe0 = el('p', { class: 'cm-p' }); pe0.innerHTML = inlineMarkdown(ps2[0]); card.appendChild(pe0);
+        }
         if (ps2.length > 1) {
           const more = el('div', { class: 'cm-aspect-more', style: 'display:none' });
-          for (const p of ps2.slice(1)) more.appendChild(el('p', { class: 'cm-p' }, p));
+          for (const p of ps2.slice(1)) { const pe = el('p', { class: 'cm-p' }); pe.innerHTML = inlineMarkdown(p); more.appendChild(pe); }
           card.appendChild(more);
           const goDeeper = el('button', { type: 'button', class: 'cm-bridge' }, 'Go deeper');
           goDeeper.addEventListener('click', () => {
@@ -866,8 +922,10 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
           if (fallbackText) {
             const card = el('div', { class: 'cm-card' });
             card.appendChild(el('div', { class: 'cm-title' }, 'The connection'));
-            for (const para of fallbackText.split(/\n+/).filter((s: string) => s.trim())) {
-              card.appendChild(el('p', { class: 'cm-p' }, para.trim()));
+            for (const para of paragraphs(fallbackText)) {
+              const p = el('p', { class: 'cm-p' });
+              p.innerHTML = inlineMarkdown(para);
+              card.appendChild(p);
             }
             content.appendChild(card);
             status.textContent = '';
