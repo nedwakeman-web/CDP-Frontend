@@ -52,7 +52,14 @@ function el(tag: string, attrs: Attrs = {}, text?: string): HTMLElement {
 }
 function clear(node: HTMLElement): void { while (node.firstChild) node.removeChild(node.firstChild); }
 function paragraphs(text: unknown): string[] {
-  return String(text == null ? '' : text).split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  const raw = String(text == null ? '' : text)
+    .replace(/^#{1,3}\s+/gm, '')          // strip ## headings
+    .replace(/^---+$/gm, '')               // strip --- dividers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')    // strip **bold**
+    .replace(/\*([^*]+)\*/g, '$1')        // strip *italic*
+    .replace(/^[-*]\s+/gm, '')            // strip bullet markers
+    .trim();
+  return raw.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
 }
 
 /* ---- numbers and symbols, all from the corrected core so surfaces agree ---- */
@@ -601,6 +608,15 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     content.appendChild(card);
   }
 
+  function cleanStr(v: unknown): string {
+    return String(v == null ? '' : v)
+      .replace(/^#{1,3}\s+/gm, '')
+      .replace(/---+/g, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .trim();
+  }
+
   function renderComposed(raw: unknown, nameA: string, nameB: string): void {
     clear(content);
     const r = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : {};
@@ -610,7 +626,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     }
     if (r.headline) {
       const hl = el('div', { class: 'cm-headline-wrap' });
-      hl.appendChild(el('div', { class: 'cm-headline' }, String(r.headline)));
+      hl.appendChild(el('div', { class: 'cm-headline' }, cleanStr(r.headline)));
       content.appendChild(hl);
     }
     strCard('The synthesis', r.synthesis, 'Read me the synthesis of ' + nameA + ' and ' + nameB + ' in more depth.', { framework: 'convergence', section: 'synthesis' });
@@ -692,13 +708,13 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     if (r.a_question_to_sit_with) {
       const qBlock = el('div', { class: 'cm-question-block' });
       qBlock.appendChild(el('div', { class: 'cm-question-label' }, 'A question to sit with together'));
-      qBlock.appendChild(el('div', { class: 'cm-question' }, String(r.a_question_to_sit_with)));
+      qBlock.appendChild(el('div', { class: 'cm-question' }, cleanStr(r.a_question_to_sit_with)));
       content.appendChild(qBlock);
     }
     if (r.closing) {
       const cl = el('div', { class: 'cm-closing-wrap' });
       cl.appendChild(el('div', { class: 'cm-closing-rule' }));
-      cl.appendChild(el('div', { class: 'cm-closing' }, String(r.closing)));
+      cl.appendChild(el('div', { class: 'cm-closing' }, cleanStr(r.closing)));
       content.appendChild(cl);
     }
     const sl = sourcesLine();
@@ -739,6 +755,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
       // pre-computed framework arrays. Unwrap it so renderComposed receives
       // the flat JSON the Oracle wrote.
       const reading = (data && data.reading && typeof data.reading === 'object') ? data.reading : data;
+      console.log('[compatibility] server returned fields:', reading && typeof reading === 'object' ? Object.keys(reading).join(', ') : 'non-object');
       clearInterval(progTimer);
       progressBar.style.width = '100%';
       setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
@@ -748,6 +765,7 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
     } catch (_e) {
       clearInterval(progTimer);
       progressWrap.style.display = 'none';
+      console.error('[compatibility] /api/compatibility failed, falling back to composeAsk. Error:', _e);
       if (o.composeAsk) {
         status.textContent = 'The direct endpoint could not be reached; composing through the Oracle instead.';
         try {
