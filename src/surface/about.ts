@@ -45,6 +45,7 @@ function ensureStyle(): void {
     '.cdp-surface .ab2-close{background:none;border:1px solid var(--gold-line,#3A3320);color:var(--text-light,#F0E6CC);font-size:20px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%;flex:0 0 auto}',
     '.cdp-surface .ab2-wrap{max-width:52rem;margin:0 auto;padding:0 18px}',
     /* eyebrow + title */
+    '.cdp-surface .ab2-hero-img{width:100%;height:auto;display:block;border-radius:6px;margin-bottom:28px}',
     '.cdp-surface .ab2-eyebrow{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold,#C9A050);text-align:center;margin-bottom:8px}',
     '.cdp-surface .ab2-title{font-family:Cinzel,Georgia,serif;font-size:clamp(20px,4vw,30px);font-weight:500;letter-spacing:.06em;color:var(--text-light,#F0E6CC);text-align:center;margin:0 0 12px;line-height:1.2}',
     '.cdp-surface .ab2-sub{font-family:"EB Garamond",Georgia,serif;font-size:17px;line-height:1.65;color:var(--text-dim,#D4C8AE);text-align:center;margin:0 0 28px}',
@@ -138,7 +139,7 @@ const STAR_SVG = `<svg width="52" height="52" viewBox="0 0 60 60" aria-hidden="t
 const VEE_SVG = `<svg class="ab2-vee" viewBox="0 0 560 72" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M280 2 Q220 28 80 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/><path d="M280 2 Q340 28 480 72" fill="none" stroke="#6f5d34" stroke-width="1" stroke-linecap="round" opacity="0.85"/></svg>`;
 
 // Compass image: canonical compass from guide-images (North star + orbit ring, confirmed present on alpha)
-import { GUIDE_HERO as COMPASS_IMG } from './guide-images';
+import { GUIDE_HERO as COMPASS_IMG, GUIDE_COVER as TELESCOPE_HERO } from './guide-images';
 
 const FRAMEWORKS = [
   {
@@ -217,6 +218,14 @@ export function openAbout(o: OpenAboutOptions): AboutHandle {
   view.appendChild(bar);
 
   const wrap = el('div', { class: 'ab2-wrap' });
+
+  // Two-telescope hero image: full width at the top, before any text
+  const heroImg = el('img', {
+    src: TELESCOPE_HERO,
+    alt: 'Two ornate brass telescopes on tripods, both pointed inward and upward at a single bright star at the top centre. The canonical CDP hero.',
+    class: 'ab2-hero-img',
+  });
+  wrap.appendChild(heroImg);
 
   // Eyebrow + title
   wrap.appendChild(el('div', { class: 'ab2-eyebrow' }, 'How your day is read'));
