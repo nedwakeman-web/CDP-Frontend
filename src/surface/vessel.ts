@@ -58,7 +58,7 @@ export interface VesselOptions {
   root: HTMLElement;
   orchestrator: Orchestrator;
   repo: VesselRepository;
-  profile?: { birthDate?: string; name?: string };
+  profile?: { birthDate?: string; name?: string; birthTime?: string; birthPlace?: string };
 }
 
 /* ---- DOM helpers, safe with person text ----------------------------------- */
@@ -1004,7 +1004,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
 
   // the opening line: the open input, carrying attach, voice, and return
   const ask = el('div', { class: 'ask' });
-  const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'Begin anywhere', 'aria-label': 'Write your line' }) as HTMLTextAreaElement;
+  const input = el('textarea', { class: 'ask-input', rows: '1', placeholder: 'What’s on your mind', 'aria-label': 'Write your line' }) as HTMLTextAreaElement;
   ask.appendChild(input);
 
   // a slim control bar inside the composer: attach and voice on the left, send on the right
@@ -1515,7 +1515,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       btn.textContent = label;
       btn.addEventListener('click', () => {
         if (getTier() === key) return;
-        setTier(key);
+        setTier(key as import('../data/tier').TierId);
         // Re-open reading at new tier - the prewarm won't match so a fresh job fires
         openReadingFor(prof, title, date);
       });
