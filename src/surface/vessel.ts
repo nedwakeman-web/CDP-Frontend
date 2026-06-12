@@ -34,8 +34,8 @@ import { analyseRecord, streakOf } from '../data/patterns';
 import { isSupabaseConfigured, currentUserId, signInWithGoogle, signInWithMagicLink, signOut } from '../data/supabase';
 import { cdpUserKeyParts } from '../data/userKey';
 import { buildProseSVG, artefactControls } from './artefact';
-import { openReading } from './reading';
-import type { ReadingHandle } from './reading';
+import { openReading, prewarmReading } from './reading';
+import type { ReadingHandle, PrewarmOptions } from './reading';
 import { openProfiles } from './profiles';
 import type { ProfilesHandle } from './profiles';
 import { shareControls } from './share';
@@ -218,9 +218,20 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .topnav-link:hover { color:var(--gold); }
 .cdp-surface .topnav-link.active { color:var(--gold); border-bottom-color:var(--gold); }
 .cdp-surface .rdg-list { padding:2px 0; }
+.cdp-surface .rdg-wrap { position:fixed; inset:0; z-index:40; display:flex; flex-direction:column; background:var(--bg,#031831); overflow:hidden; }
+.cdp-surface .rdg-tier-strip { display:flex; gap:6px; padding:8px 14px; border-bottom:1px solid var(--gold-line,rgba(201,160,80,.18)); background:var(--bg,#031831); flex-shrink:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.cdp-surface .rdg-tier-strip::-webkit-scrollbar { display:none; }
+.cdp-surface .rdg-tier-btn { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.14em; text-transform:uppercase; padding:6px 14px; border:1px solid var(--gold-line,rgba(201,160,80,.18)); border-radius:3px; background:transparent; color:var(--text-muted,#D4C8AE); cursor:pointer; white-space:nowrap; transition:.2s; flex-shrink:0; }
+.cdp-surface .rdg-tier-btn:hover { border-color:rgba(201,160,80,.35); color:var(--gold,#C9A050); }
+.cdp-surface .rdg-tier-btn.active { background:var(--gold,#C9A050); color:#1A1208; border-color:var(--gold,#C9A050); }
 .cdp-surface .rdg-link.rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
 .cdp-surface .rdg-recent-date { color:var(--gold); font-size:12.5px; }
 .cdp-surface .rdg-recent-line { font-size:12px; font-style:italic; color:var(--text-muted); line-height:1.4; }
+.cdp-surface .rdg-insight { margin:0 0 10px; padding:10px 12px; border:1px solid rgba(201,160,80,.12); border-left:2px solid var(--teal); border-radius:3px; background:rgba(13,30,51,.6); }
+.cdp-surface .rdg-insight-label { font-family:Cinzel,Georgia,serif; font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--teal); margin-bottom:5px; }
+.cdp-surface .rdg-insight-text { font-size:12.5px; font-style:italic; color:var(--text-muted); line-height:1.55; }
+.cdp-surface .rdg-empty-state { font-size:12.5px; font-style:italic; color:var(--text-faint); line-height:1.6; padding:8px 2px; }
+.cdp-surface .rdg-empty-state em { color:var(--text-muted); }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 20px 56px; text-align:center; overflow-y:auto; background-image:radial-gradient(1.5px 1.5px at 15% 12%, rgba(240,230,200,0.32), transparent 62%),radial-gradient(1px 1px at 32% 7%, rgba(240,230,200,0.22), transparent 62%),radial-gradient(1px 1px at 52% 14%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 72% 9%, rgba(240,230,200,0.28), transparent 62%),radial-gradient(1px 1px at 88% 16%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 8% 40%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.3px 1.3px at 22% 55%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 90% 46%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 12% 78%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.4px 1.4px at 40% 88%, rgba(240,230,200,0.26), transparent 62%),radial-gradient(1px 1px at 65% 82%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 84% 90%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 58% 60%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1px 1px at 78% 68%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1100px 720px at 50% 20%, rgba(28,50,82,0.50), transparent 72%); background-repeat:no-repeat; background-attachment:fixed; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -313,6 +324,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
 .cdp-surface .line .meta { display:block; font-size:11.5px; font-style:italic; color:var(--text-muted); margin-top:3px; }
 .cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
+.cdp-surface .soft em { color:var(--text-dim); font-style:italic; }
 .cdp-surface .synth-floor.demoted { display:none; }
 .cdp-surface .synth-floor.demoted.open { display:block; }
 .cdp-surface .synth-disclose { display:block; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-family:Georgia, serif; font-size:12px; color:var(--text-muted); padding:6px 0 4px 10px; margin-top:6px; transition:color .2s; }
@@ -757,6 +769,20 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     try { window.localStorage.setItem('cdp-theme', theme); } catch (_e) { /* presentation only */ }
   }
 
+  // Prefetch the reading immediately on mount so it is ready when the user taps.
+  // Fires silently in background; openReading reuses the in-flight job.
+  setTimeout(() => {
+    try {
+      prewarmReading({
+        date: dateStr,
+        getProfile: () => profile ? { birthDate: profile!.birthDate, birthTime: profile!.birthTime, birthPlace: profile!.birthPlace, name: profile!.name } : null,
+        getLens: () => lens,
+        tier: getTier(),
+        userId: null,
+      });
+    } catch (_e) { /* non-fatal */ }
+  }, 2000);
+
   let day = dayCoordinates(dateStr, profile && profile.birthDate ? { birthDate: profile.birthDate } : undefined);
   function coordValue(key: string): string {
     const c = day.coordinates.find((x: Coordinate) => x.key === key);
@@ -1128,7 +1154,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const signals = repo.listSignals();
     const landed = signals.filter((s) => s.kind === 'landed');
     const items = repo.live().concat(repo.resting()).map((t) => (t.text || '').trim()).filter(Boolean);
-    if (items.length < 2 && landed.length < 3) return;
+    // Fire synthesis if there is any substance at all: the server also reads
+    // Supabase memory summaries, so even a single reading can produce a real link.
+    if (items.length < 1 && landed.length < 1) return;
 
     const byF: Record<string, number> = {};
     const byV: Record<string, number> = {};
@@ -1151,11 +1179,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
 
     const kp = await cdpUserKeyParts();
+    // Include recent reading summaries and prior synthesis observation so the server
+    // has the richest possible context, including what it previously identified as emerging.
+    const readingLines = repo.listReadings().slice(0, 16).map((r) => r.line).filter(Boolean);
+    const prevObservation = synthCache && synthCache.linked ? synthCache.observation : '';
     const payload = {
       lens,
       facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
       items: items.slice(0, 24),
-      readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+      readings: readingLines,
+      prevObservation,
       ...kp.body,
     };
     try {
@@ -1200,7 +1233,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function patternsBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
     const b = el('div');
-    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); void appendSynthesis(b); return b; }
+    if (!a.hasData) {
+      const eg = el('div', { class: 'line soft' });
+      eg.innerHTML = 'Patterns surface here from your readings, taps, and threads as the record builds. A mature record might read: <em>The theme of timing and decision under pressure has appeared in five of the last twelve readings. When you tap Tradition voice on days with master numbers, you rate the outcome higher.</em>';
+      b.appendChild(eg);
+      void appendSynthesis(b);
+      return b;
+    }
     const floor = el('div', { class: 'synth-floor' });
     for (const ln of a.lines) {
       const row = el('button', { type: 'button', class: 'line tappable', 'aria-label': 'Look closer at this pattern' }, ln);
@@ -1235,13 +1274,19 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const c = el('span', {}); c.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(201,160,80,0.40)' })); c.appendChild(document.createTextNode('Consolidation'));
     key.appendChild(g); key.appendChild(c);
     b.appendChild(key);
-    b.appendChild(el('div', { class: 'line' }, a.hasData ? a.note : 'Your seasons, growth and consolidation, surface here from your recorded outcomes across the months. Drawn from your record, never a forecast.'));
+    const seasonNote = a.hasData ? a.note : 'Your seasons surface here from recorded outcomes across the months. A mature record might show: consecutive growth weeks in reading-heavy months, consolidation in high-pressure periods. Drawn from your record, never a forecast.';
+    b.appendChild(el('div', { class: 'line' }, seasonNote));
     return b;
   }
   function workingBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).working;
     const b = el('div');
-    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, 'What you set down, and what is still sitting, surface here as you hold and tend intentions. Drawn from your record, never a forecast.')); return b; }
+    if (!a.hasData) {
+      const eg = el('div', { class: 'line soft' });
+      eg.innerHTML = 'What you tend and complete surfaces here as you use CDP. A mature record might read: <em>Three threads resolved this month, one still sitting. Decision-making tends to improve in weeks when clarity readings are followed by action threads.</em>';
+      b.appendChild(eg);
+      return b;
+    }
     b.appendChild(el('div', { class: 'line' }, a.note));
     a.resolved.forEach((t) => b.appendChild(el('div', { class: 'line teal' }, t)));
     a.sitting.forEach((t) => b.appendChild(el('div', { class: 'line' }, t)));
@@ -1270,6 +1315,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     b.addEventListener('click', () => openCalendar());
     return b;
   }
+
+  // Pre-build patterns synthesis immediately on mount so it is ready when drawer opens.
+  // This fires in background and caches; the drawer render uses the cache.
+  setTimeout(() => { void appendSynthesis(document.createElement('div')); }, 1500);
 
   const leftSpec: Array<[string, HTMLElement]> = [
     ['What is live now', liveBody],
@@ -1398,6 +1447,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const recents = repo.listReadings();
     if (recents.length > 0) {
       list.appendChild(el('div', { class: 'rdg-head' }, 'Recent'));
+      // If synthesis has landed, show it as a brief insight at the top of Recent
+      if (synthCache && synthCache.linked && synthCache.observation) {
+        const insightEl = el('div', { class: 'rdg-insight' });
+        insightEl.appendChild(el('div', { class: 'rdg-insight-label' }, 'Across your readings'));
+        insightEl.appendChild(el('div', { class: 'rdg-insight-text' }, synthCache.observation));
+        list.appendChild(insightEl);
+      }
       for (const rec of recents.slice(0, 6)) {
         const label = new Date(rec.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
         const link = el('button', { type: 'button', class: 'rdg-link rdg-recent' });
@@ -1406,6 +1462,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         link.addEventListener('click', () => openReadingFor(profile ?? null, 'Reading for ' + label, rec.date));
         list.appendChild(link);
       }
+    } else {
+      // New user empty state: show what a populated readings drawer looks like
+      list.appendChild(el('div', { class: 'rdg-head' }, 'Recent'));
+      const emptyMsg = el('div', { class: 'rdg-empty-state' });
+      emptyMsg.innerHTML = 'Your reading history builds here. A mature record surfaces patterns across readings: <em>recurring themes, your strongest days, what keeps returning under different skies.</em> Open today\u2019s reading to begin.';
+      list.appendChild(emptyMsg);
     }
     drawer.appendChild(list);
     pin.addEventListener('click', () => {
@@ -1435,8 +1497,34 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function openReadingFor(prof: { birthDate?: string; birthTime?: string; birthPlace?: string; name?: string } | null, title: string, date?: string): void {
     closeDrawer('right');
     if (readingHandle) readingHandle.close();
+
+    // Tier strip: shown at the top of the reading surface so user can switch tier without going to menu
+    const rdgWrap = el('div', { class: 'rdg-wrap' });
+    surface.appendChild(rdgWrap);
+
+    const tierStrip = el('div', { class: 'rdg-tier-strip' });
+    const TIERS_ORDERED: Array<{ key: string; label: string }> = [
+      { key: 'free', label: 'Free' },
+      { key: 'seeker', label: 'Seeker' },
+      { key: 'initiate', label: 'Initiate' },
+      { key: 'mystic', label: 'Mystic' },
+      { key: 'oracle', label: 'Oracle' },
+    ];
+    TIERS_ORDERED.forEach(({ key, label }) => {
+      const btn = el('button', { type: 'button', class: 'rdg-tier-btn' + (getTier() === key ? ' active' : ''), 'data-tier': key });
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        if (getTier() === key) return;
+        setTier(key);
+        // Re-open reading at new tier - the prewarm won't match so a fresh job fires
+        openReadingFor(prof, title, date);
+      });
+      tierStrip.appendChild(btn);
+    });
+    rdgWrap.appendChild(tierStrip);
+
     readingHandle = openReading({
-      container: surface,
+      container: rdgWrap,
       getLens: () => lens,
       getProfile: () => (prof ? { birthDate: prof.birthDate, birthTime: prof.birthTime, birthPlace: prof.birthPlace, name: prof.name } : null),
       tier: getTier(),
@@ -1918,6 +2006,26 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   const ICON_MOON   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M16 12a7 7 0 01-8-8 7 7 0 108 8z"/></svg>';
   const ICON_LENS   = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 4v12M4 10h12" stroke-width=".8"/></svg>';
 
+  // ── READING DEPTH ─────────────────────────────────────────────────────────
+  const secDepth = mkSection('Reading depth');
+
+  const rowTiers = mkRow(ICON_TIERS, 'Tiers', 'Choose your depth, beta open');
+  const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
+  rowTiers.appendChild(tval);
+  rowTiers.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
+  secDepth.appendChild(rowTiers);
+
+  const rowAboutMenu = mkRow(ICON_STAR, 'About', 'Two telescopes, one sky');
+  rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
+  secDepth.appendChild(rowAboutMenu);
+
+  const rowGuideMenu = mkRow(ICON_BOOK, 'Guide', 'How to read the day');
+  rowGuideMenu.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
+  secDepth.appendChild(rowGuideMenu);
+
+  menuBody.appendChild(secDepth);
+  menuBody.appendChild(el('div', { class: 'menu-divider' }));
+
   // ── YOUR SPACE ──────────────────────────────────────────────────────────
   const secYou = mkSection('Your space');
 
@@ -1938,26 +2046,6 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   secYou.appendChild(rowStreak);
 
   menuBody.appendChild(secYou);
-  menuBody.appendChild(el('div', { class: 'menu-divider' }));
-
-  // ── DEPTH ────────────────────────────────────────────────────────────────
-  const secDepth = mkSection('Reading depth');
-
-  const rowTiers = mkRow(ICON_TIERS, 'Tiers', 'Choose your depth, beta open');
-  const tval = el('span', { class: 'menu-val' }, tierLabel(getTier()));
-  rowTiers.appendChild(tval);
-  rowTiers.addEventListener('click', () => { menu.classList.remove('open'); openTiersView(tval); });
-  secDepth.appendChild(rowTiers);
-
-  const rowAboutMenu = mkRow(ICON_STAR, 'About', 'Two telescopes, one sky');
-  rowAboutMenu.addEventListener('click', () => { menu.classList.remove('open'); openAboutView(); });
-  secDepth.appendChild(rowAboutMenu);
-
-  const rowGuideMenu = mkRow(ICON_BOOK, 'Guide', 'How to read the day');
-  rowGuideMenu.addEventListener('click', () => { menu.classList.remove('open'); openGuideView(); });
-  secDepth.appendChild(rowGuideMenu);
-
-  menuBody.appendChild(secDepth);
   menuBody.appendChild(el('div', { class: 'menu-divider' }));
 
   // ── COMMUNITY ────────────────────────────────────────────────────────────
