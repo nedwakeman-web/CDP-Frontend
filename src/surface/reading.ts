@@ -124,8 +124,7 @@ function paragraphs(text: string): string[] {
   // Strip all markdown patterns: **bold**, *italic*, ## headings, em/en dashes, --- separators
   const raw = String(text == null ? '' : text)
     .replace(/\*\*([^*]+)\*\*/g, '$1')          // **bold** -> plain
-    .replace(/\*([^*
-]+)\*/g, '$1')              // *italic* -> plain
+    .replace(/\*([^*]+)\*/g, '$1')                // *italic* -> plain
     .replace(/^#{1,6}\s+/gm, '')                  // ## headings -> plain
     .replace(/^---+$/gm, '')                        // --- separators -> removed
     .replace(/\u2014/g, ', ')                      // em dash -> comma-space
