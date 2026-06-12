@@ -224,6 +224,12 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .rdg-tier-btn { font-family:Cinzel,Georgia,serif; font-size:9px; letter-spacing:.14em; text-transform:uppercase; padding:6px 14px; border:1px solid var(--gold-line,rgba(201,160,80,.18)); border-radius:3px; background:transparent; color:var(--text-muted,#D4C8AE); cursor:pointer; white-space:nowrap; transition:.2s; flex-shrink:0; }
 .cdp-surface .rdg-tier-btn:hover { border-color:rgba(201,160,80,.35); color:var(--gold,#C9A050); }
 .cdp-surface .rdg-tier-btn.active { background:var(--gold,#C9A050); color:#1A1208; border-color:var(--gold,#C9A050); }
+.cdp-surface .rdg-person-strip { display:flex; gap:6px; padding:6px 14px 8px; border-bottom:1px solid rgba(201,160,80,.1); background:var(--bg,#031831); flex-shrink:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; align-items:center; }
+.cdp-surface .rdg-person-strip::-webkit-scrollbar { display:none; }
+.cdp-surface .rdg-person-label { font-family:Cinzel,Georgia,serif; font-size:8px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim,#9E9282); margin-right:4px; white-space:nowrap; flex-shrink:0; }
+.cdp-surface .rdg-person-btn { font-family:Georgia,serif; font-size:12px; padding:4px 12px; border:1px solid rgba(201,160,80,.15); border-radius:12px; background:transparent; color:var(--text-muted,#D4C8AE); cursor:pointer; white-space:nowrap; transition:.2s; flex-shrink:0; }
+.cdp-surface .rdg-person-btn:hover { border-color:rgba(201,160,80,.35); color:var(--gold,#C9A050); }
+.cdp-surface .rdg-person-btn.active { background:rgba(201,160,80,.12); color:var(--gold,#C9A050); border-color:rgba(201,160,80,.3); }
 .cdp-surface .rdg-link.rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
 .cdp-surface .rdg-recent-date { color:var(--gold); font-size:12.5px; }
 .cdp-surface .rdg-recent-line { font-size:12px; font-style:italic; color:var(--text-muted); line-height:1.4; }
@@ -1420,7 +1426,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     list.appendChild(el('div', { class: 'rdg-head' }, 'Open today'));
     const dests: Array<[string, string]> = [
       ['Daily card', 'scard'], ['Full reading', 'sr'], ['My year', 'sctx'],
-      ['Compatibility', 'scompat'], ['Profiles and people', 'sp']
+      ['Compatibility', 'scompat'], ['Read for someone', 'sother'], ['Profiles and people', 'sp']
     ];
     for (const d of dests) {
       if (d[1] === 'scard' || d[1] === 'sr') {
@@ -1440,6 +1446,25 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
         link.addEventListener('click', () => openCompatView());
         list.appendChild(link);
+      } else if (d[1] === 'sother') {
+        // Picker: open reading for a saved person
+        const savedPpl = (repo as unknown as Record<string, unknown>).listSavedProfiles
+          ? (repo as unknown as { listSavedProfiles: () => Array<{ id: string; name?: string; birthDate?: string }> }).listSavedProfiles()
+          : [];
+        if (savedPpl.length > 0) {
+          const link = el('button', { type: 'button', class: 'rdg-link' }, d[0]);
+          link.addEventListener('click', () => {
+            // Cycle through saved people: show first non-self person, or open profiles
+            if (savedPpl.length === 1) {
+              const sp = savedPpl[0];
+              openReadingFor({ birthDate: sp.birthDate, name: sp.name }, 'Reading for ' + (sp.name || 'Person').split(' ')[0]);
+            } else {
+              // Multiple: open profiles to choose, with onRead wired
+              openProfilesView();
+            }
+          });
+          list.appendChild(link);
+        }
       } else {
         list.appendChild(el('a', { class: 'rdg-link', href: '/app?mode=quick&screen=' + d[1] }, d[0]));
       }
@@ -1522,6 +1547,41 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       tierStrip.appendChild(btn);
     });
     rdgWrap.appendChild(tierStrip);
+
+    // Person picker: self + all saved people, lets user read for Connie/Sam/Kit without leaving
+    const savedPeople = (repo as unknown as Record<string, unknown>).listSavedProfiles
+      ? (repo as unknown as { listSavedProfiles: () => Array<{ id: string; name?: string; birthDate?: string; relationship?: string; context?: string; roles?: string; projects?: string; currentIntentions?: string; keyPeople?: string }> }).listSavedProfiles()
+      : [];
+    const hasPeople = savedPeople.length > 0;
+    if (profile || hasPeople) {
+      const personStrip = el('div', { class: 'rdg-person-strip' });
+      personStrip.appendChild(el('span', { class: 'rdg-person-label' }, 'Reading for'));
+      const selfName = (profile && profile.name) ? String(profile.name).trim().split(/\s+/)[0] : 'You';
+      const selfProf = profile ?? null;
+      const isSelf = !prof || !prof.birthDate || (profile && prof.birthDate === profile.birthDate);
+      const selfBtn = el('button', { type: 'button', class: 'rdg-person-btn' + (isSelf ? ' active' : '') });
+      selfBtn.textContent = selfName;
+      selfBtn.addEventListener('click', () => {
+        if (readingHandle) { readingHandle.close(); }
+        if (rdgWrap.parentNode) rdgWrap.parentNode.removeChild(rdgWrap);
+        openReadingFor(selfProf, title, date);
+      });
+      personStrip.appendChild(selfBtn);
+      for (const sp of savedPeople) {
+        const spName = (sp.name || 'Person').trim().split(/\s+/)[0];
+        const spProf = { birthDate: sp.birthDate, name: sp.name };
+        const isActive = prof && prof.birthDate === sp.birthDate && prof.name === sp.name;
+        const spBtn = el('button', { type: 'button', class: 'rdg-person-btn' + (isActive ? ' active' : '') });
+        spBtn.textContent = spName;
+        spBtn.addEventListener('click', () => {
+          if (readingHandle) { readingHandle.close(); }
+          if (rdgWrap.parentNode) rdgWrap.parentNode.removeChild(rdgWrap);
+          openReadingFor(spProf, 'Reading for ' + spName, date);
+        });
+        personStrip.appendChild(spBtn);
+      }
+      rdgWrap.appendChild(personStrip);
+    }
 
     readingHandle = openReading({
       container: rdgWrap,
