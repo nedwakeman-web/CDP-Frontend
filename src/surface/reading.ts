@@ -94,6 +94,8 @@ export interface OpenReadingOptions {
    * host passes it; both moves stay dormant when it is absent.
    */
   getSignals?: () => VesselSignal[];
+  /** Called when the reading is closed, so the host can clean up its wrapper element. */
+  onClose?: () => void;
 }
 
 export interface ReadingHandle {
@@ -119,7 +121,16 @@ function sleep(ms: number): Promise<void> { return new Promise((r) => window.set
  * sentence into readable paragraphs. Presentation only; no word is added or lost.
  */
 function paragraphs(text: string): string[] {
-  const raw = String(text == null ? '' : text).replace(/\*\*([^*]+)\*\*/g, '$1');
+  // Strip all markdown patterns: **bold**, *italic*, ## headings, em/en dashes, --- separators
+  const raw = String(text == null ? '' : text)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')          // **bold** -> plain
+    .replace(/\*([^*
+]+)\*/g, '$1')              // *italic* -> plain
+    .replace(/^#{1,6}\s+/gm, '')                  // ## headings -> plain
+    .replace(/^---+$/gm, '')                        // --- separators -> removed
+    .replace(/\u2014/g, ', ')                      // em dash -> comma-space
+    .replace(/\u2013/g, ', ')                      // en dash -> comma-space
+    .replace(/ - /g, ', ');                         // spaced hyphen -> comma-space
   const trimmed = raw.trim();
   if (!trimmed) return [];
   if (/\n{2,}/.test(trimmed)) {
@@ -650,7 +661,11 @@ export function openReading(o: OpenReadingOptions): ReadingHandle {
   o.container.appendChild(view);
 
   let live = true;
-  function close(): void { live = false; if (view.parentNode) view.parentNode.removeChild(view); }
+  function close(): void {
+    live = false;
+    if (view.parentNode) view.parentNode.removeChild(view);
+    if (o.onClose) o.onClose();
+  }
   closeBtn.addEventListener('click', close);
 
   function setStatus(text: string): void {

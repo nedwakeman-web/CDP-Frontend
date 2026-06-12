@@ -66,6 +66,9 @@ function paragraphs(text: unknown): string[] {
     .replace(/\*\*([^*]+)\*\*/g, '$1')    // strip **bold**
     .replace(/\*([^*]+)\*/g, '$1')        // strip *italic*
     .replace(/^[-*]\s+/gm, '')            // strip bullet markers
+    .replace(/\u2014/g, ', ')             // em dash to comma-space
+    .replace(/\u2013/g, ', ')             // en dash to comma-space
+    .replace(/ - /g, ', ')               // spaced hyphen to comma-space
     .trim();
   return raw.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
 }
@@ -863,7 +866,10 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
         const renderedSections = new Set<string>();
         let accumulatedReading: Record<string, unknown> = {};
 
+        let pollLive = true;
+        let stalePollCount = 0;
         const pollPhase2 = async (): Promise<void> => {
+          if (!pollLive) return;
           try {
             const r2 = await fetch('/api/compatibility/depth', {
               method: 'POST',
@@ -902,8 +908,10 @@ export function openCompatibility(o: OpenCompatibilityOptions): CompatibilityHan
               status.textContent = '';
               return;
             }
-            // Still composing - poll again
-            setTimeout(() => { void pollPhase2(); }, 2500);
+            // Still composing - poll again, but stop if stale (no progress for 12 polls = 30s)
+            if (ready === 0) { stalePollCount++; } else { stalePollCount = 0; }
+            if (stalePollCount > 12) { progressWrap.style.display = 'none'; return; }
+            if (view.parentNode) setTimeout(() => { void pollPhase2(); }, 2500);
           } catch (_e2) {
             progressWrap.style.display = 'none';
           }
