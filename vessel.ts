@@ -227,6 +227,11 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .rdg-link.rdg-recent { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
 .cdp-surface .rdg-recent-date { color:var(--gold); font-size:12.5px; }
 .cdp-surface .rdg-recent-line { font-size:12px; font-style:italic; color:var(--text-muted); line-height:1.4; }
+.cdp-surface .rdg-insight { margin:0 0 10px; padding:10px 12px; border:1px solid rgba(201,160,80,.12); border-left:2px solid var(--teal); border-radius:3px; background:rgba(13,30,51,.6); }
+.cdp-surface .rdg-insight-label { font-family:Cinzel,Georgia,serif; font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--teal); margin-bottom:5px; }
+.cdp-surface .rdg-insight-text { font-size:12.5px; font-style:italic; color:var(--text-muted); line-height:1.55; }
+.cdp-surface .rdg-empty-state { font-size:12.5px; font-style:italic; color:var(--text-faint); line-height:1.6; padding:8px 2px; }
+.cdp-surface .rdg-empty-state em { color:var(--text-muted); }
 
 .cdp-surface .home { position:fixed; inset:58px 0 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:18px 20px 56px; text-align:center; overflow-y:auto; background-image:radial-gradient(1.5px 1.5px at 15% 12%, rgba(240,230,200,0.32), transparent 62%),radial-gradient(1px 1px at 32% 7%, rgba(240,230,200,0.22), transparent 62%),radial-gradient(1px 1px at 52% 14%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 72% 9%, rgba(240,230,200,0.28), transparent 62%),radial-gradient(1px 1px at 88% 16%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 8% 40%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.3px 1.3px at 22% 55%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 90% 46%, rgba(240,230,200,0.20), transparent 62%),radial-gradient(1px 1px at 12% 78%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.4px 1.4px at 40% 88%, rgba(240,230,200,0.26), transparent 62%),radial-gradient(1px 1px at 65% 82%, rgba(240,230,200,0.18), transparent 62%),radial-gradient(1.2px 1.2px at 84% 90%, rgba(240,230,200,0.24), transparent 62%),radial-gradient(1px 1px at 58% 60%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1px 1px at 78% 68%, rgba(240,230,200,0.16), transparent 62%),radial-gradient(1100px 720px at 50% 20%, rgba(28,50,82,0.50), transparent 72%); background-repeat:no-repeat; background-attachment:fixed; }
 .cdp-surface .naked-eye { font-family:'EB Garamond', Georgia, serif; font-size:21px; font-style:italic; color:var(--text-light); max-width:600px; margin:0 auto 14px; line-height:1.4; }
@@ -319,6 +324,7 @@ html, body { margin:0; background:#031831; }
 .cdp-surface .line.teal { border-left-color:var(--teal); }
 .cdp-surface .line .meta { display:block; font-size:11.5px; font-style:italic; color:var(--text-muted); margin-top:3px; }
 .cdp-surface .soft { font-size:12px; color:var(--text-muted); margin-top:8px; }
+.cdp-surface .soft em { color:var(--text-dim); font-style:italic; }
 .cdp-surface .synth-floor.demoted { display:none; }
 .cdp-surface .synth-floor.demoted.open { display:block; }
 .cdp-surface .synth-disclose { display:block; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-family:Georgia, serif; font-size:12px; color:var(--text-muted); padding:6px 0 4px 10px; margin-top:6px; transition:color .2s; }
@@ -1148,7 +1154,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const signals = repo.listSignals();
     const landed = signals.filter((s) => s.kind === 'landed');
     const items = repo.live().concat(repo.resting()).map((t) => (t.text || '').trim()).filter(Boolean);
-    if (items.length < 2 && landed.length < 3) return;
+    // Fire synthesis if there is any substance at all: the server also reads
+    // Supabase memory summaries, so even a single reading can produce a real link.
+    if (items.length < 1 && landed.length < 1) return;
 
     const byF: Record<string, number> = {};
     const byV: Record<string, number> = {};
@@ -1171,11 +1179,16 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     }
 
     const kp = await cdpUserKeyParts();
+    // Include recent reading summaries and prior synthesis observation so the server
+    // has the richest possible context, including what it previously identified as emerging.
+    const readingLines = repo.listReadings().slice(0, 16).map((r) => r.line).filter(Boolean);
+    const prevObservation = synthCache && synthCache.linked ? synthCache.observation : '';
     const payload = {
       lens,
       facts: { topVoice: top(byV), topFramework: top(byF), bridges, landedCount: landed.length },
       items: items.slice(0, 24),
-      readings: repo.listReadings().slice(0, 12).map((r) => r.line).filter(Boolean),
+      readings: readingLines,
+      prevObservation,
       ...kp.body,
     };
     try {
@@ -1220,7 +1233,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
   function patternsBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).patterns;
     const b = el('div');
-    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, a.lines[0])); void appendSynthesis(b); return b; }
+    if (!a.hasData) {
+      const eg = el('div', { class: 'line soft' });
+      eg.innerHTML = 'Patterns surface here from your readings, taps, and threads as the record builds. A mature record might read: <em>The theme of timing and decision under pressure has appeared in five of the last twelve readings. When you tap Tradition voice on days with master numbers, you rate the outcome higher.</em>';
+      b.appendChild(eg);
+      void appendSynthesis(b);
+      return b;
+    }
     const floor = el('div', { class: 'synth-floor' });
     for (const ln of a.lines) {
       const row = el('button', { type: 'button', class: 'line tappable', 'aria-label': 'Look closer at this pattern' }, ln);
@@ -1255,13 +1274,19 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const c = el('span', {}); c.appendChild(el('span', { class: 'key-dot', style: 'background:rgba(201,160,80,0.40)' })); c.appendChild(document.createTextNode('Consolidation'));
     key.appendChild(g); key.appendChild(c);
     b.appendChild(key);
-    b.appendChild(el('div', { class: 'line' }, a.hasData ? a.note : 'Your seasons, growth and consolidation, surface here from your recorded outcomes across the months. Drawn from your record, never a forecast.'));
+    const seasonNote = a.hasData ? a.note : 'Your seasons surface here from recorded outcomes across the months. A mature record might show: consecutive growth weeks in reading-heavy months, consolidation in high-pressure periods. Drawn from your record, never a forecast.';
+    b.appendChild(el('div', { class: 'line' }, seasonNote));
     return b;
   }
   function workingBody(): HTMLElement {
     const a = analyseRecord(repo.listSignals(), repo.live(), repo.resting(), Date.now()).working;
     const b = el('div');
-    if (!a.hasData) { b.appendChild(el('div', { class: 'line' }, 'What you set down, and what is still sitting, surface here as you hold and tend intentions. Drawn from your record, never a forecast.')); return b; }
+    if (!a.hasData) {
+      const eg = el('div', { class: 'line soft' });
+      eg.innerHTML = 'What you tend and complete surfaces here as you use CDP. A mature record might read: <em>Three threads resolved this month, one still sitting. Decision-making tends to improve in weeks when clarity readings are followed by action threads.</em>';
+      b.appendChild(eg);
+      return b;
+    }
     b.appendChild(el('div', { class: 'line' }, a.note));
     a.resolved.forEach((t) => b.appendChild(el('div', { class: 'line teal' }, t)));
     a.sitting.forEach((t) => b.appendChild(el('div', { class: 'line' }, t)));
@@ -1290,6 +1315,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     b.addEventListener('click', () => openCalendar());
     return b;
   }
+
+  // Pre-build patterns synthesis immediately on mount so it is ready when drawer opens.
+  // This fires in background and caches; the drawer render uses the cache.
+  setTimeout(() => { void appendSynthesis(document.createElement('div')); }, 1500);
 
   const leftSpec: Array<[string, HTMLElement]> = [
     ['What is live now', liveBody],
@@ -1418,6 +1447,13 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const recents = repo.listReadings();
     if (recents.length > 0) {
       list.appendChild(el('div', { class: 'rdg-head' }, 'Recent'));
+      // If synthesis has landed, show it as a brief insight at the top of Recent
+      if (synthCache && synthCache.linked && synthCache.observation) {
+        const insightEl = el('div', { class: 'rdg-insight' });
+        insightEl.appendChild(el('div', { class: 'rdg-insight-label' }, 'Across your readings'));
+        insightEl.appendChild(el('div', { class: 'rdg-insight-text' }, synthCache.observation));
+        list.appendChild(insightEl);
+      }
       for (const rec of recents.slice(0, 6)) {
         const label = new Date(rec.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
         const link = el('button', { type: 'button', class: 'rdg-link rdg-recent' });
@@ -1426,6 +1462,12 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
         link.addEventListener('click', () => openReadingFor(profile ?? null, 'Reading for ' + label, rec.date));
         list.appendChild(link);
       }
+    } else {
+      // New user empty state: show what a populated readings drawer looks like
+      list.appendChild(el('div', { class: 'rdg-head' }, 'Recent'));
+      const emptyMsg = el('div', { class: 'rdg-empty-state' });
+      emptyMsg.innerHTML = 'Your reading history builds here. A mature record surfaces patterns across readings: <em>recurring themes, your strongest days, what keeps returning under different skies.</em> Open today\u2019s reading to begin.';
+      list.appendChild(emptyMsg);
     }
     drawer.appendChild(list);
     pin.addEventListener('click', () => {
