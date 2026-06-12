@@ -2095,6 +2095,7 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     universal_year: string; kin: string; moon: string;
     is_gap: boolean; is_black_moon: boolean; is_shiva_moon: boolean;
     is_master_day: boolean; deadline: string;
+    hour?: number; time_of_day?: string; timezone?: string;
   }
   interface GreetingLast { text: string; summary: string; broughtIn: string[]; }
 
@@ -2113,6 +2114,10 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
     const desc = kinDescriptor(dateStr);
     const yearDigits = dateStr.slice(0, 4).split('').reduce((s, d) => s + Number(d), 0);
     const uy = reduceNumber(yearDigits);
+    const now = new Date();
+    const localHour = now.getHours();
+    const timeOfDay = localHour < 5 ? 'night' : localHour < 12 ? 'morning' : localHour < 17 ? 'afternoon' : localHour < 21 ? 'evening' : 'night';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     return {
       date_str: longDate(dateStr),
       personal_day: String(c.pd),
@@ -2125,6 +2130,9 @@ export async function mountVessel(options: VesselOptions): Promise<void> {
       is_shiva_moon: !!(lw && lw.shiva),
       is_master_day: !!c.pdMaster,
       deadline: '',
+      hour: localHour,
+      time_of_day: timeOfDay,
+      timezone: tz,
     };
   }
 
